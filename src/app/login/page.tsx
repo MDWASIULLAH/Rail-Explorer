@@ -16,6 +16,11 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
+  Copy,
+  Check,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 function GoogleIcon({ className = 'w-5 h-5' }: { className?: string }) {
@@ -41,35 +46,95 @@ function GoogleIcon({ className = 'w-5 h-5' }: { className?: string }) {
   );
 }
 
+function GitHubIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+      />
+    </svg>
+  );
+}
+
 function LoginCard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loginWithGoogle, loginWithSupabaseGoogle, loginAsDemo, logout, isLoading } = useAuth();
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    user,
+    loginWithGoogle,
+    loginWithGitHub,
+    loginWithSupabaseGoogle,
+    loginWithSupabaseGitHub,
+    loginAsDemo,
+    logout,
+    isLoading,
+  } = useAuth();
+
+  const [submittingGoogle, setSubmittingGoogle] = useState(false);
+  const [submittingGitHub, setSubmittingGitHub] = useState(false);
   const [method, setMethod] = useState<'direct' | 'supabase'>('direct');
+  const [copiedGoogle, setCopiedGoogle] = useState(false);
+  const [copiedGitHub, setCopiedGitHub] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(searchParams.get('error') || null);
 
   const returnTo = searchParams.get('returnTo') || searchParams.get('redirect') || '/';
 
+  const googleCallbackUrl = 'https://railexplorer.vercel.app/api/auth/callback/google';
+  const githubCallbackUrl = 'https://railexplorer.vercel.app/api/auth/callback/github';
+
   const handleGoogleSignIn = async () => {
     try {
-      setSubmitting(true);
+      setSubmittingGoogle(true);
       setErrorMsg(null);
 
       if (method === 'direct') {
-        // Direct Google OAuth 2.0 flow
         loginWithGoogle(returnTo);
       } else {
-        // Supabase Google Auth
         const result = await loginWithSupabaseGoogle(returnTo);
         if (result.error) {
           setErrorMsg(result.error);
-          setSubmitting(false);
+          setSubmittingGoogle(false);
         }
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to initiate Google sign-in');
-      setSubmitting(false);
+      setSubmittingGoogle(false);
+    }
+  };
+
+  const handleGitHubSignIn = async () => {
+    try {
+      setSubmittingGitHub(true);
+      setErrorMsg(null);
+
+      if (method === 'direct') {
+        loginWithGitHub(returnTo);
+      } else {
+        const result = await loginWithSupabaseGitHub(returnTo);
+        if (result.error) {
+          setErrorMsg(result.error);
+          setSubmittingGitHub(false);
+        }
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to initiate GitHub sign-in');
+      setSubmittingGitHub(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, type: 'google' | 'github') => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      if (type === 'google') {
+        setCopiedGoogle(true);
+        setTimeout(() => setCopiedGoogle(false), 2000);
+      } else {
+        setCopiedGitHub(true);
+        setTimeout(() => setCopiedGitHub(false), 2000);
+      }
     }
   };
 
@@ -89,13 +154,13 @@ function LoginCard() {
           Rail Explorer Account
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 mt-1.5 max-w-sm mx-auto">
-          Sign in with Google to sync live train status, saved rakes, PNR alerts, and 3D coach seat reservations.
+          Sign in to sync live train status, saved rakes, PNR alerts, and 3D coach seat reservations.
         </p>
       </div>
 
       {/* Main Auth Container */}
       <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-        {/* Subtle decorative gradient */}
+        {/* Subtle decorative glow */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -119,7 +184,7 @@ function LoginCard() {
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-white text-sm truncate">{user.name}</h3>
                   <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
-                    Active
+                    {user.provider}
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>
@@ -145,7 +210,7 @@ function LoginCard() {
             </div>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-4">
             {errorMsg && (
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -153,30 +218,129 @@ function LoginCard() {
                   <p className="font-semibold">Sign-in Notice</p>
                   <p className="text-rose-300/90 text-[11px] mt-0.5">
                     {errorMsg === 'google_token_exchange_failed'
-                      ? 'Google OAuth credentials verified. If redirect URI mismatch occurs in Google Cloud Console, add https://railexplorer.vercel.app/api/auth/callback/google.'
+                      ? 'Google OAuth credentials verified. Check redirect URI.'
                       : errorMsg}
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Primary Google Login Button */}
+            {/* 1. Continue with GitHub Button */}
+            <button
+              onClick={handleGitHubSignIn}
+              disabled={submittingGitHub || submittingGoogle || isLoading}
+              className="w-full group flex items-center justify-center gap-3 py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white font-bold text-sm border border-slate-700 shadow-lg hover:border-slate-600 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+            >
+              {submittingGitHub ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
+              ) : (
+                <GitHubIcon className="w-5 h-5 text-white" />
+              )}
+              <span>{submittingGitHub ? 'Connecting to GitHub...' : 'Continue with GitHub'}</span>
+            </button>
+
+            {/* 2. Continue with Google Button */}
             <button
               onClick={handleGoogleSignIn}
-              disabled={submitting || isLoading}
-              className="w-full group flex items-center justify-center gap-3 py-3.5 px-5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-xl shadow-slate-950/50 border border-slate-200 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+              disabled={submittingGoogle || submittingGitHub || isLoading}
+              className="w-full group flex items-center justify-center gap-3 py-3 px-5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-xl shadow-slate-950/50 border border-slate-200 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
             >
-              {submitting ? (
+              {submittingGoogle ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-700" />
               ) : (
                 <GoogleIcon className="w-5 h-5" />
               )}
-              <span>{submitting ? 'Connecting to Google...' : 'Continue with Google'}</span>
+              <span>{submittingGoogle ? 'Connecting to Google...' : 'Continue with Google'}</span>
             </button>
 
-            {/* Provider mode toggle for flexibility */}
+            {/* Google redirect_uri_mismatch Fix Guide Accordion */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowGuide(!showGuide)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] hover:bg-amber-500/15 transition"
+              >
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <HelpCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Fix &ldquo;Error 400: redirect_uri_mismatch&rdquo;</span>
+                </div>
+                {showGuide ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-amber-400" />
+                )}
+              </button>
+
+              {showGuide && (
+                <div className="mt-2 p-3 rounded-lg bg-slate-950/90 border border-slate-800 text-[11px] space-y-2.5">
+                  <p className="text-slate-300 leading-relaxed">
+                    Google blocks sign-in if your Google Cloud Console doesn&rsquo;t have the exact callback URL. Copy this URL:
+                  </p>
+
+                  <div className="flex items-center justify-between gap-2 p-2 rounded bg-slate-900 border border-slate-700">
+                    <code className="font-mono text-[10px] text-blue-300 break-all select-all">
+                      {googleCallbackUrl}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(googleCallbackUrl, 'google')}
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold"
+                    >
+                      {copiedGoogle ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span className="text-emerald-400">Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-slate-400 text-[10px] leading-relaxed">
+                    <strong>Instructions:</strong> Open{' '}
+                    <a
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 underline hover:text-blue-300"
+                    >
+                      Google Cloud Console Credentials
+                    </a>
+                    , click your Web Client ID, paste this into <strong>Authorized redirect URIs</strong>, and click <strong>Save</strong>.
+                  </p>
+
+                  <div className="border-t border-slate-800 pt-2">
+                    <p className="text-slate-400 text-[10px]">
+                      <strong>GitHub Callback URL:</strong>
+                    </p>
+                    <div className="flex items-center justify-between gap-2 p-1.5 rounded bg-slate-900 border border-slate-700 mt-1">
+                      <code className="font-mono text-[10px] text-slate-300 break-all select-all">
+                        {githubCallbackUrl}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(githubCallbackUrl, 'github')}
+                        className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold"
+                      >
+                        {copiedGitHub ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Provider mode toggle for direct vs Supabase */}
             <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-              <span>Auth Handler:</span>
+              <span>Auth Engine:</span>
               <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800">
                 <button
                   type="button"
@@ -187,7 +351,7 @@ function LoginCard() {
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Direct Google OAuth
+                  Direct OAuth 2.0
                 </button>
                 <button
                   type="button"
@@ -198,7 +362,7 @@ function LoginCard() {
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Supabase Google
+                  Supabase OAuth
                 </button>
               </div>
             </div>
@@ -211,7 +375,7 @@ function LoginCard() {
               <div className="flex-grow border-t border-slate-800"></div>
             </div>
 
-            {/* Instant Demo Sign In Button */}
+            {/* 3. Instant Demo Sign In Button */}
             <button
               onClick={handleDemoLogin}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700/80 transition"

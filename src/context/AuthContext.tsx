@@ -18,7 +18,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       if (profile) {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
-        // Also set client-readable cookie so SSR/API knows
         document.cookie = `rail_session=${encodeURIComponent(JSON.stringify(profile))}; path=/; max-age=2592000; SameSite=Lax`;
       } else {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -33,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initAuth() {
       try {
-        // 1. Check localStorage first for instant UI response
+        // 1. Check localStorage first
         if (typeof window !== 'undefined') {
           const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
           if (stored) {
@@ -52,12 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user && mounted) {
+            const provider = (session.user.app_metadata?.provider as any) || 'supabase';
             const sbUser: UserProfile = {
               id: session.user.id,
               email: session.user.email || '',
-              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Passenger',
-              avatarUrl: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
-              provider: 'supabase',
+              name:
+                session.user.user_metadata?.full_name ||
+                session.user.user_metadata?.name ||
+                session.user.user_metadata?.user_name ||
+                session.user.email?.split('@')[0] ||
+                'Passenger',
+              avatarUrl:
+                session.user.user_metadata?.avatar_url ||
+                session.user.user_metadata?.picture ||
+                '',
+              provider: provider === 'github' ? 'github' : 'supabase',
               createdAt: session.user.created_at,
             };
             persistSession(sbUser);
@@ -68,12 +76,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Listen for Supabase auth events
           supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
+              const provider = (session.user.app_metadata?.provider as any) || 'supabase';
               const sbUser: UserProfile = {
                 id: session.user.id,
                 email: session.user.email || '',
-                name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Passenger',
-                avatarUrl: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
-                provider: 'supabase',
+                name:
+                  session.user.user_metadata?.full_name ||
+                  session.user.user_metadata?.name ||
+                  session.user.user_metadata?.user_name ||
+                  session.user.email?.split('@')[0] ||
+                  'Passenger',
+                avatarUrl:
+                  session.user.user_metadata?.avatar_url ||
+                  session.user.user_metadata?.picture ||
+                  '',
+                provider: provider === 'github' ? 'github' : 'supabase',
                 createdAt: session.user.created_at,
               };
               persistSession(sbUser);
@@ -81,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
 
-        // 3. Fallback to /api/auth/me to check HTTP cookie
+        // 3. Fallback to /api/auth/me
         const res = await fetch('/api/auth/me');
         if (res.ok) {
           const data = await res.json();
@@ -105,10 +122,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [persistSession]);
 
-  // Standard Google OAuth redirect
+  // Google OAuth redirect
   const loginWithGoogle = useCallback((redirectTo?: string) => {
     const target = redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
     window.location.href = `/api/auth/google/start?returnTo=${encodeURIComponent(target)}`;
+  }, []);
+
+  // GitHub OAuth redirect
+  const loginWithGitHub = useCallback((redirectTo?: string) => {
+    const target = redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
+    window.location.href = `/api/auth/github/start?returnTo=${encodeURIComponent(target)}`;
   }, []);
 
   // Supabase Google OAuth
@@ -130,7 +153,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   }, []);
 
-  // Demo user login for testing without Google Cloud Console hurdles
+  // Supabase GitHub OAuth
+  const loginWithSupabaseGitHub = useCallback(async (redirectTo?: string) => {
+    if (!supabase) {
+      return { error: 'Supabase client is not configured' };
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://railexplorer.vercel.app';
+    const callbackUrl = `${origin}/auth/callback?returnTo=${encodeURIComponent(redirectTo || '/')}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: callbackUrl,
+      },
+    });
+    if (error) {
+      return { error: error.message };
+    }
+    return {};
+  }, []);
+
+  // Demo user login for testing
   const loginAsDemo = useCallback(() => {
     const demoUser: UserProfile = {
       id: 'demo_user_irctc',
@@ -165,7 +207,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isLoading,
         loginWithGoogle,
+        loginWithGitHub,
         loginWithSupabaseGoogle,
+        loginWithSupabaseGitHub,
         loginAsDemo,
         logout,
       }}
