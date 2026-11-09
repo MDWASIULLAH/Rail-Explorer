@@ -157,6 +157,7 @@ export default function TrainScene({
   const [skyMode, setSkyMode] = useState<'daylight' | 'sunset' | 'night'>('night');
   const [cameraPreset, setCameraPreset] = useState<'railfan' | 'full-rake' | 'coach'>('full-rake');
   const [isCaliperOpen, setIsCaliperOpen] = useState(false);
+  const [isExploded, setIsExploded] = useState(false);
 
   // Walkthrough Interactive States
   const [autoTour, setAutoTour] = useState(false);
@@ -385,6 +386,7 @@ export default function TrainScene({
               distanceToNextKm={distanceToNextKm}
               isAtStation={isAtStationState}
               showCouplerGaps={showCouplerGaps}
+              isExploded={isExploded}
             />
           ) : (
             selectedBlueprint && (
@@ -542,6 +544,20 @@ export default function TrainScene({
                 >
                   <span>💺</span>
                   <span className="hidden lg:inline">Coach</span>
+                </button>
+
+                {/* Auto Explode Rake Button */}
+                <button
+                  onClick={() => setIsExploded(!isExploded)}
+                  className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                    isExploded
+                      ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-md font-black animate-pulse'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Auto Explode Rake: Separate coaches with live HUD details"
+                >
+                  <span>💥</span>
+                  <span className="hidden lg:inline">{isExploded ? 'Exploded' : 'Explode'}</span>
                 </button>
               </div>
               <div className="h-3.5 w-px bg-slate-800 my-auto" />

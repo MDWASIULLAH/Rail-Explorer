@@ -35,6 +35,7 @@ interface FullTrainViewProps {
   isAtStation?: boolean;
   showStationEnvironment?: boolean;
   showCouplerGaps?: boolean;
+  isExploded?: boolean;
 }
 
 function getHindiStationName(name?: string): string {
@@ -478,6 +479,7 @@ export default function FullTrainView({
   isAtStation = false,
   showStationEnvironment = false,
   showCouplerGaps = true,
+  isExploded = false,
 }: FullTrainViewProps) {
   const { camera } = useThree();
   const sleepersGroupRef = useRef<THREE.Group>(null);
@@ -490,7 +492,8 @@ export default function FullTrainView({
   const sceneryOffset = useRef(0);
   const hillsOffset = useRef(0);
 
-  const coachSpacing = LHB_COACH_LENGTH_METERS + COUPLING_GAP_METERS;
+  const explodeExtra = isExploded ? 8.5 : 0;
+  const coachSpacing = LHB_COACH_LENGTH_METERS + COUPLING_GAP_METERS + explodeExtra;
 
   // Calculate physical 3D center positions for each coach along X axis
   const coachPositions = useMemo(() => {
@@ -821,22 +824,49 @@ export default function FullTrainView({
       {coachPositions.map((cp, i) => {
         const coach = coaches[i];
         return (
-          <CoachExterior
-            key={coach.coachId}
-            coachId={coach.coachId}
-            coachType={coach.coachType}
-            category={cp.category}
-            position={[cp.x, 0, 0]}
-            isSelected={selectedCoachId === coach.coachId}
-            isHighlighted={
-              highlightedCoachId === coach.coachId ||
-              distanceFrom === coach.coachId ||
-              distanceTo === coach.coachId
-            }
-            isMoving={isMoving}
-            speedKmph={speedKmph}
-            onClick={() => onCoachClick(coach.coachId)}
-          />
+          <group key={coach.coachId}>
+            <CoachExterior
+              coachId={coach.coachId}
+              coachType={coach.coachType}
+              category={cp.category}
+              position={[cp.x, 0, 0]}
+              isSelected={selectedCoachId === coach.coachId}
+              isHighlighted={
+                highlightedCoachId === coach.coachId ||
+                distanceFrom === coach.coachId ||
+                distanceTo === coach.coachId
+              }
+              isMoving={isMoving}
+              speedKmph={speedKmph}
+              onClick={() => onCoachClick(coach.coachId)}
+            />
+
+            {/* Floating 3D HUD Callout when Exploded */}
+            {isExploded && (
+              <group position={[cp.x, 4.2, 0]}>
+                <mesh position={[0, 0, 0]}>
+                  <planeGeometry args={[4.2, 1.8]} />
+                  <meshBasicMaterial color="#020617" transparent opacity={0.92} />
+                </mesh>
+                <mesh position={[0, 0, -0.01]}>
+                  <planeGeometry args={[4.28, 1.88]} />
+                  <meshBasicMaterial color="#3b82f6" />
+                </mesh>
+                <Text position={[0, 0.52, 0.02]} fontSize={0.38} color="#facc15" anchorX="center" anchorY="middle" fontWeight="bold">
+                  Coach {coach.coachId}
+                </Text>
+                <Text position={[0, 0.12, 0.02]} fontSize={0.24} color="#38bdf8" anchorX="center" anchorY="middle" fontWeight="bold">
+                  {cp.category} · {coach.coachType}
+                </Text>
+                <Text position={[0, -0.25, 0.02]} fontSize={0.18} color="#4ade80" anchorX="center" anchorY="middle" fontWeight="bold">
+                  {speedKmph} km/h · {effectiveAtStation ? (stationName || 'At Station') : `To ${nextStationName || 'Next'} (${distanceToNextKm || 10} km)`}
+                </Text>
+                <Text position={[0, -0.6, 0.02]} fontSize={0.14} color="#94a3b8" anchorX="center" anchorY="middle">
+                  Position #{coach.position} · LHB RDSO
+                </Text>
+              </group>
+            )}
+          </group>
         );
       })}
 
@@ -849,12 +879,14 @@ export default function FullTrainView({
         let nextLabel: string;
 
         if (i === 0) {
-          gapCenterX = LOCOMOTIVE_LENGTH_METERS + COUPLING_GAP_METERS / 2;
+          const firstCoachLeft = coachPositions[0].x - LHB_COACH_LENGTH_METERS / 2;
+          gapCenterX = (LOCOMOTIVE_LENGTH_METERS + firstCoachLeft) / 2;
           prevLabel = 'LOCO';
           nextLabel = cp.coachId;
         } else {
-          const prevCoachX = coachPositions[i - 1].x;
-          gapCenterX = prevCoachX + LHB_COACH_LENGTH_METERS / 2 + COUPLING_GAP_METERS / 2;
+          const prevCoachRight = coachPositions[i - 1].x + LHB_COACH_LENGTH_METERS / 2;
+          const currCoachLeft = cp.x - LHB_COACH_LENGTH_METERS / 2;
+          gapCenterX = (prevCoachRight + currCoachLeft) / 2;
           prevLabel = coachPositions[i - 1].coachId;
           nextLabel = cp.coachId;
         }
@@ -863,23 +895,27 @@ export default function FullTrainView({
           <group key={`gap-${i}`} position={[gapCenterX, 0, 0]}>
             {/* Centre Buffer Coupler (CBC) Tightlock Knuckle & Drawgear */}
             <mesh position={[0, -0.9, 0]} castShadow>
-              <boxGeometry args={[COUPLING_GAP_METERS + 0.1, 0.35, 0.45]} />
+              <boxGeometry args={[isExploded ? 2.5 : COUPLING_GAP_METERS + 0.1, 0.35, 0.45]} />
               <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.3} />
             </mesh>
 
-            {/* Flexible Corrugated Rubber Gangway Vestibule */}
-            <mesh position={[0, 0.1, 0]}>
-              <boxGeometry args={[COUPLING_GAP_METERS, 2.3, 1.25]} />
-              <meshStandardMaterial color="#020617" roughness={0.8} metalness={0.1} />
-            </mesh>
+            {/* Flexible Corrugated Rubber Gangway Vestibule (hidden in exploded view for clear gap) */}
+            {!isExploded && (
+              <>
+                <mesh position={[0, 0.1, 0]}>
+                  <boxGeometry args={[COUPLING_GAP_METERS, 2.3, 1.25]} />
+                  <meshStandardMaterial color="#020617" roughness={0.8} metalness={0.1} />
+                </mesh>
 
-            {/* Vestibule Corrugation Folds */}
-            {[-0.15, 0, 0.15].map((foldX, fi) => (
-              <mesh key={fi} position={[foldX, 0.1, 0]}>
-                <boxGeometry args={[0.04, 2.36, 1.32]} />
-                <meshStandardMaterial color="#1e293b" roughness={0.6} metalness={0.3} />
-              </mesh>
-            ))}
+                {/* Vestibule Corrugation Folds */}
+                {[-0.15, 0, 0.15].map((foldX, fi) => (
+                  <mesh key={fi} position={[foldX, 0.1, 0]}>
+                    <boxGeometry args={[0.04, 2.36, 1.32]} />
+                    <meshStandardMaterial color="#1e293b" roughness={0.6} metalness={0.3} />
+                  </mesh>
+                ))}
+              </>
+            )}
 
             {/* Inter-coach Air Brake Hoses & Feed Pipe */}
             {[-0.25, 0.25].map((hz, hi) => (
@@ -890,29 +926,30 @@ export default function FullTrainView({
             ))}
 
             {/* 3D Visual Metric Dimension Label above Coupler */}
-            {showCouplerGaps && (
-              <group position={[0, 2.2, 0]}>
+            {(showCouplerGaps || isExploded) && (
+              <group position={[0, isExploded ? 3.0 : 2.2, 0]}>
                 <mesh position={[0, 0, 0]}>
-                  <planeGeometry args={[1.3, 0.42]} />
-                  <meshBasicMaterial color="#0f172a" transparent opacity={0.88} />
+                  <planeGeometry args={[isExploded ? 2.2 : 1.3, 0.48]} />
+                  <meshBasicMaterial color="#0f172a" transparent opacity={0.92} />
                 </mesh>
                 <Text
                   position={[0, 0.06, 0.02]}
-                  fontSize={0.14}
-                  color="#38bdf8"
+                  fontSize={isExploded ? 0.2 : 0.14}
+                  color={isExploded ? '#f59e0b' : '#38bdf8'}
                   anchorX="center"
                   anchorY="middle"
+                  fontWeight="bold"
                 >
-                  0.60 m
+                  {isExploded ? '8.50 m (Exploded)' : '0.60 m'}
                 </Text>
                 <Text
-                  position={[0, -0.09, 0.02]}
+                  position={[0, -0.12, 0.02]}
                   fontSize={0.09}
                   color="#94a3b8"
                   anchorX="center"
                   anchorY="middle"
                 >
-                  CBC Gap
+                  {isExploded ? `${prevLabel} ➔ ${nextLabel}` : 'CBC Gap'}
                 </Text>
               </group>
             )}

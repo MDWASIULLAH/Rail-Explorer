@@ -1,4 +1,6 @@
 import SearchBar from '@/components/ui/SearchBar';
+import HeroTrainBackground from '@/components/home/HeroTrainBackground';
+import AutoExplodeShowcase from '@/components/home/AutoExplodeShowcase';
 import { Train, Eye, GitCompare, MapPin, BarChart3, Zap, Radio, Ticket, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -60,31 +62,30 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950/30 to-slate-950" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-500/5 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center">
+        {/* Animated 3D Running Train Background */}
+        <HeroTrainBackground />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 sm:pt-24 sm:pb-28">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-16 sm:pt-20 sm:pb-24 z-10 w-full">
           <div className="text-center max-w-3xl mx-auto">
             {/* Live Status Promo Badge */}
             <Link
               href="/live-status"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 rounded-full text-rose-400 text-xs font-semibold mb-6 transition-colors shadow-sm shadow-rose-900/30 group"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-rose-500/15 border border-rose-500/40 hover:bg-rose-500/25 rounded-full text-rose-300 text-xs font-bold mb-6 transition-colors shadow-lg shadow-rose-900/40 group backdrop-blur-md"
             >
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
               <span>NEW: Where Is My Train Live Status & Route Timeline</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-5 leading-tight tracking-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-5 leading-tight tracking-tight drop-shadow-md">
               Explore Your Train.{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400">
                 Track Live & View in 3D.
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed drop-shadow">
               Real-time running status, animated railway timeline, coach sequencing,
               platform locator, and realistic 3D interior seat exploration for Indian Railways.
             </p>
@@ -95,49 +96,25 @@ export default function HomePage() {
             </div>
 
             {/* Quick Live Tracking Links */}
-            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
-              <span className="text-slate-500">Live Popular Trains:</span>
-              <Link href="/live-status/18403" className="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300">
+              <span className="text-slate-400 font-semibold">Live Popular Trains:</span>
+              <Link href="/live-status/18403" className="px-2.5 py-1 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 transition shadow">
                 18403 Barbil Exp
               </Link>
-              <Link href="/live-status/12301" className="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+              <Link href="/live-status/12301" className="px-2.5 py-1 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 transition shadow">
                 12301 Howrah Rajdhani
               </Link>
-              <Link href="/live-status/12951" className="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+              <Link href="/live-status/12951" className="px-2.5 py-1 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 transition shadow">
                 12951 Mumbai Rajdhani
               </Link>
-              <Link href="/live-status/22436" className="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+              <Link href="/live-status/22436" className="px-2.5 py-1 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 transition shadow">
                 22436 Vande Bharat
               </Link>
             </div>
           </div>
 
-          {/* Train silhouette / decorative */}
-          <div className="mt-12 sm:mt-16 flex items-center justify-start sm:justify-center overflow-x-auto max-w-full pb-2 scrollbar-none touch-pan-x">
-            <div className="flex items-end gap-0.5">
-              {/* Locomotive */}
-              <div className="w-20 h-10 bg-gradient-to-r from-blue-700 to-blue-600 rounded-l-xl rounded-tr-lg relative">
-                <div className="absolute right-0 top-0 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
-              </div>
-              {/* Coaches */}
-              {['EOG', 'S1', 'S2', 'S3', 'B1', 'B2', 'A1', 'PC', 'S4', 'S5', 'EOG'].map((label, i) => {
-                const colors: Record<string, string> = {
-                  EOG: 'bg-slate-600', S1: 'bg-green-700', S2: 'bg-green-700', S3: 'bg-green-700',
-                  S4: 'bg-green-700', S5: 'bg-green-700',
-                  B1: 'bg-blue-800', B2: 'bg-blue-800',
-                  A1: 'bg-indigo-800', PC: 'bg-amber-800',
-                };
-                return (
-                  <div
-                    key={i}
-                    className={`w-14 h-8 ${colors[label] || 'bg-slate-700'} ${i === 10 ? 'rounded-r-xl' : ''} flex items-center justify-center text-[9px] font-bold text-white/70 border-r border-slate-900/30`}
-                  >
-                    {label}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* Interactive Auto-Explode Showcase Widget */}
+          <AutoExplodeShowcase />
         </div>
       </section>
 
