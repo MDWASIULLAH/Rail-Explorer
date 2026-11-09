@@ -1,0 +1,39 @@
+{
+  "name": "3dtrain-temp",
+  "version": "0.1.0",
+  "private": true,
+  "imports": {
+    "@/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test tests/live-tracking.test.js tests/verification.test.js",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "@types/leaflet": "^1.9.22",
+    "@types/three": "^0.187.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.70.0",
+    "maplibre-gl": "^6.17.0",
+    "next": "16.4.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "three": "^0.187.0",
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

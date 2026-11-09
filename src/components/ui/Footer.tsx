@@ -1,0 +1,52 @@
+'use client';
+
+import { Train } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+export default function Footer() {
+  const [year, setYear] = useState(2026);
+  useEffect(() => { setYear(new Date().getFullYear()); }, []);
+
+  return (
+    <footer className="bg-slate-950 border-t border-slate-800 mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                <Train className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-white">Rail Explorer</span>
+            </div>
+            <p className="text-sm text-slate-400">
+              An interactive Indian Railway platform to explore train composition,
+              3D coaches, and locate berths.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-white mb-3 text-sm">Data Sources</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Train data powered by Railway Engine API. Coach specifications based on RDSO
+              standards and verified technical references. 3D models are representative
+              approximations — not official RDSO drawings.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-white mb-3 text-sm">Disclaimer</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              This is an independent educational project. Not affiliated with Indian Railways,
+              IRCTC, or the Ministry of Railways. Dimensions and berth positions are approximate.
+              Always verify official information before travel.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
+          &copy; {year} Indian Railway 3D Explorer. Built with Next.js, Three.js, and Railway Engine API.
+        </div>
+      </div>
+    </footer>
+  );
+}
