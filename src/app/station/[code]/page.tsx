@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -51,7 +51,7 @@ const POPULAR_STATIONS = [
   { code: 'ANGL', name: 'Angul' },
 ];
 
-export default function StationBoardPage() {
+function StationBoardContent() {
   const params = useParams();
   const router = useRouter();
   const stationCode = ((params.code as string) || 'BBS').toUpperCase();
@@ -348,6 +348,23 @@ export default function StationBoardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StationBoardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+          <div className="flex items-center gap-2 text-sm">
+            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+            <span>Loading Station Departure Board...</span>
+          </div>
+        </div>
+      }
+    >
+      <StationBoardContent />
+    </Suspense>
   );
 }
 
