@@ -88,8 +88,9 @@ function LoginCard() {
     <div className="w-full max-w-md mx-auto">
       {/* Brand Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 border border-blue-400/30 shadow-xl shadow-blue-900/40 mb-4 ring-4 ring-blue-500/10">
-          <Train className="w-8 h-8 text-white drop-shadow" />
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/60 mb-4 ring-2 ring-blue-400/40 bg-slate-900">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.svg" alt="Rail Explorer Logo" className="w-full h-full object-cover" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
           Rail Explorer Account

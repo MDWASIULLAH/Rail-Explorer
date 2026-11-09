@@ -13,8 +13,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                <Train className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 border border-slate-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-icon.svg" alt="Rail Explorer" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-white">Rail Explorer</span>
             </div>

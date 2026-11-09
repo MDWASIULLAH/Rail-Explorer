@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1329" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="trainBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="35%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="windshieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#38bdf8" stroke-width="8" />
+
+  <!-- Converging Rails -->
+  <line x1="235" y1="380" x2="140" y2="480" stroke="#38bdf8" stroke-width="12" stroke-linecap="round" />
+  <line x1="277" y1="380" x2="372" y2="480" stroke="#38bdf8" stroke-width="12" stroke-linecap="round" />
+
+  <!-- Train Head -->
+  <path d="M188 380 L188 230 C188 150, 220 120, 256 120 C292 120, 324 150, 324 230 L324 380 Z" fill="url(#trainBodyGrad)" />
+  <path d="M208 225 C208 175, 228 155, 256 155 C284 155, 304 175, 304 225 C304 235, 298 240, 285 240 L227 240 C214 240, 208 235, 208 225 Z" fill="url(#windshieldGrad)" stroke="#60a5fa" stroke-width="6" />
+
+  <!-- Headlights -->
+  <circle cx="218" cy="305" r="16" fill="#f8fafc" />
+  <circle cx="294" cy="305" r="16" fill="#f8fafc" />
+  <circle cx="256" cy="140" r="12" fill="#fbbf24" />
+
+  <!-- Pilot Grille -->
+  <path d="M200 348 L312 348 L320 380 L192 380 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="4" />
+</svg>

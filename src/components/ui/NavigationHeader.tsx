@@ -78,8 +78,9 @@ export default function NavigationHeader() {
         <div className="flex items-center justify-between h-16 gap-2">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-shadow">
-              <Train className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-shadow ring-1 ring-blue-400/40 bg-slate-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-icon.svg" alt="Rail Explorer" className="w-full h-full object-cover" />
             </div>
             <div>
               <span className="font-bold text-white text-sm tracking-tight">Rail Explorer</span>
