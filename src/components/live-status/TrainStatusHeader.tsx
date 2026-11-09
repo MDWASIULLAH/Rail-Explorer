@@ -191,9 +191,26 @@ export default function TrainStatusHeader({
             </button>
           </div>
 
-          <div className="text-xs text-slate-400 flex items-center gap-1.5 sm:gap-2">
-            <span>Next: <strong className="text-white">{position.nextStationName}</strong></span>
-            <span className="font-mono text-amber-300 font-bold">({position.distanceToNextKm} km)</span>
+          <div className="text-xs text-slate-400 flex items-center gap-2 sm:gap-3 flex-wrap">
+            {/* Live Speed Pill in Header */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
+              <span className={`w-2 h-2 rounded-full ${position.isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <span className="text-[10px] uppercase font-bold text-slate-400">Speed:</span>
+              <span className="font-mono font-black text-amber-400 text-xs">{position.speedKmph ?? '--'} km/h</span>
+            </div>
+
+            {/* Passed Station Indicator */}
+            {!position.isAtStation && (
+              <span className="hidden md:inline text-emerald-400 font-medium">
+                Passed <strong>{position.distanceCoveredFromPrevKm} km</strong> past {position.previousStationName}
+              </span>
+            )}
+
+            {/* Next Station Proximity */}
+            <span>
+              Next: <strong className="text-white">{position.nextStationName}</strong>{' '}
+              <span className="font-mono text-amber-300 font-bold">({position.distanceToNextKm} km)</span>
+            </span>
           </div>
         </div>
       </div>

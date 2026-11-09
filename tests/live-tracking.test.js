@@ -63,6 +63,44 @@ test('Live Tracking Engine: Status & Timeline Calculations', async (t) => {
     assert.strictEqual(majorLate.text, 'Running late by 4h 6m');
   });
 
+  await t.test('Computes passedStationText, approachingStationText, and live velocity', () => {
+    const analysis = analyzeLiveJourney('18403', sampleTrain.trainName, sampleTrain, sampleStatus, 'Today');
+    const pos = analysis.position;
+    assert.ok(pos.passedStationText);
+    assert.ok(pos.passedStationText.includes('Passed') || pos.passedStationText.includes('Platform'));
+    assert.ok(pos.approachingStationText);
+    assert.ok(pos.approachingStationText.includes('km to'));
+    assert.ok(typeof pos.speedKmph === 'number');
+    assert.ok(pos.speedKmph > 0);
+  });
+
+  await t.test('Tracks Malwa Express (12919) with real corridor stations', () => {
+    const malwa = KNOWN_TRAINS['12919'];
+    assert.ok(malwa);
+    assert.strictEqual(malwa.origin.code, 'DADN');
+    assert.strictEqual(malwa.destination.code, 'SVDK');
+
+    const liveStatus12919 = {
+      trainNumber: '12919',
+      trainName: 'MALWA EXPRESS',
+      journeyDate: '2026-11-09',
+      status: 'RUNNING',
+      previousStation: { code: 'FDB', name: 'Faridabad' },
+      currentStation: { code: 'TKD', name: 'Tuglakabad' },
+      nextStation: { code: 'NZM', name: 'Hazrat Nizamuddin Jn' },
+      speedKmph: 95,
+      delayMinutes: 0,
+      routeProgress: { completedStops: 29, remainingStops: 21, totalStops: 50 },
+    };
+
+    const analysis = analyzeLiveJourney('12919', malwa.trainName, malwa, liveStatus12919, 'Today');
+    assert.strictEqual(analysis.position.previousStationCode, 'FDB');
+    assert.strictEqual(analysis.position.nextStationCode, 'TKD');
+    assert.strictEqual(analysis.position.speedKmph, 95);
+    assert.ok(analysis.position.passedStationText.includes('Faridabad'));
+    assert.ok(analysis.position.approachingStationText.includes('Tuglakabad') || analysis.position.approachingStationText.includes('TKD'));
+  });
+
   await t.test('Assigns verified coordinates to every station', () => {
     const analysis = analyzeLiveJourney('18403', sampleTrain.trainName, sampleTrain, sampleStatus, 'Today');
     for (const stn of analysis.timeline) {

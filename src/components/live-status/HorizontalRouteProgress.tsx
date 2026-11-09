@@ -42,17 +42,16 @@ export default function HorizontalRouteProgress({ journey }: HorizontalRouteProg
         </div>
 
         {/* Current Interim Position */}
-        <div className="order-last sm:order-none w-full sm:w-auto text-center bg-slate-950/70 py-1 sm:py-1.5 px-3 sm:px-4 rounded-xl border border-slate-800">
-          <div className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">
-            Current / Passing
+        <div className="order-last sm:order-none w-full sm:w-auto text-center bg-slate-950/70 py-1.5 sm:py-2 px-3 sm:px-5 rounded-xl border border-slate-800">
+          <div className="text-[9px] sm:text-[10px] text-emerald-400 uppercase tracking-wider font-bold">
+            {position.isAtStation ? 'Halted at Station' : `Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationCode}`}
           </div>
           <div className="text-xs sm:text-sm font-black text-amber-300 mt-0.5 flex items-center gap-1.5 justify-center">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            <span>{position.nextStationName}</span>
-            <span className="text-xs font-mono text-slate-400">({position.nextStationCode})</span>
+            <span>{position.isAtStation ? position.previousStationName : position.currentLocationText}</span>
           </div>
-          <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
-            {position.distanceToNextKm} km remaining
+          <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
+            {position.distanceToNextKm} km to {position.nextStationName} ({position.nextStationCode})
           </div>
         </div>
 
@@ -95,13 +94,13 @@ export default function HorizontalRouteProgress({ journey }: HorizontalRouteProg
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-3 border-t border-slate-800 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 pt-3 border-t border-slate-800 text-xs">
         <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80">
           <div className="text-slate-400">Total Distance</div>
           <div className="text-sm font-bold text-white mt-0.5 font-mono">{totalDistanceKm} km</div>
         </div>
         <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80">
-          <div className="text-slate-400">Covered</div>
+          <div className="text-slate-400">Passed / Covered</div>
           <div className="text-sm font-bold text-emerald-400 mt-0.5 font-mono">{coveredDistanceKm} km ({percent}%)</div>
         </div>
         <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80">
@@ -109,6 +108,13 @@ export default function HorizontalRouteProgress({ journey }: HorizontalRouteProg
           <div className="text-sm font-bold text-amber-400 mt-0.5 font-mono">{remainingDistanceKm} km</div>
         </div>
         <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80">
+          <div className="text-slate-400">Live Velocity</div>
+          <div className="text-sm font-bold text-amber-300 mt-0.5 font-mono flex items-center gap-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${position.isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span>{position.speedKmph ?? '--'} km/h</span>
+          </div>
+        </div>
+        <div className="col-span-2 sm:col-span-1 bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80">
           <div className="text-slate-400">Stops Completed</div>
           <div className="text-sm font-bold text-white mt-0.5 font-mono">{completedStops} / {totalStops}</div>
         </div>

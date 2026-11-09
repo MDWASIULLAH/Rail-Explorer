@@ -146,15 +146,15 @@ export default function LiveStatusFeed({
   const stn1Code = isAtOrigin ? origin.code : position.previousStationCode || origin.code;
   const stn1Pf = platformMap[stn1Code?.toUpperCase()] || firstHalt?.platform || 'PF 2';
   const stn1Time = firstHalt?.scheduledDeparture || '21:00';
-  const stn1Tag = isAtOrigin ? 'Journey Begins Here' : 'Departed';
+  const stn1Tag = isAtOrigin ? 'Journey Begins Here' : `Departed (${position.distanceCoveredFromPrevKm} km passed)`;
 
   // Station 2: Current Location
-  const stn2Label = 'CURRENT / NEAR';
+  const stn2Label = 'CURRENT LOCATION';
   const stn2Name = isAtOrigin
     ? origin.name
     : isAtStation
     ? position.currentStationName || origin.name
-    : `Between ${position.previousStationName} & ${position.nextStationName}`;
+    : position.currentLocationText || `Between ${position.previousStationName} & ${position.nextStationName}`;
   const stn2Code = isAtOrigin
     ? origin.code
     : isAtStation
@@ -164,7 +164,7 @@ export default function LiveStatusFeed({
     ? `Awaiting Departure · ${stn1Pf}`
     : isAtStation
     ? 'Halted at Platform'
-    : `${position.distanceToNextKm} km to ${position.nextStationName}`;
+    : `Passed ${position.distanceCoveredFromPrevKm} km · ${position.distanceToNextKm} km to ${position.nextStationName}`;
 
   // Station 3: Next Stop
   const stn3Label = 'NEXT STOP';
@@ -197,7 +197,7 @@ export default function LiveStatusFeed({
         pill: '● Halted at Station',
         tagBg: 'bg-amber-500/20 border-amber-500/40 text-amber-300',
         dot: 'bg-amber-400',
-        headline: `Currently at ${position.currentStationName || origin.name} · Scheduled Halt`,
+        headline: `Currently at ${position.currentStationName || origin.name} · Scheduled Platform Halt`,
       };
     }
     if (position.isDelayed) {
@@ -205,14 +205,14 @@ export default function LiveStatusFeed({
         pill: `● Delayed by ${position.delayMinutes}m`,
         tagBg: 'bg-rose-500/20 border-rose-500/40 text-rose-300',
         dot: 'bg-rose-400 animate-pulse',
-        headline: `Running late by ${position.delayMinutes} min · Cruising at ${displaySpeed} km/h`,
+        headline: `Running late by ${position.delayMinutes} min · Cruising at ${displaySpeed} km/h · Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationName}`,
       };
     }
     return {
       pill: '● Running On Time',
       tagBg: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
       dot: 'bg-emerald-400 animate-pulse',
-      headline: `Cruising at ${displaySpeed} km/h toward ${position.nextStationName}`,
+      headline: `Cruising at ${displaySpeed} km/h · Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationName} (${position.distanceToNextKm} km to ${position.nextStationName})`,
     };
   })();
 

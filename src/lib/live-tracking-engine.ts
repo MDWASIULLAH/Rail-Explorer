@@ -61,6 +61,10 @@ export interface LiveTrainPosition {
   lastUpdatedSecondsAgo: number | null;
   confidence: StatusConfidence;
   coordinates: [number, number]; // interpolated GPS coordinates
+  passedStationText: string;
+  approachingStationText: string;
+  currentLocationText: string;
+  liveStatusSummary: string;
 }
 
 export interface LiveJourneyAnalysis {
@@ -247,12 +251,39 @@ export function analyzeLiveJourney(
   const nextDist = nextStation.distance || prevDist + 40;
   const stretchTotalKm = Math.max(1, nextDist - prevDist);
 
-  // Position within stretch (e.g. 50% between prev and next when in transit)
-  const stretchProgressFactor = isAtStation
+  // Position within stretch: compute realistic fraction between prevStation and nextStation
+  let stretchProgressFactor = 0;
+  if (!isAtStation) {
+    if (timetableEstimate?.progress !== undefined && timetableEstimate.progress !== null) {
+      stretchProgressFactor = Math.min(0.95, Math.max(0.05, timetableEstimate.progress));
+    } else if (status?.currentStation?.code && status.currentStation.code !== prevStation.stationCode) {
+      // Current intermediate station reported by live feed (e.g. BEH Bagdihi between JSG and ROU)
+      const prevCoords = getStationCoordinates(prevStation.stationCode);
+      const nextCoords = getStationCoordinates(nextStation.stationCode);
+      const currCoords = getStationCoordinates(status.currentStation.code);
+
+      const dLatTotal = nextCoords[0] - prevCoords[0];
+      const dLngTotal = nextCoords[1] - prevCoords[1];
+      const totalDistSq = dLatTotal * dLatTotal + dLngTotal * dLngTotal;
+
+      if (totalDistSq > 0.00005) {
+        const dot = (currCoords[0] - prevCoords[0]) * dLatTotal + (currCoords[1] - prevCoords[1]) * dLngTotal;
+        const proj = dot / totalDistSq;
+        stretchProgressFactor = Math.min(0.92, Math.max(0.12, proj));
+      } else {
+        stretchProgressFactor = 0.5;
+      }
+    } else if (status?.status === 'RUNNING') {
+      stretchProgressFactor = 0.45;
+    }
+  }
+
+  const distanceCoveredFromPrevKm = isAtStation
     ? 0
-    : timetableEstimate?.progress ?? (status?.status === 'RUNNING' ? 0.5 : 0);
-  const distanceCoveredFromPrevKm = Math.round(stretchTotalKm * stretchProgressFactor);
-  const distanceToNextKm = Math.max(1, stretchTotalKm - distanceCoveredFromPrevKm);
+    : Math.max(1, Math.round(stretchTotalKm * stretchProgressFactor));
+  const distanceToNextKm = isAtStation
+    ? stretchTotalKm
+    : Math.max(1, stretchTotalKm - distanceCoveredFromPrevKm);
 
   const coveredDistanceKm = prevDist + distanceCoveredFromPrevKm;
   const remainingDistanceKm = Math.max(0, totalDistanceKm - coveredDistanceKm);
@@ -295,7 +326,7 @@ export function analyzeLiveJourney(
     trainLat = prevCoords[0] + (nextCoords[0] - prevCoords[0]) * stretchProgressFactor;
     trainLng = prevCoords[1] + (nextCoords[1] - prevCoords[1]) * stretchProgressFactor;
   } else if (status?.currentStation?.code && status.currentStation.code !== prevStation.stationCode) {
-    // Current intermediate passing station reported by provider (e.g. JUJA, HATB)
+    // Current intermediate passing station reported by provider (e.g. JUJA, HATB, BEH)
     const midCoords = getStationCoordinates(status.currentStation.code);
     trainLat = midCoords[0];
     trainLng = midCoords[1];
@@ -370,7 +401,8 @@ export function analyzeLiveJourney(
 
   // Compute realistic dynamic live speed
   const trainNumInt = parseInt(trainNumber.replace(/\D/g, '') || '18403', 10);
-  const baselineRunningSpeed = 85 + (trainNumInt % 9); // 85-93 km/h
+  const isSuperfast = trainNumber.startsWith('12') || trainNumber.startsWith('22');
+  const baselineRunningSpeed = isSuperfast ? 95 + (trainNumInt % 15) : 85 + (trainNumInt % 9);
   const timetableSpeed = timetableEstimate?.speedKmph ?? null;
   const calculatedSpeed = isAtStation
     ? 0
@@ -382,11 +414,28 @@ export function analyzeLiveJourney(
     ? baselineRunningSpeed
     : timetableSpeed ?? 0;
 
+  // Clear descriptive location and passing status text
+  const passedStationText = isAtStation
+    ? `Stationed at Platform · Scheduled Halt`
+    : `Passed ${distanceCoveredFromPrevKm} km past ${prevStation.stationName} (${prevStation.stationCode})`;
+
+  const approachingStationText = `${distanceToNextKm} km to ${nextStation.stationName} (${nextStation.stationCode}) · ETA ${nextEta}`;
+
+  const currentLocationText = isAtStation
+    ? `At ${prevStation.stationName} (${prevStation.stationCode})`
+    : status?.currentStation?.name && status.currentStation.name !== prevStation.stationName
+    ? `Near ${status.currentStation.name} (${status.currentStation.code})`
+    : `Between ${prevStation.stationCode} & ${nextStation.stationCode}`;
+
+  const liveStatusSummary = isAtStation
+    ? `Halted at ${prevStation.stationName} (${prevStation.stationCode}) · ${displayDelayText}`
+    : `Cruising at ${calculatedSpeed} km/h · Passed ${distanceCoveredFromPrevKm} km past ${prevStation.stationName} · Approaching ${nextStation.stationName} (${distanceToNextKm} km away)`;
+
   const position: LiveTrainPosition = {
     isMoving: (status?.status === 'RUNNING' || Boolean(timetableEstimate)) && !isAtStation,
     isAtStation,
-    currentStationCode: isAtStation ? prevStation.stationCode : null,
-    currentStationName: isAtStation ? prevStation.stationName : null,
+    currentStationCode: isAtStation ? prevStation.stationCode : (status?.currentStation?.code || null),
+    currentStationName: isAtStation ? prevStation.stationName : (status?.currentStation?.name || null),
     previousStationCode: prevStation.stationCode,
     previousStationName: prevStation.stationName,
     nextStationCode: nextStation.stationCode,
@@ -404,6 +453,10 @@ export function analyzeLiveJourney(
     lastUpdatedSecondsAgo: status?.freshness?.ageSeconds ?? null,
     confidence,
     coordinates: [parseFloat(trainLat.toFixed(4)), parseFloat(trainLng.toFixed(4))],
+    passedStationText,
+    approachingStationText,
+    currentLocationText,
+    liveStatusSummary,
   };
 
   return {

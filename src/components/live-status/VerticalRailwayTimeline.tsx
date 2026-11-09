@@ -116,8 +116,9 @@ export default function VerticalRailwayTimeline({
           const isPrev = station.stationCode === position.previousStationCode;
           const isPassingHalt = Boolean(station.isPassingHalt);
 
-          // Check if train is currently between this station and the next
+          // Check if train is currently between this station and the next, or halted here
           const isTrainJustPastThis = isPrev && !position.isAtStation;
+          const isTrainHaltedHere = (isCurrent || station.stationCode === position.currentStationCode) && position.isAtStation;
 
           return (
             <React.Fragment key={station.stationCode}>
@@ -131,6 +132,8 @@ export default function VerticalRailwayTimeline({
                     ? 'bg-blue-600/15 border border-blue-500/40'
                     : isNext
                     ? 'bg-amber-500/10 border border-amber-500/20'
+                    : isTrainHaltedHere
+                    ? 'bg-amber-500/15 border-2 border-amber-400/60 shadow-lg'
                     : isPassingHalt
                     ? 'hover:bg-slate-850/50 opacity-90'
                     : 'hover:bg-slate-800/40'
@@ -161,7 +164,12 @@ export default function VerticalRailwayTimeline({
 
                   {/* Station Marker Node */}
                   <div className="relative z-10 flex items-center justify-center">
-                    {isPassingHalt ? (
+                    {isTrainHaltedHere ? (
+                      // Locomotive at station
+                      <div className="w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-bold ring-4 ring-amber-400/40 shadow-xl scale-125">
+                        <TrainIcon className="w-3.5 h-3.5 text-slate-950" />
+                      </div>
+                    ) : isPassingHalt ? (
                       // Small Intermediate Station Dot
                       <div
                         className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border transition-all ${
@@ -200,7 +208,9 @@ export default function VerticalRailwayTimeline({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className={`truncate ${
-                          isPassingHalt
+                          isTrainHaltedHere
+                            ? 'text-sm font-black text-amber-300'
+                            : isPassingHalt
                             ? 'text-xs text-slate-300 font-medium'
                             : isNext
                             ? 'text-sm font-black text-amber-300'
@@ -219,6 +229,13 @@ export default function VerticalRailwayTimeline({
                         </span>
                       )}
 
+                      {/* Train Halted Here Badge */}
+                      {isTrainHaltedHere && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                          ● Train Here Now
+                        </span>
+                      )}
+
                       {/* Day Pill */}
                       {idx > 0 && station.day > 1 && station.day !== displayStations[idx - 1]?.day && (
                         <span className="px-1.5 py-0.2 rounded bg-rose-900/60 border border-rose-700 text-[10px] text-rose-300 font-bold">
@@ -228,10 +245,15 @@ export default function VerticalRailwayTimeline({
                     </div>
 
                     {!isPassingHalt && (
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 flex-wrap">
                         <span className="text-[11px] font-semibold text-sky-400">{station.platform}</span>
                         {station.haltMinutes > 0 && (
                           <span className="text-[10px] text-slate-500">· Halt: {station.haltMinutes}m</span>
+                        )}
+                        {isCompleted && isPrev && !position.isAtStation && (
+                          <span className="text-[10px] font-semibold text-emerald-400">
+                            · Departed ({position.distanceCoveredFromPrevKm} km passed)
+                          </span>
                         )}
                       </div>
                     )}
@@ -289,40 +311,51 @@ export default function VerticalRailwayTimeline({
                     </div>
 
                     {/* Speech Bubble Tooltip matching Where Is My Train */}
-                    <div className="bg-gradient-to-r from-emerald-700 to-emerald-600 text-white rounded-xl sm:rounded-2xl py-2 sm:py-3 px-3 sm:px-4 shadow-2xl border border-emerald-400/50 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 flex-1 min-w-0">
-                      {/* Left: Distance & Next Station */}
-                      <div className="min-w-0">
-                        <div className="text-xs sm:text-sm font-black tracking-wide text-white truncate">
-                          {position.distanceToNextKm} km to {position.nextStationName}
+                    <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white rounded-xl sm:rounded-2xl py-2.5 sm:py-3.5 px-3.5 sm:px-5 shadow-2xl border border-emerald-400/50 flex flex-wrap items-center justify-between gap-3 sm:gap-4 flex-1 min-w-0">
+                      {/* Left: Passed Distance, Where It Is, and Next Station */}
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs sm:text-sm font-black tracking-wide text-white">
+                            Passed {position.distanceCoveredFromPrevKm} km past {position.previousStationName}
+                          </span>
+                          <span className="text-xs text-emerald-200">→</span>
+                          <span className="text-xs sm:text-sm font-bold text-amber-300">
+                            {position.distanceToNextKm} km to {position.nextStationName}
+                          </span>
                         </div>
-                        <div className="text-[10px] sm:text-xs text-emerald-100 flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 truncate">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-emerald-300 shrink-0" />
-                            <span>{position.lastUpdatedSecondsAgo === null ? 'Update time unavailable' : `Updated ${position.lastUpdatedSecondsAgo}s ago`}</span>
+
+                        <div className="text-[11px] sm:text-xs text-emerald-100 flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-emerald-200 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-600/40">
+                            Location: {position.currentLocationText}
                           </span>
                           <span>·</span>
-                          <span className="font-semibold">
-                            {position.isMoving ? 'Cruising' : 'Halted'}
+                          <span className="text-amber-200 font-mono font-bold">
+                            ETA @ {position.nextStationEta}
+                          </span>
+                          <span>·</span>
+                          <span className="flex items-center gap-1 text-slate-300">
+                            <Clock className="w-3 h-3 text-emerald-300 shrink-0" />
+                            <span>{position.lastUpdatedSecondsAgo === null ? 'Updated just now' : `Updated ${position.lastUpdatedSecondsAgo}s ago`}</span>
                           </span>
                         </div>
                       </div>
 
                       {/* Right: Prominent Large Speedometer */}
                       <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
-                        <div className="bg-emerald-950/70 border border-emerald-500/40 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl text-center shadow-inner">
-                          <span className="text-[8px] sm:text-[9px] uppercase font-bold text-emerald-300 block tracking-wider">
-                            LIVE SPEED
+                        <div className="bg-emerald-950/90 border border-emerald-500/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-center shadow-inner">
+                          <span className="text-[9px] uppercase font-bold text-emerald-300 block tracking-wider">
+                            LIVE VELOCITY
                           </span>
                           <div className="flex items-baseline justify-center gap-0.5 sm:gap-1">
-                            <span className="text-lg sm:text-2xl font-black text-amber-300 font-mono tracking-tight leading-none">
+                            <span className="text-xl sm:text-3xl font-black text-amber-300 font-mono tracking-tight leading-none">
                               {position.speedKmph ?? '--'}
                             </span>
-                            <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-200">km/h</span>
+                            <span className="text-[10px] sm:text-xs uppercase font-bold text-emerald-200">km/h</span>
                           </div>
                         </div>
 
-                        <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg bg-emerald-800/90 font-bold uppercase tracking-wider text-emerald-200 border border-emerald-600">
-                          {position.confidence === 'GPS_REPORTED' ? 'GPS Live' : 'Estimated'}
+                        <span className="text-[9px] sm:text-[10px] px-2 py-1 rounded-lg bg-emerald-900/90 font-bold uppercase tracking-wider text-emerald-200 border border-emerald-600">
+                          {position.confidence === 'GPS_REPORTED' ? 'GPS Satellite' : 'Live Speed'}
                         </span>
                       </div>
                     </div>

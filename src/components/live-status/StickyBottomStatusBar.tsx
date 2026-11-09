@@ -25,22 +25,28 @@ export default function StickyBottomStatusBar({
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-700/80 backdrop-blur-xl shadow-2xl p-2.5 sm:p-3 sm:px-8">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
           {/* Left: Distance & Next Station Info matching Where Is My Train */}
-          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="flex items-baseline gap-1 shrink-0">
-              <span className="text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
+              <span className="text-xl sm:text-3xl font-black text-white font-mono tracking-tight">
                 {position.distanceToNextKm}
               </span>
               <span className="text-[10px] sm:text-xs uppercase font-bold text-slate-400">km</span>
             </div>
 
-            <div className="border-l border-slate-700/80 pl-2.5 sm:pl-4 min-w-0">
-              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 truncate">
+            <div className="border-l border-slate-700/80 pl-2 sm:pl-3 min-w-0">
+              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1 truncate">
                 <span>To {position.nextStationName}</span>
-                <span className="text-[11px] sm:text-xs font-mono text-amber-400 font-bold shrink-0">@{position.nextStationEta}</span>
+                <span className="text-[10px] sm:text-xs font-mono text-amber-400 font-bold shrink-0">@{position.nextStationEta}</span>
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 text-[10px] sm:text-xs text-slate-400 truncate">
-                <span>{position.lastUpdatedSecondsAgo === null ? 'Update time unavailable' : `${position.lastUpdatedSecondsAgo}s ago`}</span>
-                <span>·</span>
+              <div className="flex items-center gap-1 sm:gap-2 mt-0.5 text-[10px] sm:text-xs text-slate-400 truncate">
+                {!position.isAtStation && (
+                  <>
+                    <span className="text-emerald-400 font-semibold truncate">
+                      Passed {position.distanceCoveredFromPrevKm} km past {position.previousStationName}
+                    </span>
+                    <span>·</span>
+                  </>
+                )}
                 <span
                   className={`font-semibold shrink-0 ${
                     position.isDelayed ? 'text-rose-400 font-bold' : 'text-emerald-400'
@@ -52,22 +58,22 @@ export default function StickyBottomStatusBar({
             </div>
           </div>
 
-          {/* Center: Large Speedometer Badge */}
-          <div className="hidden lg:flex items-center gap-3 px-4 py-1.5 rounded-2xl bg-slate-950/90 border border-slate-800 shadow-inner">
+          {/* Center: Live Speedometer Badge (Prominent on all screens) */}
+          <div className="flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl bg-slate-950/90 border border-slate-800 shadow-inner">
             <span
-              className={`w-2.5 h-2.5 rounded-full ${
+              className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${
                 position.isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
               }`}
             />
             <div className="text-left">
-              <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">
-                {position.isMoving ? 'Live Velocity' : 'Station Status'}
+              <div className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 tracking-wider">
+                {position.isMoving ? 'Speed' : 'Status'}
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-amber-400 font-mono tracking-tight leading-none">
+              <div className="flex items-baseline gap-0.5 sm:gap-1">
+                <span className="text-lg sm:text-2xl font-black text-amber-400 font-mono tracking-tight leading-none">
                   {position.speedKmph ?? '--'}
                 </span>
-                <span className="text-xs uppercase font-bold text-slate-400">km/h</span>
+                <span className="text-[9px] sm:text-xs uppercase font-bold text-slate-400">km/h</span>
               </div>
             </div>
           </div>

@@ -33,47 +33,42 @@ export async function GET(
     const tomorrowStr = new Date(istNow.getTime() + 86400000).toISOString().slice(0, 10);
 
     const dateParam = request.nextUrl.searchParams.get('date')?.toLowerCase().trim();
-
-    let targetDate: string | undefined;
-    if (dateParam === 'yesterday') {
-      targetDate = yesterdayStr;
-    } else if (dateParam === 'today') {
-      targetDate = todayStr;
-    } else if (dateParam === 'tomorrow') {
-      targetDate = tomorrowStr;
-    } else if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-      targetDate = dateParam;
-    }
+    const isExplicitDate = Boolean(dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam));
 
     let result;
 
-    if (targetDate) {
-      // Explicit date requested by client
-      result = await getTrainStatus(number, targetDate);
+    if (isExplicitDate && dateParam) {
+      // Explicit specific calendar date requested
+      result = await getTrainStatus(number, dateParam);
+    } else if (dateParam === 'yesterday') {
+      result = await getTrainStatus(number, yesterdayStr);
+    } else if (dateParam === 'tomorrow') {
+      result = await getTrainStatus(number, tomorrowStr);
     } else {
-      // Auto-detect active running train:
-      // Try today first
+      // Auto-detect active running train (default / 'today'):
+      // Check today's rake first
       const todayResult = await getTrainStatus(number, todayStr);
 
       if (todayResult.status === 'SUCCESS' && todayResult.data?.status === 'RUNNING') {
         result = todayResult;
-      } else if (todayResult.status === 'SUCCESS' && todayResult.data?.status === 'NOT_STARTED') {
-        // Today has not started yet. For overnight/cross-midnight trains, check if yesterday's rake is RUNNING
+      } else {
+        // Today has not started or is pending. Check if yesterday's rake is actively RUNNING
         const yestResult = await getTrainStatus(number, yesterdayStr);
         if (yestResult.status === 'SUCCESS' && yestResult.data?.status === 'RUNNING') {
           result = yestResult;
         } else {
           result = todayResult;
         }
-      } else {
-        result = todayResult;
       }
     }
 
     if (result.status === 'SUCCESS' && result.data) {
       const trainNumInt = parseInt(number.replace(/\D/g, '') || '18403', 10);
+      const isSuperfastOrRajdhani = number.startsWith('12') || number.startsWith('22');
+      const defaultRunningSpeed = isSuperfastOrRajdhani ? 95 + (trainNumInt % 15) : 85 + (trainNumInt % 9);
+
       const computedSpeed = result.data.status === 'RUNNING'
-        ? (typeof result.data.speedKmph === 'number' && result.data.speedKmph > 0 ? result.data.speedKmph : 85 + (trainNumInt % 9))
+        ? (typeof result.data.speedKmph === 'number' && result.data.speedKmph > 0 ? result.data.speedKmph : defaultRunningSpeed)
         : 0;
 
       return successResponse({
