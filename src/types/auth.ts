@@ -3,17 +3,14 @@ export interface UserProfile {
   email: string;
   name: string;
   avatarUrl?: string;
-  provider: 'google' | 'github' | 'supabase' | 'demo';
+  provider: 'google' | 'github' | 'supabase';
   createdAt?: string;
 }
 
 export interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
-  loginWithGoogle: (redirectTo?: string) => void;
-  loginWithGitHub: (redirectTo?: string) => void;
-  loginWithSupabaseGoogle: (redirectTo?: string) => Promise<{ error?: string }>;
-  loginWithSupabaseGitHub: (redirectTo?: string) => Promise<{ error?: string }>;
-  loginAsDemo: () => void;
+  loginWithGoogle: (redirectTo?: string) => Promise<void>;
+  loginWithGitHub: (redirectTo?: string) => Promise<void>;
   logout: () => Promise<void>;
 }

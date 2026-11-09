@@ -8,7 +8,7 @@ import { Train, Loader2 } from 'lucide-react';
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<string>('Verifying Google credentials with Indian Railways Platform...');
+  const [status, setStatus] = useState<string>('Verifying credentials with Indian Railways Platform...');
 
   useEffect(() => {
     async function handleAuth() {
@@ -18,6 +18,18 @@ function CallbackContent() {
       }
 
       try {
+        const returnTo = searchParams.get('returnTo') || '/';
+        const code = searchParams.get('code');
+
+        // If PKCE authorization code is present in query, exchange it
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.error('[Supabase exchange error]', exchangeError);
+          }
+        }
+
+        // Check if session is established
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('[Supabase callback error]', error);
@@ -27,12 +39,11 @@ function CallbackContent() {
 
         if (session) {
           setStatus('Authentication verified. Redirecting to your dashboard...');
-          const returnTo = searchParams.get('returnTo') || '/';
           router.replace(returnTo);
           return;
         }
 
-        // Wait a second for hash parsing
+        // Wait a moment for hash token parsing fallback
         setTimeout(async () => {
           if (!supabase) {
             router.replace('/');
@@ -40,11 +51,11 @@ function CallbackContent() {
           }
           const { data: { session: retrySession } } = await supabase.auth.getSession();
           if (retrySession) {
-            router.replace(searchParams.get('returnTo') || '/');
+            router.replace(returnTo);
           } else {
             router.replace('/login');
           }
-        }, 1200);
+        }, 1000);
       } catch (err: any) {
         console.error('[Auth Exception]', err);
         router.replace('/login');
@@ -70,11 +81,13 @@ function CallbackContent() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-[70vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+        </div>
+      }
+    >
       <CallbackContent />
     </Suspense>
   );

@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // 2. Check Supabase session if initialized
+        // 2. Check Supabase session
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user && mounted) {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 session.user.user_metadata?.avatar_url ||
                 session.user.user_metadata?.picture ||
                 '',
-              provider: provider === 'github' ? 'github' : 'supabase',
+              provider: provider === 'github' ? 'github' : provider === 'google' ? 'google' : 'supabase',
               createdAt: session.user.created_at,
             };
             persistSession(sbUser);
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
-          // Listen for Supabase auth events
+          // Listen for Supabase auth state change events
           supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
               const provider = (session.user.app_metadata?.provider as any) || 'supabase';
@@ -90,10 +90,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   session.user.user_metadata?.avatar_url ||
                   session.user.user_metadata?.picture ||
                   '',
-                provider: provider === 'github' ? 'github' : 'supabase',
+                provider: provider === 'github' ? 'github' : provider === 'google' ? 'google' : 'supabase',
                 createdAt: session.user.created_at,
               };
               persistSession(sbUser);
+            } else if (_event === 'SIGNED_OUT') {
+              persistSession(null);
             }
           });
         }
@@ -122,68 +124,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [persistSession]);
 
-  // Google OAuth redirect
-  const loginWithGoogle = useCallback((redirectTo?: string) => {
-    const target = redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
-    window.location.href = `/api/auth/google/start?returnTo=${encodeURIComponent(target)}`;
-  }, []);
-
-  // GitHub OAuth redirect
-  const loginWithGitHub = useCallback((redirectTo?: string) => {
-    const target = redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
-    window.location.href = `/api/auth/github/start?returnTo=${encodeURIComponent(target)}`;
-  }, []);
-
-  // Supabase Google OAuth
-  const loginWithSupabaseGoogle = useCallback(async (redirectTo?: string) => {
+  // Google OAuth via Supabase
+  const loginWithGoogle = useCallback(async (redirectTo?: string) => {
     if (!supabase) {
-      return { error: 'Supabase client is not configured' };
+      console.error('[Auth] Supabase client is not available');
+      return;
     }
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://railexplorer.vercel.app';
     const callbackUrl = `${origin}/auth/callback?returnTo=${encodeURIComponent(redirectTo || '/')}`;
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: callbackUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
       },
     });
     if (error) {
-      return { error: error.message };
+      console.error('[Supabase Google Error]', error.message);
+      throw error;
     }
-    return {};
+    if (data?.url) {
+      window.location.href = data.url;
+    }
   }, []);
 
-  // Supabase GitHub OAuth
-  const loginWithSupabaseGitHub = useCallback(async (redirectTo?: string) => {
+  // GitHub OAuth via Supabase
+  const loginWithGitHub = useCallback(async (redirectTo?: string) => {
     if (!supabase) {
-      return { error: 'Supabase client is not configured' };
+      console.error('[Auth] Supabase client is not available');
+      return;
     }
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://railexplorer.vercel.app';
     const callbackUrl = `${origin}/auth/callback?returnTo=${encodeURIComponent(redirectTo || '/')}`;
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
         redirectTo: callbackUrl,
       },
     });
     if (error) {
-      return { error: error.message };
+      console.error('[Supabase GitHub Error]', error.message);
+      throw error;
     }
-    return {};
+    if (data?.url) {
+      window.location.href = data.url;
+    }
   }, []);
-
-  // Demo user login for testing
-  const loginAsDemo = useCallback(() => {
-    const demoUser: UserProfile = {
-      id: 'demo_user_irctc',
-      email: 'passenger@railexplorer.in',
-      name: 'Mohammad Wasiullah',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
-      provider: 'demo',
-      createdAt: new Date().toISOString(),
-    };
-    persistSession(demoUser);
-  }, [persistSession]);
 
   const logout = useCallback(async () => {
     try {
@@ -195,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.auth.signOut();
       } catch {
-        // Ignore errors
+        // Ignore
       }
     }
     persistSession(null);
@@ -208,9 +197,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         loginWithGoogle,
         loginWithGitHub,
-        loginWithSupabaseGoogle,
-        loginWithSupabaseGitHub,
-        loginAsDemo,
         logout,
       }}
     >

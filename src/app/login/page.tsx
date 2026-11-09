@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -10,17 +10,11 @@ import {
   Radio,
   MapPin,
   Ticket,
-  Sparkles,
   ArrowRight,
   LogOut,
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Copy,
-  Check,
-  HelpCircle,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 
 function GoogleIcon({ className = 'w-5 h-5' }: { className?: string }) {
@@ -59,88 +53,35 @@ function GitHubIcon({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 function LoginCard() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const {
-    user,
-    loginWithGoogle,
-    loginWithGitHub,
-    loginWithSupabaseGoogle,
-    loginWithSupabaseGitHub,
-    loginAsDemo,
-    logout,
-    isLoading,
-  } = useAuth();
+  const { user, loginWithGoogle, loginWithGitHub, logout, isLoading } = useAuth();
 
   const [submittingGoogle, setSubmittingGoogle] = useState(false);
   const [submittingGitHub, setSubmittingGitHub] = useState(false);
-  const [method, setMethod] = useState<'direct' | 'supabase'>('direct');
-  const [copiedGoogle, setCopiedGoogle] = useState(false);
-  const [copiedGitHub, setCopiedGitHub] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(searchParams.get('error') || null);
 
   const returnTo = searchParams.get('returnTo') || searchParams.get('redirect') || '/';
-
-  const googleCallbackUrl = 'https://railexplorer.vercel.app/api/auth/callback/google';
-  const githubCallbackUrl = 'https://railexplorer.vercel.app/api/auth/callback/github';
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setSubmittingGoogle(true);
-      setErrorMsg(null);
-
-      if (method === 'direct') {
-        loginWithGoogle(returnTo);
-      } else {
-        const result = await loginWithSupabaseGoogle(returnTo);
-        if (result.error) {
-          setErrorMsg(result.error);
-          setSubmittingGoogle(false);
-        }
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to initiate Google sign-in');
-      setSubmittingGoogle(false);
-    }
-  };
 
   const handleGitHubSignIn = async () => {
     try {
       setSubmittingGitHub(true);
       setErrorMsg(null);
-
-      if (method === 'direct') {
-        loginWithGitHub(returnTo);
-      } else {
-        const result = await loginWithSupabaseGitHub(returnTo);
-        if (result.error) {
-          setErrorMsg(result.error);
-          setSubmittingGitHub(false);
-        }
-      }
+      await loginWithGitHub(returnTo);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to initiate GitHub sign-in');
+      setErrorMsg(err.message || 'Failed to connect with GitHub');
       setSubmittingGitHub(false);
     }
   };
 
-  const copyToClipboard = (text: string, type: 'google' | 'github') => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      if (type === 'google') {
-        setCopiedGoogle(true);
-        setTimeout(() => setCopiedGoogle(false), 2000);
-      } else {
-        setCopiedGitHub(true);
-        setTimeout(() => setCopiedGitHub(false), 2000);
-      }
+  const handleGoogleSignIn = async () => {
+    try {
+      setSubmittingGoogle(true);
+      setErrorMsg(null);
+      await loginWithGoogle(returnTo);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to connect with Google');
+      setSubmittingGoogle(false);
     }
-  };
-
-  const handleDemoLogin = () => {
-    loginAsDemo();
-    router.push(returnTo);
   };
 
   return (
@@ -160,7 +101,7 @@ function LoginCard() {
 
       {/* Main Auth Container */}
       <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-        {/* Subtle decorative glow */}
+        {/* Decorative subtle background blur */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -210,17 +151,13 @@ function LoginCard() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {errorMsg && (
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="font-semibold">Sign-in Notice</p>
-                  <p className="text-rose-300/90 text-[11px] mt-0.5">
-                    {errorMsg === 'google_token_exchange_failed'
-                      ? 'Google OAuth credentials verified. Check redirect URI.'
-                      : errorMsg}
-                  </p>
+                  <p className="text-rose-300/90 text-[11px] mt-0.5">{errorMsg}</p>
                 </div>
               </div>
             )}
@@ -253,139 +190,8 @@ function LoginCard() {
               <span>{submittingGoogle ? 'Connecting to Google...' : 'Continue with Google'}</span>
             </button>
 
-            {/* Google redirect_uri_mismatch Fix Guide Accordion */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => setShowGuide(!showGuide)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] hover:bg-amber-500/15 transition"
-              >
-                <div className="flex items-center gap-1.5 font-semibold">
-                  <HelpCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Fix &ldquo;Error 400: redirect_uri_mismatch&rdquo;</span>
-                </div>
-                {showGuide ? (
-                  <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-amber-400" />
-                )}
-              </button>
-
-              {showGuide && (
-                <div className="mt-2 p-3 rounded-lg bg-slate-950/90 border border-slate-800 text-[11px] space-y-2.5">
-                  <p className="text-slate-300 leading-relaxed">
-                    Google blocks sign-in if your Google Cloud Console doesn&rsquo;t have the exact callback URL. Copy this URL:
-                  </p>
-
-                  <div className="flex items-center justify-between gap-2 p-2 rounded bg-slate-900 border border-slate-700">
-                    <code className="font-mono text-[10px] text-blue-300 break-all select-all">
-                      {googleCallbackUrl}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(googleCallbackUrl, 'google')}
-                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold"
-                    >
-                      {copiedGoogle ? (
-                        <>
-                          <Check className="w-3 h-3 text-emerald-400" />
-                          <span className="text-emerald-400">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <p className="text-slate-400 text-[10px] leading-relaxed">
-                    <strong>Instructions:</strong> Open{' '}
-                    <a
-                      href="https://console.cloud.google.com/apis/credentials"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 underline hover:text-blue-300"
-                    >
-                      Google Cloud Console Credentials
-                    </a>
-                    , click your Web Client ID, paste this into <strong>Authorized redirect URIs</strong>, and click <strong>Save</strong>.
-                  </p>
-
-                  <div className="border-t border-slate-800 pt-2">
-                    <p className="text-slate-400 text-[10px]">
-                      <strong>GitHub Callback URL:</strong>
-                    </p>
-                    <div className="flex items-center justify-between gap-2 p-1.5 rounded bg-slate-900 border border-slate-700 mt-1">
-                      <code className="font-mono text-[10px] text-slate-300 break-all select-all">
-                        {githubCallbackUrl}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(githubCallbackUrl, 'github')}
-                        className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold"
-                      >
-                        {copiedGitHub ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Provider mode toggle for direct vs Supabase */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-              <span>Auth Engine:</span>
-              <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setMethod('direct')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition ${
-                    method === 'direct'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Direct OAuth 2.0
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMethod('supabase')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition ${
-                    method === 'supabase'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Supabase OAuth
-                </button>
-              </div>
-            </div>
-
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-slate-800"></div>
-              <span className="flex-shrink mx-3 text-[10px] uppercase font-mono text-slate-500 tracking-wider">
-                Instant Demo Access
-              </span>
-              <div className="flex-grow border-t border-slate-800"></div>
-            </div>
-
-            {/* 3. Instant Demo Sign In Button */}
-            <button
-              onClick={handleDemoLogin}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700/80 transition"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Quick Sign-In (Demo Passenger)</span>
-            </button>
-
             {/* Security Note */}
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 pt-2">
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 pt-3">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>RDSO Encrypted · Strictly adheres to IRCTC Privacy Standards</span>
             </div>
