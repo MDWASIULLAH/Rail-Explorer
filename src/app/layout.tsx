@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import NavigationHeader from '@/components/ui/NavigationHeader';
 import Footer from '@/components/ui/Footer';
+import { AuthProvider } from '@/context/AuthContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -10,9 +11,31 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Indian Railway 3D Explorer',
-  description: 'Explore Indian trains in 3D. View coach compositions, find your berth, compare coaches, and calculate distances.',
-  keywords: ['Indian Railways', '3D train', 'coach composition', 'berth finder', 'PNR status'],
+  metadataBase: new URL('https://railexplorer.vercel.app'),
+  title: 'Indian Railway 3D Explorer | Live Tracking & Coach Visualizer',
+  description:
+    'Explore Indian trains in 3D. Real-time satellite GPS running status, live speedometer, station passing kilometers, coach compositions, and berth locators.',
+  keywords: [
+    'Indian Railways',
+    '3D train',
+    'coach composition',
+    'berth finder',
+    'PNR status',
+    'live train running status',
+    'railexplorer',
+  ],
+  alternates: {
+    canonical: 'https://railexplorer.vercel.app',
+  },
+  openGraph: {
+    title: 'Indian Railway 3D Explorer | Live Tracking & Coach Visualizer',
+    description:
+      'Real-time satellite GPS running status, live speedometer, station passing kilometers, and interactive 3D coach exploration.',
+    url: 'https://railexplorer.vercel.app',
+    siteName: 'Rail Explorer',
+    locale: 'en_IN',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
@@ -23,9 +46,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased bg-slate-950 text-slate-100 min-h-screen flex flex-col`}>
-        <NavigationHeader />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <AuthProvider>
+          <NavigationHeader />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

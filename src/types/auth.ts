@@ -1,0 +1,17 @@
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  provider: 'google' | 'supabase' | 'demo';
+  createdAt?: string;
+}
+
+export interface AuthContextType {
+  user: UserProfile | null;
+  isLoading: boolean;
+  loginWithGoogle: (redirectTo?: string) => void;
+  loginWithSupabaseGoogle: (redirectTo?: string) => Promise<{ error?: string }>;
+  loginAsDemo: () => void;
+  logout: () => Promise<void>;
+}

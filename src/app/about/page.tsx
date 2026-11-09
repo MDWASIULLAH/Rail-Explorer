@@ -64,7 +64,7 @@ export default function AboutPage() {
             {[
               {
                 source: 'Railway Engine API',
-                url: 'https://railengine.vercel.app',
+                url: 'https://railexplorer.vercel.app',
                 data: 'Live train status, schedules, routes, coach composition, PNR lookup, station data',
                 confidence: 'Live data — accuracy depends on upstream providers',
               },

@@ -74,7 +74,7 @@ export default function AutoExplodeShowcase() {
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono mt-0.5">
-                Train 18403 BBS DHN EXPRESS · 92.4 km/h · Next: Jharsuguda Jn (PF 2)
+                Train 18403 BBS DHN EXPRESS · 92.4 km/h · Passed 39 km past Rengali (REN) · Approaching Jharsuguda Jn (PF 2, ETA 22:45)
               </p>
             </div>
           </div>
