@@ -184,11 +184,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // LinkedIn OAuth
+  // LinkedIn OAuth via Supabase
   const loginWithLinkedIn = useCallback(async (redirectTo?: string) => {
-    const target = redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
-    // Direct LinkedIn OAuth route with client id and secret
-    window.location.href = `/api/auth/linkedin/start?returnTo=${encodeURIComponent(target)}`;
+    if (!supabase) {
+      console.error('[Auth] Supabase client is not available');
+      return;
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://railexplorer.vercel.app';
+    const callbackUrl = `${origin}/auth/callback?returnTo=${encodeURIComponent(redirectTo || '/')}`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'linkedin_oidc' as any,
+      options: {
+        redirectTo: callbackUrl,
+      },
+    });
+    if (error) {
+      console.error('[Supabase LinkedIn Error]', error.message);
+      throw error;
+    }
+    if (data?.url) {
+      window.location.href = data.url;
+    }
   }, []);
 
   const logout = useCallback(async () => {
