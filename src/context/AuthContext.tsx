@@ -51,7 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user && mounted) {
-            const provider = (session.user.app_metadata?.provider as any) || 'supabase';
+            const rawProv = (session.user.app_metadata?.provider as string) || 'supabase';
+            const provider =
+              rawProv === 'github' ? 'github' :
+              rawProv === 'google' ? 'google' :
+              rawProv.includes('linkedin') ? 'linkedin' : 'supabase';
+
             const sbUser: UserProfile = {
               id: session.user.id,
               email: session.user.email || '',
@@ -65,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 session.user.user_metadata?.avatar_url ||
                 session.user.user_metadata?.picture ||
                 '',
-              provider: provider === 'github' ? 'github' : provider === 'google' ? 'google' : 'supabase',
+              provider,
               createdAt: session.user.created_at,
             };
             persistSession(sbUser);
@@ -76,7 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Listen for Supabase auth state change events
           supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
-              const provider = (session.user.app_metadata?.provider as any) || 'supabase';
+              const rawProv = (session.user.app_metadata?.provider as string) || 'supabase';
+              const provider =
+                rawProv === 'github' ? 'github' :
+                rawProv === 'google' ? 'google' :
+                rawProv.includes('linkedin') ? 'linkedin' : 'supabase';
+
               const sbUser: UserProfile = {
                 id: session.user.id,
                 email: session.user.email || '',
@@ -90,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   session.user.user_metadata?.avatar_url ||
                   session.user.user_metadata?.picture ||
                   '',
-                provider: provider === 'github' ? 'github' : provider === 'google' ? 'google' : 'supabase',
+                provider,
                 createdAt: session.user.created_at,
               };
               persistSession(sbUser);
@@ -124,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [persistSession]);
 
-  // Google OAuth via Supabase
+  // Google OAuth
   const loginWithGoogle = useCallback(async (redirectTo?: string) => {
     if (!supabase) {
       console.error('[Auth] Supabase client is not available');
@@ -151,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // GitHub OAuth via Supabase
+  // GitHub OAuth
   const loginWithGitHub = useCallback(async (redirectTo?: string) => {
     if (!supabase) {
       console.error('[Auth] Supabase client is not available');
@@ -172,6 +182,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data?.url) {
       window.location.href = data.url;
     }
+  }, []);
+
+  // LinkedIn OAuth
+  const loginWithLinkedIn = useCallback(async (redirectTo?: string) => {
+    const target = redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
+    // Direct LinkedIn OAuth route with client id and secret
+    window.location.href = `/api/auth/linkedin/start?returnTo=${encodeURIComponent(target)}`;
   }, []);
 
   const logout = useCallback(async () => {
@@ -197,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         loginWithGoogle,
         loginWithGitHub,
+        loginWithLinkedIn,
         logout,
       }}
     >

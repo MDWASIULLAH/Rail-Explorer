@@ -3,7 +3,7 @@ export interface UserProfile {
   email: string;
   name: string;
   avatarUrl?: string;
-  provider: 'google' | 'github' | 'supabase';
+  provider: 'google' | 'github' | 'linkedin' | 'supabase';
   createdAt?: string;
 }
 
@@ -12,5 +12,6 @@ export interface AuthContextType {
   isLoading: boolean;
   loginWithGoogle: (redirectTo?: string) => Promise<void>;
   loginWithGitHub: (redirectTo?: string) => Promise<void>;
+  loginWithLinkedIn: (redirectTo?: string) => Promise<void>;
   logout: () => Promise<void>;
 }

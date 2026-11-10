@@ -158,10 +158,21 @@ function PnrContent() {
                         </p>
                       </div>
                     </div>
-                    {pax.coachId && pax.berthNumber && (
-                      <div className="text-right">
+                    {pax.coachId && pax.berthNumber ? (
+                      <div className="text-right flex flex-col items-end">
                         <p className="text-sm font-bold text-white">{pax.coachId} / {pax.berthNumber}</p>
                         <p className="text-xs text-slate-400">{pax.berthType}</p>
+                        <Link
+                          href={`/train/${pnrData.trainNumber}?coach=${pax.coachId}&berth=${pax.berthNumber}`}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-400 hover:text-blue-300 mt-1 bg-blue-600/15 hover:bg-blue-600/25 px-2 py-0.5 rounded border border-blue-500/30 transition"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View Berth in 3D</span>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="text-right">
+                        <span className="text-xs text-slate-500 font-mono">Coach Pending Charting</span>
                       </div>
                     )}
                   </div>
@@ -170,14 +181,28 @@ function PnrContent() {
             </div>
           </div>
 
-          {/* View in 3D */}
-          <Link
-            href={`/train/${pnrData.trainNumber}`}
-            className="flex items-center justify-center gap-2 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/20"
-          >
-            <Eye className="w-5 h-5" />
-            Explore This Train in 3D
-          </Link>
+          {/* View in 3D & Live Status Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link
+              href={
+                pnrData.passengers?.[0]?.coachId
+                  ? `/train/${pnrData.trainNumber}?coach=${pnrData.passengers[0].coachId}${pnrData.passengers[0].berthNumber ? `&berth=${pnrData.passengers[0].berthNumber}` : ''}`
+                  : `/train/${pnrData.trainNumber}`
+              }
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-500/20"
+            >
+              <Eye className="w-4 h-4" />
+              <span>Explore Rake in 3D</span>
+            </Link>
+
+            <Link
+              href={`/live-status/${pnrData.trainNumber}`}
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-slate-800 hover:bg-slate-750 text-white font-bold text-sm rounded-xl border border-slate-700 transition"
+            >
+              <Train className="w-4 h-4 text-emerald-400" />
+              <span>Track Live Status</span>
+            </Link>
+          </div>
 
           <p className="text-center text-xs text-slate-500">
             PNR data is fetched in real-time and not stored. Personal information is not retained.

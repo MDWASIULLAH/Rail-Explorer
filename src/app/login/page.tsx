@@ -52,12 +52,21 @@ function GitHubIcon({ className = 'w-5 h-5' }: { className?: string }) {
   );
 }
 
+function LinkedInIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.64 1.64 0 1 0 0-3.28 1.64 1.64 0 0 0 0 3.28m1.4 10.74v-8.37H5.06v8.37h2.8z" />
+    </svg>
+  );
+}
+
 function LoginCard() {
   const searchParams = useSearchParams();
-  const { user, loginWithGoogle, loginWithGitHub, logout, isLoading } = useAuth();
+  const { user, loginWithGoogle, loginWithGitHub, loginWithLinkedIn, logout, isLoading } = useAuth();
 
   const [submittingGoogle, setSubmittingGoogle] = useState(false);
   const [submittingGitHub, setSubmittingGitHub] = useState(false);
+  const [submittingLinkedIn, setSubmittingLinkedIn] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(searchParams.get('error') || null);
 
   const returnTo = searchParams.get('returnTo') || searchParams.get('redirect') || '/';
@@ -81,6 +90,17 @@ function LoginCard() {
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to connect with Google');
       setSubmittingGoogle(false);
+    }
+  };
+
+  const handleLinkedInSignIn = async () => {
+    try {
+      setSubmittingLinkedIn(true);
+      setErrorMsg(null);
+      await loginWithLinkedIn(returnTo);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to connect with LinkedIn');
+      setSubmittingLinkedIn(false);
     }
   };
 
@@ -152,7 +172,7 @@ function LoginCard() {
             </div>
           </div>
         ) : (
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             {errorMsg && (
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -166,7 +186,7 @@ function LoginCard() {
             {/* 1. Continue with GitHub Button */}
             <button
               onClick={handleGitHubSignIn}
-              disabled={submittingGitHub || submittingGoogle || isLoading}
+              disabled={submittingGitHub || submittingGoogle || submittingLinkedIn || isLoading}
               className="w-full group flex items-center justify-center gap-3 py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white font-bold text-sm border border-slate-700 shadow-lg hover:border-slate-600 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
             >
               {submittingGitHub ? (
@@ -180,7 +200,7 @@ function LoginCard() {
             {/* 2. Continue with Google Button */}
             <button
               onClick={handleGoogleSignIn}
-              disabled={submittingGoogle || submittingGitHub || isLoading}
+              disabled={submittingGoogle || submittingGitHub || submittingLinkedIn || isLoading}
               className="w-full group flex items-center justify-center gap-3 py-3 px-5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-xl shadow-slate-950/50 border border-slate-200 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
             >
               {submittingGoogle ? (
@@ -189,6 +209,20 @@ function LoginCard() {
                 <GoogleIcon className="w-5 h-5" />
               )}
               <span>{submittingGoogle ? 'Connecting to Google...' : 'Continue with Google'}</span>
+            </button>
+
+            {/* 3. Continue with LinkedIn Button */}
+            <button
+              onClick={handleLinkedInSignIn}
+              disabled={submittingLinkedIn || submittingGoogle || submittingGitHub || isLoading}
+              className="w-full group flex items-center justify-center gap-3 py-3 px-5 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-bold text-sm shadow-lg shadow-blue-900/30 border border-blue-400/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+            >
+              {submittingLinkedIn ? (
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
+              ) : (
+                <LinkedInIcon className="w-5 h-5 text-white" />
+              )}
+              <span>{submittingLinkedIn ? 'Connecting to LinkedIn...' : 'Continue with LinkedIn'}</span>
             </button>
 
             {/* Security Note */}
