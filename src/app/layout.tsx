@@ -4,6 +4,10 @@ import './globals.css';
 import NavigationHeader from '@/components/ui/NavigationHeader';
 import Footer from '@/components/ui/Footer';
 import { AuthProvider } from '@/context/AuthContext';
+import { StarredTrainsProvider } from '@/context/StarredTrainsContext';
+import StarredTrainsDrawer from '@/components/ui/StarredTrainsDrawer';
+import StationAlarmModal from '@/components/ui/StationAlarmModal';
+import EmergencySosModal from '@/components/ui/EmergencySosModal';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -47,9 +51,14 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased bg-slate-950 text-slate-100 min-h-screen flex flex-col`}>
         <AuthProvider>
-          <NavigationHeader />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <StarredTrainsProvider>
+            <NavigationHeader />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <StarredTrainsDrawer />
+            <StationAlarmModal />
+            <EmergencySosModal />
+          </StarredTrainsProvider>
         </AuthProvider>
       </body>
     </html>

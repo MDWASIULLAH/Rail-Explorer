@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import type { LiveJourneyAnalysis, StatusConfidence } from '@/lib/live-tracking-engine';
+import StarTrainButton from '@/components/ui/StarTrainButton';
+import HornButton from '@/components/ui/HornButton';
 import {
   Train,
   Calendar,
@@ -79,8 +81,19 @@ export default function TrainStatusHeader({
             </div>
           </div>
 
-          {/* Quick Actions (Share, 3D Explorer) */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Quick Actions (Star, Horn, 3D Explorer, Share) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <StarTrainButton
+              trainNumber={trainNumber}
+              trainName={trainName}
+              origin={origin}
+              destination={destination}
+              size="sm"
+              showLabel={true}
+            />
+
+            <HornButton size="sm" showLabel={false} />
+
             <Link
               href={`/train/${trainNumber}`}
               className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/20 border border-blue-400/40 flex items-center gap-1.5 transition active:scale-95"

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import StarTrainButton from '@/components/ui/StarTrainButton';
+import HornButton from '@/components/ui/HornButton';
 import {
   Layers,
   Eye,
@@ -79,8 +81,17 @@ export default function AutoExplodeShowcase() {
             </div>
           </div>
 
-          {/* Right Action: Exploded Architecture Switch */}
-          <div className="flex items-center gap-2">
+          {/* Right Action: Exploded Architecture Switch, Horn, Star */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <StarTrainButton
+              trainNumber="18403"
+              trainName="BBS DHN EXPRESS"
+              size="sm"
+              showLabel={true}
+            />
+
+            <HornButton size="sm" showLabel={false} />
+
             <button
               onClick={() => setIsExploded(!isExploded)}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-2 border ${
@@ -90,7 +101,7 @@ export default function AutoExplodeShowcase() {
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
-              <span>{isExploded ? 'Exploded Layout: Active' : 'Explode Architecture'}</span>
+              <span>{isExploded ? 'Exploded: Active' : 'Explode Architecture'}</span>
             </button>
 
             <Link

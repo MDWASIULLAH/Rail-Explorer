@@ -14,6 +14,8 @@ import { COACH_BLUEPRINTS, resolveCoachBlueprint } from '@/data/coach-database';
 import { getOrSynthesizeTrain } from '@/data/train-directory';
 import { formatBerthInfo } from '@/lib/berth-finder';
 import { analyzeLiveJourney } from '@/lib/live-tracking-engine';
+import StarTrainButton from '@/components/ui/StarTrainButton';
+import HornButton from '@/components/ui/HornButton';
 import {
   Train, Loader2, AlertCircle, MapPin, ArrowRight, Clock, Eye,
   Maximize2, ChevronRight, Navigation, Ruler, Activity, CheckCircle2,
@@ -236,26 +238,38 @@ function TrainExplorerContent() {
               </div>
             </div>
 
-            {/* Tab navigation */}
-            <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
-              {[
-                { key: '3d' as const, label: '3D View', icon: Eye },
-                { key: 'schedule' as const, label: 'Schedule', icon: Clock },
-                { key: 'status' as const, label: 'Status', icon: Navigation },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all ${
-                    activeTab === tab.key
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              ))}
+            {/* Action buttons & Tab navigation */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <StarTrainButton
+                trainNumber={activeTrain.trainNumber}
+                trainName={activeTrain.trainName}
+                origin={activeTrain.origin}
+                destination={activeTrain.destination}
+                size="sm"
+                showLabel={true}
+              />
+              <HornButton size="sm" showLabel={false} />
+
+              <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
+                {[
+                  { key: '3d' as const, label: '3D View', icon: Eye },
+                  { key: 'schedule' as const, label: 'Schedule', icon: Clock },
+                  { key: 'status' as const, label: 'Status', icon: Navigation },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all ${
+                      activeTab === tab.key
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <tab.icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
