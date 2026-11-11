@@ -14,6 +14,7 @@ interface BerthInfoPanelProps {
   deck: number;
   distanceToDoor: number;
   neighbors: Array<{ number: number; type: string; description: string }>;
+  isSeat: boolean;
   onClose: () => void;
 }
 
@@ -26,11 +27,14 @@ export default function BerthInfoPanel({
   deck,
   distanceToDoor,
   neighbors,
+  isSeat,
   onClose,
 }: BerthInfoPanelProps) {
   const color = getBerthColor(berthType);
   const deckLabel = deck === 0 ? 'Lower' : deck === 1 ? 'Middle' : 'Upper';
-  const sideLabel = side === 'LEFT' ? 'Window Side' : side === 'RIGHT' ? 'Aisle Side' : 'Side Section';
+  const sideLabel = isSeat
+    ? side === 'LEFT' ? 'Left seating area' : 'Right seating area'
+    : side === 'LEFT' ? 'Window Side' : side === 'RIGHT' ? 'Aisle Side' : 'Side Section';
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 p-5 shadow-xl">
@@ -42,11 +46,11 @@ export default function BerthInfoPanel({
               style={{ backgroundColor: color }}
             />
             <h3 className="text-lg font-bold text-white">
-              Berth {berthNumber}
+              {isSeat ? 'Seat' : 'Berth'} {berthNumber}
             </h3>
           </div>
           <p className="text-sm text-slate-400">
-            {getBerthDescription(berthType)} · Coach {coachId}
+            {isSeat ? 'Open coach seat' : getBerthDescription(berthType)} · Coach {coachId}
           </p>
         </div>
         <button
@@ -59,16 +63,16 @@ export default function BerthInfoPanel({
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-slate-900 rounded-lg p-3">
-          <p className="text-xs text-slate-500 mb-0.5">Bay</p>
-          <p className="text-sm font-medium text-white">Bay {bayNumber}</p>
+          <p className="text-xs text-slate-500 mb-0.5">{isSeat ? 'Row' : 'Bay'}</p>
+          <p className="text-sm font-medium text-white">{isSeat ? 'Row' : 'Bay'} {bayNumber}</p>
         </div>
         <div className="bg-slate-900 rounded-lg p-3">
           <p className="text-xs text-slate-500 mb-0.5">Position</p>
           <p className="text-sm font-medium text-white">{sideLabel}</p>
         </div>
         <div className="bg-slate-900 rounded-lg p-3">
-          <p className="text-xs text-slate-500 mb-0.5">Level</p>
-          <p className="text-sm font-medium text-white">{deckLabel} Deck</p>
+          <p className="text-xs text-slate-500 mb-0.5">{isSeat ? 'Floor' : 'Level'}</p>
+          <p className="text-sm font-medium text-white">{isSeat ? 'Main floor' : `${deckLabel} Deck`}</p>
         </div>
         <div className="bg-slate-900 rounded-lg p-3">
           <p className="text-xs text-slate-500 mb-0.5">Nearest Door</p>
@@ -77,7 +81,7 @@ export default function BerthInfoPanel({
       </div>
 
       {/* Bay visualization (2D cross-section) */}
-      <div className="mb-4">
+      {!isSeat && <div className="mb-4">
         <p className="text-xs text-slate-500 mb-2 font-medium">Bay Layout</p>
         <div className="bg-slate-900 rounded-lg p-3">
           <div className="flex gap-4 justify-center">
@@ -120,11 +124,11 @@ export default function BerthInfoPanel({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Neighboring berths */}
       <div className="mb-4">
-        <p className="text-xs text-slate-500 mb-2 font-medium">Nearby Berths in Bay {bayNumber}</p>
+        <p className="text-xs text-slate-500 mb-2 font-medium">Nearby {isSeat ? 'seats in row' : `berths in Bay ${bayNumber}`}</p>
         <div className="flex flex-wrap gap-1.5">
           {neighbors.map((nb) => (
             <span
@@ -139,13 +143,13 @@ export default function BerthInfoPanel({
       </div>
 
       {/* Mutual Seat Swap Action */}
-      <Link
+      {!isSeat && <Link
         href={`/seat-swap?coach=${coachId}&berth=${berthNumber}`}
         className="w-full py-2.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition active:scale-98 shadow-md"
       >
         <ArrowLeftRight className="w-4 h-4" />
         <span>Request Mutual Swap for Berth #{berthNumber}</span>
-      </Link>
+      </Link>}
     </div>
   );
 }

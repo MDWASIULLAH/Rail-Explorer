@@ -23,11 +23,12 @@ import {
   ArrowRight,
   Compass,
   TrainFront,
+  Camera,
   Armchair,
   PersonStanding,
-  Clapperboard,
   Sparkles,
   Sun,
+  Sunset,
   Settings2,
   MousePointer2,
   Moon,
@@ -164,6 +165,7 @@ export default function TrainScene({
   const controlsRef = useRef<any>(null);
   const [isWalkthrough, setIsWalkthrough] = useState(false);
   const [isMoving, setIsMoving] = useState(initialIsMoving);
+  const [isPreviewPaused, setIsPreviewPaused] = useState(false);
   const [speedKmph, setSpeedKmph] = useState(Math.max(0, initialSpeedKmph));
   const [isAtStationState, setIsAtStationState] = useState<boolean>(Boolean(isAtStation));
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
@@ -176,6 +178,7 @@ export default function TrainScene({
   const [isCaliperOpen, setIsCaliperOpen] = useState(false);
   const [isExploded, setIsExploded] = useState(false);
   const [isMobileControlsOpen, setIsMobileControlsOpen] = useState(false);
+  const viewControlsRef = useRef<HTMLDivElement>(null);
   const [isDpadOpen, setIsDpadOpen] = useState(false);
   const dpadRef = useRef<HTMLDivElement>(null);
 
@@ -195,6 +198,31 @@ export default function TrainScene({
   // Local state for 3D distance measurement dropdowns
   const [localFrom, setLocalFrom] = useState<string>(distanceFrom || 'LOCO');
   const [localTo, setLocalTo] = useState<string>(distanceTo || selectedCoachId || 'S1');
+
+  const isPreviewMotion = !speedIsReported && !isPreviewPaused;
+  const sceneIsMoving = speedIsReported ? isMoving && !isPreviewPaused : isPreviewMotion;
+  const sceneSpeedKmph = speedIsReported ? speedKmph : 48;
+
+  useEffect(() => {
+    if (!isMobileControlsOpen) return;
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (!viewControlsRef.current?.contains(event.target as Node) && !target?.closest('[data-view-controls-panel]')) {
+        setIsMobileControlsOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMobileControlsOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [isMobileControlsOpen]);
 
   // Sync speed if live status provides a reported positive speed
   useEffect(() => {
@@ -419,12 +447,13 @@ export default function TrainScene({
               onCoachClick={onCoachClick}
               distanceFrom={localFrom === 'LOCO' ? null : localFrom}
               distanceTo={localTo}
-              isMoving={isMoving}
-              speedKmph={speedKmph}
+              isMoving={sceneIsMoving}
+              speedKmph={sceneSpeedKmph}
               stationName={stationName}
               nextStationName={nextStationName}
               distanceToNextKm={distanceToNextKm}
               isAtStation={isAtStationState}
+              showStationEnvironment={showStationEnvironment}
               showCouplerGaps={showCouplerGaps}
               isExploded={isExploded}
             />
@@ -484,18 +513,19 @@ export default function TrainScene({
             <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/90 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-800 shadow-xl text-xs text-white max-w-[280px] sm:max-w-md">
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${
-                  isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                  speedIsReported && isMoving ? 'bg-emerald-400 animate-pulse' : isPreviewMotion ? 'bg-blue-400 animate-pulse' : 'bg-amber-400'
                 }`}
               />
               <span className="font-mono font-black text-amber-400 text-xs sm:text-sm shrink-0">
-                {isMoving ? (speedIsReported ? speedKmph : '—') : 0}{' '}
-                <span className="text-[10px] text-slate-400 font-normal">km/h</span>
+                {speedIsReported ? `${speedKmph} km/h` : isPreviewMotion ? 'Motion preview' : 'Preview paused'}
               </span>
               <span className="hidden xs:inline text-slate-600">·</span>
               <span className="hidden xs:inline text-[11px] text-slate-200 font-medium truncate">
-                {isMoving
-                  ? (distanceToNextKm > 0 ? `Approaching ${nextStationName || 'Station'} (${distanceToNextKm} km)` : 'Position estimate unavailable')
-                  : `Halted at ${stationName || 'Station'} (platform not reported)`}
+                {speedIsReported
+                  ? (isMoving
+                    ? (distanceToNextKm > 0 ? `Approaching ${nextStationName || 'Station'} (${distanceToNextKm} km)` : 'Live position reported')
+                    : `Stopped at ${stationName || 'station'}`)
+                  : 'Illustrative animation · live speed unavailable'}
               </span>
             </div>
           )}
@@ -505,24 +535,23 @@ export default function TrainScene({
         <div className="flex sm:hidden items-center gap-1.5 pointer-events-auto">
           {viewMode === 'full-train' && (
             <button
-              onClick={() => {
-                const nextMoving = !isMoving;
-                setIsMoving(nextMoving);
-                setIsAtStationState(!nextMoving);
-                if (nextMoving && speedKmph === 0) setSpeedKmph(80);
-              }}
-              className={`px-2 py-1 rounded-xl font-black text-[10px] transition border flex items-center gap-1 shadow-md ${
-                isMoving
-                  ? 'bg-emerald-500 text-slate-950 border-emerald-300'
-                  : 'bg-amber-500 text-slate-950 border-amber-300'
+              type="button"
+              onClick={() => setIsPreviewPaused((paused) => !paused)}
+              aria-label={isPreviewPaused ? 'Resume 3D motion preview' : 'Pause 3D motion preview'}
+              className={`min-h-10 px-2.5 rounded-xl font-semibold text-[10px] transition border flex items-center gap-1.5 shadow-md ${
+                isPreviewMotion
+                  ? 'bg-blue-500/15 text-blue-200 border-blue-400/40'
+                  : 'bg-slate-900/90 text-slate-300 border-slate-700'
               }`}
             >
-              <span>{isMoving ? '⏸' : '▶'}</span>
-              <span>{isMoving ? `${speedKmph}k` : 'Halt'}</span>
+              {isPreviewPaused ? <TrainFront className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+              <span>{isPreviewPaused ? 'Resume' : speedIsReported ? `${speedKmph} km/h` : 'Preview'}</span>
             </button>
           )}
 
+          <div className="relative" ref={viewControlsRef}>
           <button
+            type="button"
             onClick={() => {
               setIsMobileControlsOpen((prev) => {
                 const next = !prev;
@@ -530,47 +559,54 @@ export default function TrainScene({
                 return next;
               });
             }}
-            className="px-2.5 py-1 rounded-xl bg-slate-900/90 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1 shadow-lg backdrop-blur-md active:scale-95"
+            aria-expanded={isMobileControlsOpen}
+            aria-haspopup="dialog"
+            aria-label={isMobileControlsOpen ? 'Close 3D view controls' : 'Open 3D view controls'}
+            className="min-h-10 px-3 rounded-xl bg-slate-900/90 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md active:scale-95"
           >
             <Settings2 className="h-3.5 w-3.5" />
             <span>View</span>
           </button>
+          </div>
         </div>
 
         {/* Mobile Expanded View Drawer Popover */}
         {isMobileControlsOpen && (
-          <div className="sm:hidden absolute bottom-0 left-0 right-0 z-40 bg-slate-950/98 backdrop-blur-xl border-t border-slate-700 rounded-t-2xl p-3 pb-5 shadow-2xl space-y-2.5 animate-in slide-in-from-bottom duration-200 pointer-events-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-              <span className="text-xs font-bold text-white">3D View Controls</span>
+          <div data-view-controls-panel role="dialog" aria-label="3D view controls" className="sm:hidden absolute top-[3.65rem] right-2 z-40 w-[min(320px,calc(100vw-1rem))] max-h-[calc(100%-4.5rem)] overflow-y-auto overscroll-contain bg-slate-950/98 backdrop-blur-xl border border-slate-700 rounded-2xl p-3 shadow-2xl space-y-3 animate-in fade-in slide-in-from-top-1 duration-150 pointer-events-auto">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
+              <div>
+                <span className="block text-sm font-semibold text-white">View settings</span>
+                <span className="block text-[11px] text-slate-400">Lighting, camera and sound</span>
+              </div>
               <button
                 onClick={() => setIsMobileControlsOpen(false)}
-                className="text-xs text-slate-400 hover:text-white p-1"
-              >
-                ✕
-              </button>
+                type="button"
+                aria-label="Close view settings"
+                className="min-h-10 min-w-10 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white"
+              ><X className="h-4 w-4" /></button>
             </div>
 
             {/* Sky */}
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Environment</span>
-              <div className="grid grid-cols-3 gap-1">
+              <span className="text-[10px] uppercase font-bold tracking-wide text-slate-400 block mb-1.5">Lighting</span>
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   onClick={() => setSkyMode('night')}
-                  className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'night' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`min-h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${skyMode === 'night' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
                   <><Moon className="mr-1 inline h-3.5 w-3.5" />Night</>
                 </button>
                 <button
                   onClick={() => setSkyMode('daylight')}
-                  className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'daylight' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
+                  className={`min-h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${skyMode === 'daylight' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
                 >
                   <><Sun className="mr-1 inline h-3.5 w-3.5" />Day</>
                 </button>
                 <button
                   onClick={() => setSkyMode('sunset')}
-                  className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'sunset' ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`min-h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${skyMode === 'sunset' ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
-                  <Sun className="h-3.5 w-3.5" /> Daylight
+                  <Sunset className="h-3.5 w-3.5" /> Sunset
                 </button>
               </div>
             </div>
@@ -578,49 +614,51 @@ export default function TrainScene({
             {/* Camera Presets in Full Train */}
             {viewMode === 'full-train' && (
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Camera Mode</span>
-                <div className="grid grid-cols-3 gap-1">
+                <span className="text-[10px] uppercase font-bold tracking-wide text-slate-400 block mb-1.5">Camera angle</span>
+                <div className="grid grid-cols-3 gap-1.5">
                   <button
                     onClick={() => setCameraPreset('full-rake')}
-                    className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'full-rake' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                    className={`min-h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${cameraPreset === 'full-rake' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                   >
                     <><TrainFront className="mr-1 inline h-3.5 w-3.5" />Overview</>
                   </button>
                   <button
                     onClick={() => setCameraPreset('railfan')}
-                    className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'railfan' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                    className={`min-h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${cameraPreset === 'railfan' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                   >
-                    <><Clapperboard className="mr-1 inline h-3.5 w-3.5" />Action</>
+                    <><Camera className="mr-1 inline h-3.5 w-3.5" />Trackside</>
                   </button>
                   <button
                     onClick={() => setCameraPreset('coach')}
-                    className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'coach' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                    className={`min-h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${cameraPreset === 'coach' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                   >
-                    <><Armchair className="mr-1 inline h-3.5 w-3.5" />Side</>
+                    <><Armchair className="mr-1 inline h-3.5 w-3.5" />Coach</>
                   </button>
                 </div>
               </div>
             )}
 
             {/* Actions */}
-            <div className="pt-1 flex items-center justify-between gap-1 border-t border-slate-800 text-xs">
+            <div className="pt-2 flex items-center gap-1.5 border-t border-slate-800 text-xs">
               {viewMode === 'full-train' && (
                 <button
                   onClick={() => setIsExploded(!isExploded)}
-                  className={`flex-1 py-1 px-2 rounded-lg font-bold ${isExploded ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`min-h-10 flex-1 px-2 rounded-lg font-semibold ${isExploded ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
                   <Sparkles className="mr-1 inline h-3.5 w-3.5" /> {isExploded ? 'Exploded' : 'Explode'}
                 </button>
               )}
               <button
                 onClick={handleHonkHorn}
-                className="py-1 px-2.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold"
+                className="min-h-10 px-3 rounded-lg bg-amber-500/15 text-amber-200 border border-amber-500/30 font-semibold flex items-center gap-1.5"
               >
                 <><Bell className="mr-1 inline h-3.5 w-3.5" />Horn</>
               </button>
               <button
                 onClick={handleToggleSound}
-                className={`p-1.5 rounded-lg border ${isSoundEnabled ? 'bg-blue-600/30 text-blue-300 border-blue-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                type="button"
+                aria-label={isSoundEnabled ? 'Mute train ambience' : 'Enable train ambience'}
+                className={`min-h-10 min-w-10 flex items-center justify-center rounded-lg border ${isSoundEnabled ? 'bg-blue-600/30 text-blue-300 border-blue-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
               >
                 {isSoundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </button>
@@ -695,10 +733,10 @@ export default function TrainScene({
                       ? 'bg-blue-600 text-white shadow-md font-black'
                       : 'text-slate-400 hover:text-white'
                   }`}
-                  title="Railfan Action Cam"
+                  title="Trackside camera"
                 >
-                  <Clapperboard className="h-3.5 w-3.5" />
-                  <span className="hidden lg:inline">Action</span>
+                  <Camera className="h-3.5 w-3.5" />
+                  <span className="hidden lg:inline">Trackside</span>
                 </button>
                 <button
                   onClick={() => setCameraPreset('coach')}

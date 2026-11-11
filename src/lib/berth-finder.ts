@@ -143,12 +143,14 @@ export function getAvailableBlueprints(): Array<{
   id: string;
   name: string;
   category: string;
+  generation: string;
   totalBerths: number;
 }> {
   return Object.values(COACH_BLUEPRINTS).map((bp) => ({
     id: bp.id,
     name: bp.name,
     category: bp.category,
+    generation: bp.generation,
     totalBerths: bp.totalBerths,
   }));
 }

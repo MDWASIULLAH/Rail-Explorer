@@ -37,6 +37,16 @@ interface StationBoardData {
   window?: { from: string; to: string; hoursBack: number; hoursAhead: number };
   count?: number;
   trains: StationBoardTrain[];
+  meta?: {
+    generatedAt?: string;
+    source?: string;
+    cached?: boolean;
+    freshness?: {
+      ageSeconds: number;
+      state: 'LIVE' | 'RECENT' | 'STALE';
+      provider: string;
+    };
+  };
 }
 
 const POPULAR_STATIONS = [
@@ -60,7 +70,19 @@ function StationBoardContent() {
   const [boardData, setBoardData] = useState<StationBoardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'UPCOMING' | 'DEPARTED'>('ALL');
+
+  const freshness = boardData?.meta?.freshness;
+  const updateLabel = freshness
+    ? freshness.state === 'LIVE'
+      ? 'Updated just now'
+      : freshness.state === 'RECENT'
+        ? `Provider update · ${Math.max(1, Math.floor(freshness.ageSeconds / 60))} min ago`
+        : 'Provider data may be out of date'
+    : boardData?.meta?.cached
+      ? 'Cached provider data'
+      : 'Provider schedule data';
 
   const fetchBoard = async () => {
     setIsRefreshing(true);
@@ -69,9 +91,13 @@ function StationBoardContent() {
       const json = await res.json();
       if (json.success && json.data) {
         setBoardData(json.data);
+        setLoadError('');
+      } else {
+        setLoadError(json.error || 'The station board could not be loaded. Try again shortly.');
       }
     } catch (err) {
       console.error('Failed to load station board', err);
+      setLoadError('The station board could not be reached. Check your connection and try again.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -108,20 +134,18 @@ function StationBoardContent() {
           <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-xs uppercase font-extrabold text-emerald-400 tracking-wider">
-                  Live Station Departure & Arrival Board
+                <span className={`w-2 h-2 rounded-full shrink-0 ${freshness?.state === 'LIVE' ? 'bg-emerald-400' : freshness?.state === 'RECENT' ? 'bg-amber-400' : 'bg-slate-500'}`} />
+                <span className="text-xs uppercase font-bold text-emerald-300 tracking-wide">
+                  Station Arrivals & Departures
                 </span>
-                <span className="text-xs text-slate-500 font-mono hidden sm:inline">
-                  · Powered by Railway Engine
-                </span>
+                <span className="text-xs text-slate-500 font-mono hidden sm:inline">{updateLabel}</span>
               </div>
               <h1 className="text-2xl sm:text-4xl font-black text-white mt-2 flex items-center gap-2">
                 <span>{boardData?.station?.name || stationCode}</span>
                 <span className="text-amber-400 font-mono">({stationCode})</span>
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                Real-time train movements, platform numbers, and live delay tracking
+                Provider-reported platforms, expected times and train status. Check station displays for last-minute changes.
               </p>
             </div>
 
@@ -209,12 +233,68 @@ function StationBoardContent() {
             </div>
           ) : filteredTrains.length === 0 ? (
             <div className="text-center py-20 text-slate-400">
-              <AlertCircle className="w-10 h-10 mx-auto text-amber-400/50 mb-3" />
-              <p className="text-base font-bold text-white">No trains scheduled in this window</p>
-              <p className="text-xs text-slate-500 mt-1">Try switching stations or clearing filters.</p>
+              <AlertCircle className="w-10 h-10 mx-auto text-amber-400/70 mb-3" />
+              <p className="text-base font-bold text-white">{loadError ? 'Station data unavailable' : 'No trains scheduled in this window'}</p>
+              <p className="text-xs text-slate-400 mt-1">{loadError || 'Try another station or switch the current filter.'}</p>
+              {loadError && <button type="button" onClick={fetchBoard} className="mt-4 min-h-10 rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white">Try again</button>}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="md:hidden divide-y divide-slate-800/70">
+              {filteredTrains.map((train) => {
+                const delay = train.delayMinutes ?? 0;
+                const hasDelayReport = typeof train.delayMinutes === 'number';
+                const isDeparted = train.liveStatus === 'departed';
+                const expected = train.expectedArrival || train.expectedDeparture;
+                return (
+                  <article key={train.trainNumber} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-mono text-sm font-bold text-amber-300">{train.trainNumber}</p>
+                        <h2 className="text-sm font-semibold leading-snug text-white">{train.trainName}</h2>
+                        {train.trainType && <span className="mt-1 inline-block rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">{train.trainType}</span>}
+                      </div>
+                      <span className="shrink-0 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-amber-200">
+                        {train.platform ? `PF ${train.platform}` : 'Platform pending'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <span className="min-w-0 truncate">{train.origin?.name} ({train.origin?.code})</span>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                      <span className="min-w-0 truncate">{train.destination?.name} ({train.destination?.code})</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg bg-slate-950/70 p-2.5">
+                        <span className="block text-[10px] uppercase tracking-wide text-slate-500">Scheduled</span>
+                        <span className="mt-1 block font-mono text-slate-200">
+                          {train.arrival ? `Arr ${train.arrival}` : 'Arr —'}{train.departure ? ` · Dep ${train.departure}` : ''}
+                        </span>
+                      </div>
+                      <div className="rounded-lg bg-slate-950/70 p-2.5">
+                        <span className="block text-[10px] uppercase tracking-wide text-slate-500">Expected</span>
+                        <span className={`mt-1 block font-mono font-semibold ${delay > 5 ? 'text-rose-300' : 'text-emerald-300'}`}>
+                          {expected?.slice(11, 16) || expected || '—'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isDeparted || !hasDelayReport ? 'bg-slate-800 text-slate-400' : delay > 0 ? 'bg-rose-500/10 text-rose-300' : 'bg-emerald-500/10 text-emerald-300'}`}>
+                        {isDeparted ? 'Departed' : delay > 0 ? `Late by ${delay} min` : hasDelayReport ? 'No delay reported' : 'Status not reported'}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/live-status/${train.trainNumber}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs font-semibold text-slate-200">
+                          <Navigation className="h-3.5 w-3.5" /> Track
+                        </Link>
+                        <Link href={`/train/${train.trainNumber}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white">
+                          <Eye className="h-3.5 w-3.5" /> 3D
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-[11px] uppercase font-bold tracking-wider">
@@ -231,7 +311,8 @@ function StationBoardContent() {
                   {filteredTrains.map((train) => {
                     const isDeparted = train.liveStatus === 'departed';
                     const delay = train.delayMinutes ?? 0;
-                    const isDelayed = delay > 5;
+                    const hasDelayReport = typeof train.delayMinutes === 'number';
+                    const isDelayed = delay > 0;
 
                     return (
                       <tr
@@ -310,8 +391,8 @@ function StationBoardContent() {
                               Late by {delay}m
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
-                              ● On Time
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${hasDelayReport ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                              {hasDelayReport ? 'No delay reported' : 'Status not reported'}
                             </span>
                           )}
                         </td>
@@ -344,6 +425,7 @@ function StationBoardContent() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>

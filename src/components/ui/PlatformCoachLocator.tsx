@@ -32,7 +32,7 @@ export default function PlatformCoachLocator({
           const list = res.data.stations.map((s: any) => ({
             code: s.station?.code,
             name: s.station?.name,
-            platform: s.assignments?.[0]?.platform || '1',
+            platform: s.assignments?.[0]?.platform || 'Not reported',
             confidence: s.assignments?.[0]?.confidence,
           }));
           setPlatformAssignments(list);
@@ -120,16 +120,16 @@ export default function PlatformCoachLocator({
         </div>
       </div>
 
-      {/* Verified Station Platform Assignments Bar */}
+      {/* Provider platform references */}
       {platformAssignments.length > 0 && (
         <div className="mb-4 p-3 bg-slate-900/90 rounded-xl border border-slate-700/80">
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="font-bold text-slate-200 flex items-center gap-1.5">
               <span>🎯</span>
-              <span>Verified Station Platform Numbers</span>
+              <span>Platform references</span>
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">
-              Where Is My Train Live Feed
+              Provider data · confirm at station
             </span>
           </div>
           <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
@@ -140,7 +140,7 @@ export default function PlatformCoachLocator({
               >
                 <span className="font-bold text-white">{p.code}</span>
                 <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-black text-[11px]">
-                  PF {p.platform}
+                  {p.platform === 'Not reported' ? p.platform : `PF ${p.platform}`}
                 </span>
                 {p.confidence && (
                   <span className="text-[10px] text-slate-500 font-mono">({p.confidence})</span>
@@ -148,6 +148,7 @@ export default function PlatformCoachLocator({
               </div>
             ))}
           </div>
+          <p className="mt-1 text-[11px] text-slate-500">Platform assignments can change. Confirm the current platform on station displays.</p>
         </div>
       )}
 

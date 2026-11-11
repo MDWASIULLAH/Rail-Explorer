@@ -872,6 +872,60 @@ export const COACH_BLUEPRINTS: Record<string, CoachBlueprint> = {
   },
 };
 
+function createIcfReferenceBlueprint(
+  sourceId: string,
+  id: string,
+  name: string,
+  totalBerths: number,
+  totalBays: number,
+): CoachBlueprint {
+  const source = COACH_BLUEPRINTS[sourceId];
+  const isFirstAc = source.category === '1A';
+  const berths = isFirstAc
+    ? [
+        ...source.berths.filter((berth) => berth.berthType === 'CABIN_LB' || berth.berthType === 'CABIN_UB').slice(0, 12),
+        ...source.berths.filter((berth) => berth.berthType === 'COUPE_LB' || berth.berthType === 'COUPE_UB').slice(0, 6),
+      ].map((berth, index) => {
+        const isCabin = index < 12;
+        const bayNumber = isCabin ? Math.floor(index / 4) + 1 : Math.floor((index - 12) / 2) + 4;
+        const positionInCompartment = isCabin ? index % 4 : (index - 12) % 2;
+        const berthType: BerthType = isCabin
+          ? positionInCompartment < 2 ? 'CABIN_LB' : 'CABIN_UB'
+          : positionInCompartment === 0 ? 'COUPE_LB' : 'COUPE_UB';
+        return {
+          ...berth,
+          berthNumber: index + 1,
+          berthType,
+          bayNumber,
+          x: 1.8 + (bayNumber - 1) * (isCabin ? 2.45 : 1.7),
+        };
+      })
+    : source.berths.slice(0, totalBerths).map((berth) => ({
+        ...berth,
+        x: Math.round(berth.x * (ICF_COMMON_DIMENSIONS.lengthOverBody / LHB_COMMON_DIMENSIONS.lengthOverBody) * 100) / 100,
+      }));
+
+  return {
+    ...source,
+    id,
+    name,
+    generation: 'ICF',
+    totalBerths,
+    totalBays,
+    berthsPerBay: Math.ceil(totalBerths / totalBays),
+    dimensions: ICF_COMMON_DIMENSIONS,
+    berths,
+    description: `Conventional ICF ${source.category} reference layout with ${totalBerths} berths. Coach capacity is based on published railway references; berth positions are a visual guide and may vary by coach subtype.`,
+  };
+}
+
+Object.assign(COACH_BLUEPRINTS, {
+  ICF_SL: createIcfReferenceBlueprint('LHB_SL', 'ICF_SL', 'ICF Sleeper Class', 72, 9),
+  ICF_3A: createIcfReferenceBlueprint('LHB_3A', 'ICF_3A', 'ICF AC 3-Tier', 64, 8),
+  ICF_2A: createIcfReferenceBlueprint('LHB_2A', 'ICF_2A', 'ICF AC 2-Tier', 46, 8),
+  ICF_1A: createIcfReferenceBlueprint('LHB_1A', 'ICF_1A', 'ICF First AC', 18, 6),
+});
+
 // ============================================================
 // COACH TYPE MAPPING
 // ============================================================

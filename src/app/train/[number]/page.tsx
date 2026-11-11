@@ -364,9 +364,9 @@ function TrainExplorerContent() {
       {/* Main content */}
       {activeTab === '3d' && (
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 flex flex-col lg:flex-row">
+          <div className="flex-none lg:flex-1 flex flex-col lg:flex-row">
             {/* 3D Viewport - Responsive Height Optimized for Mobile & Desktop */}
-            <div className="flex-1 shrink-0 h-[62svh] min-h-[420px] max-h-[560px] sm:h-[58vh] sm:min-h-[460px] sm:max-h-none lg:h-[650px] lg:min-h-[650px] lg:max-h-[650px] relative">
+            <div className="flex-none w-full h-[65svh] min-h-[460px] max-h-[620px] sm:h-[68vh] sm:min-h-[520px] sm:max-h-none lg:flex-1 lg:h-[650px] lg:min-h-[650px] lg:max-h-[650px] relative">
               {isLoading && !selectedTrain ? (
                 <div className="w-full h-full flex items-center justify-center bg-slate-900">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -394,14 +394,14 @@ function TrainExplorerContent() {
                   nextStationName={analyzedPosition.nextStationName || activeTrain.destination.name}
                   distanceToNextKm={analyzedPosition.distanceToNextKm}
                   isAtStation={analyzedPosition.isAtStation}
-                  showStationEnvironment={false}
+                  showStationEnvironment={true}
                   speedIsReported={analyzedJourney.statusConfidence !== 'ESTIMATED' && trainStatus?.speedKmph != null}
                 />
               )}
             </div>
 
             {/* Side Panel */}
-            <div className="w-full lg:w-84 xl:w-96 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-y-auto max-h-[40vh] sm:max-h-[60vh] lg:max-h-[650px]">
+            <div className="w-full lg:w-84 xl:w-96 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-visible lg:overflow-y-auto lg:max-h-[650px]">
               <div className="p-4 space-y-4">
                 {/* Coach Seat Grid & Berth Selection */}
                 {selectedCoach && selectedBlueprint && (
@@ -424,6 +424,7 @@ function TrainExplorerContent() {
                     deck={berthInfo.deck}
                     distanceToDoor={berthInfo.distanceToNearestDoor}
                     neighbors={berthInfo.neighbors}
+                    isSeat={selectedBlueprint?.berths.every((item) => item.berthType === 'SEAT') ?? false}
                     onClose={() => setViewMode('coach-interior')}
                   />
                 )}
@@ -432,7 +433,7 @@ function TrainExplorerContent() {
                 {selectedCoach && (
                   <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                      Quick Find Berth / Seat Number
+                      Quick Find {selectedBlueprint && selectedBlueprint.berths.every((item) => item.berthType === 'SEAT') ? 'Seat' : 'Berth'} Number
                     </label>
                     <div className="flex gap-2">
                       <input

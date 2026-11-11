@@ -55,6 +55,18 @@ test('1. Coach Database: Blueprint Integrity', async (t) => {
     assert.strictEqual(bogieCenterDistanceMm, 14900);
     assert.ok(interiorWidthMm < exteriorWidthMm);
   });
+
+  await t.test('ICF berth finder references cover conventional sleeper and AC classes', () => {
+    const { COACH_BLUEPRINTS } = require('../src/data/coach-database.ts');
+    const capacities = { ICF_SL: 72, ICF_3A: 64, ICF_2A: 46, ICF_1A: 18 };
+    for (const [id, capacity] of Object.entries(capacities)) {
+      const blueprint = COACH_BLUEPRINTS[id];
+      assert.strictEqual(blueprint.generation, 'ICF');
+      assert.strictEqual(blueprint.totalBerths, capacity);
+      assert.strictEqual(blueprint.berths.length, capacity);
+      assert.deepStrictEqual(blueprint.berths.map((berth) => berth.berthNumber), Array.from({ length: capacity }, (_, index) => index + 1));
+    }
+  });
 });
 
 test('First AC cabin berths face across the compartment with stacked uppers', () => {

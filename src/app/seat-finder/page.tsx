@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { COACH_BLUEPRINTS, resolveCoachBlueprint } from '@/data/coach-database';
+import { COACH_BLUEPRINTS } from '@/data/coach-database';
 import { formatBerthInfo, getBerthColor, getBerthDescription, getAvailableBlueprints } from '@/lib/berth-finder';
 import type { BerthType } from '@/data/coach-database';
-import { MapPin, Search, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { MapPin, Search } from 'lucide-react';
 
 export default function SeatFinderPage() {
   const blueprints = getAvailableBlueprints().filter((b) => b.totalBerths > 0);
@@ -48,21 +47,25 @@ export default function SeatFinderPage() {
           <MapPin className="w-7 h-7 text-white" />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">Seat & Berth Finder</h1>
-        <p className="text-slate-400">Find your exact berth position, type, and surrounding berths</p>
+        <p className="text-slate-400">Look up a berth using the coach class and generation shown on your ticket</p>
       </div>
 
       {/* Search */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-8">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">Coach Type</label>
+            <label className="block text-xs text-slate-400 mb-1.5 font-medium">Coach type and generation</label>
             <select
               value={selectedBlueprintId}
               onChange={(e) => { setSelectedBlueprintId(e.target.value); setResult(null); }}
               className="w-full px-4 py-3 bg-slate-800 border border-slate-600 text-white rounded-xl focus:ring-2 focus:ring-emerald-500"
             >
-              {blueprints.map((b) => (
-                <option key={b.id} value={b.id}>{b.name} ({b.totalBerths})</option>
+              {(['LHB', 'ICF'] as const).map((generation) => (
+                <optgroup key={generation} label={`${generation} reference layouts`}>
+                  {blueprints.filter((blueprint) => blueprint.generation === generation).map((blueprint) => (
+                    <option key={blueprint.id} value={blueprint.id}>{blueprint.name} · {blueprint.totalBerths} berths</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -89,6 +92,9 @@ export default function SeatFinderPage() {
             </button>
           </div>
         </div>
+        <p className="mt-3 border-t border-slate-800 pt-3 text-xs leading-relaxed text-slate-400">
+          ICF and LHB coaches have different berth capacities. Select the generation printed on your ticket or coach label. Layout drawings are reference guides; your reservation chart is authoritative.
+        </p>
         {searchError && <p className="mt-3 text-sm text-red-400">{searchError}</p>}
       </div>
 

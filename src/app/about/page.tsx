@@ -109,15 +109,14 @@ export default function AboutPage() {
             <AlertTriangle className="w-5 h-5 text-amber-400" />
             <h2 className="text-lg font-semibold text-amber-300">Accuracy & Limitations</h2>
           </div>
-          <ul className="space-y-2 text-sm text-amber-200/80">
-            <li>• 3D models are <strong>procedurally generated approximations</strong>, not exact replicas of real coaches.</li>
-            <li>• Coach dimensions are based on RDSO LHB standards. ICF and Vande Bharat coaches may differ.</li>
-            <li>• Berth numbering follows standard Indian Railways patterns but may vary on some trains.</li>
-            <li>• Coach composition from the API may not always be available or up to date.</li>
-            <li>• PNR data is fetched live and depends on Railway Engine API availability.</li>
-            <li>• Distance calculations are approximate, based on standard coach lengths + coupling gaps.</li>
-            <li>• This is an <strong>independent educational project</strong>, not affiliated with Indian Railways or IRCTC.</li>
-            <li>• Always verify official information from IRCTC or station displays before travel.</li>
+          <ul className="space-y-3 text-sm leading-relaxed text-amber-100/80">
+            <li><span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden="true" /><strong>Train status and station boards</strong> come from connected providers. Updates can be delayed, cached, incomplete, or unavailable; check the source and timestamp shown in the app.</li>
+            <li><span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden="true" /><strong>Coach composition is a reference rake.</strong> Actual train formations can change by date, direction, maintenance, or service notice.</li>
+            <li><span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden="true" /><strong>Seat and berth layouts are visual guides.</strong> ICF and LHB generations differ, and specific subtypes can vary. Use your ticket and reservation chart for the assigned berth.</li>
+            <li><span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden="true" /><strong>3D dimensions, coach spacing, and platform walking estimates are approximate.</strong> They are not engineering drawings or station instructions.</li>
+            <li><span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden="true" /><strong>PNR and live-running lookups depend on external provider coverage and limits.</strong> An empty result or unavailable notice does not indicate a ticket or train problem.</li>
+            <li><span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden="true" />For travel decisions, confirm with <a className="underline decoration-amber-400/50 underline-offset-2 hover:text-white" href="https://enquiry.indianrail.gov.in/mntes/" target="_blank" rel="noreferrer">official NTES</a>, IRCTC, your ticket, or station announcements.</li>
+            <li><span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden="true" />Rail Explorer is an independent educational project and is not affiliated with Indian Railways, IRCTC, or the Ministry of Railways.</li>
           </ul>
         </section>
 
@@ -127,11 +126,10 @@ export default function AboutPage() {
             <Shield className="w-5 h-5 text-green-400" />
             <h2 className="text-lg font-semibold text-white">Privacy & Security</h2>
           </div>
-          <ul className="space-y-2 text-sm text-slate-400">
-            <li>• API keys are stored server-side and never exposed to the browser.</li>
-            <li>• PNR data is fetched on demand and not stored or logged.</li>
-            <li>• No personal information is retained after your session.</li>
-            <li>• All API requests are proxied through Next.js API routes with rate limiting.</li>
+          <ul className="space-y-3 text-sm leading-relaxed text-slate-400">
+            <li>Account and seat-swap features use the configured authentication and database providers to store the information needed for those features.</li>
+            <li>Train, station, and PNR lookups are sent to connected railway-data providers through the app&apos;s server routes. Provider and hosting retention policies may differ.</li>
+            <li>Do not share booking credentials, payment details, or a full ticket image in public swap messages. A mutual swap request is a passenger connection tool, not a railway reservation change.</li>
           </ul>
         </section>
       </div>
