@@ -158,6 +158,8 @@ export default function TrainScene({
   const [cameraPreset, setCameraPreset] = useState<'railfan' | 'full-rake' | 'coach'>('full-rake');
   const [isCaliperOpen, setIsCaliperOpen] = useState(false);
   const [isExploded, setIsExploded] = useState(false);
+  const [isMobileControlsOpen, setIsMobileControlsOpen] = useState(false);
+  const [isDpadOpen, setIsDpadOpen] = useState(false);
 
   // Walkthrough Interactive States
   const [autoTour, setAutoTour] = useState(false);
@@ -461,8 +463,128 @@ export default function TrainScene({
           )}
         </div>
 
-        {/* Right: Unified Sleek Control Dock (Sky, Camera, Horn, Motion, Sound) */}
-        <div className="pointer-events-auto flex items-center bg-slate-950/90 backdrop-blur-md p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-800 shadow-2xl gap-0.5 sm:gap-1 text-xs">
+        {/* Mobile Quick Controls Bar (sm:hidden) */}
+        <div className="flex sm:hidden items-center gap-1.5 pointer-events-auto">
+          {viewMode === 'full-train' && (
+            <button
+              onClick={() => {
+                const nextMoving = !isMoving;
+                setIsMoving(nextMoving);
+                setIsAtStationState(!nextMoving);
+                if (nextMoving && speedKmph === 0) setSpeedKmph(88);
+              }}
+              className={`px-2 py-1 rounded-xl font-black text-[10px] transition border flex items-center gap-1 shadow-md ${
+                isMoving
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-300'
+                  : 'bg-amber-500 text-slate-950 border-amber-300'
+              }`}
+            >
+              <span>{isMoving ? '⏸' : '▶'}</span>
+              <span>{isMoving ? `${speedKmph}k` : 'Halt'}</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsMobileControlsOpen(!isMobileControlsOpen)}
+            className="px-2.5 py-1 rounded-xl bg-slate-900/90 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1 shadow-lg backdrop-blur-md active:scale-95"
+          >
+            <span>⚙️ View</span>
+          </button>
+        </div>
+
+        {/* Mobile Expanded View Drawer Popover */}
+        {isMobileControlsOpen && (
+          <div className="sm:hidden absolute top-14 right-3 z-30 bg-slate-950/95 backdrop-blur-xl border border-slate-700 rounded-2xl p-3 shadow-2xl space-y-2.5 animate-in fade-in duration-150 w-64 pointer-events-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span className="text-xs font-bold text-white">3D View Controls</span>
+              <button
+                onClick={() => setIsMobileControlsOpen(false)}
+                className="text-xs text-slate-400 hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Sky */}
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Environment</span>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  onClick={() => setSkyMode('night')}
+                  className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'night' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                >
+                  🌌 Night
+                </button>
+                <button
+                  onClick={() => setSkyMode('daylight')}
+                  className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'daylight' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
+                >
+                  ☀️ Day
+                </button>
+                <button
+                  onClick={() => setSkyMode('sunset')}
+                  className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'sunset' ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300'}`}
+                >
+                  🌅 Sunset
+                </button>
+              </div>
+            </div>
+
+            {/* Camera Presets in Full Train */}
+            {viewMode === 'full-train' && (
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Camera Mode</span>
+                <div className="grid grid-cols-3 gap-1">
+                  <button
+                    onClick={() => setCameraPreset('full-rake')}
+                    className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'full-rake' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  >
+                    🚆 Overview
+                  </button>
+                  <button
+                    onClick={() => setCameraPreset('railfan')}
+                    className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'railfan' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  >
+                    🎥 Action
+                  </button>
+                  <button
+                    onClick={() => setCameraPreset('coach')}
+                    className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'coach' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  >
+                    💺 Side
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="pt-1 flex items-center justify-between gap-1 border-t border-slate-800 text-xs">
+              {viewMode === 'full-train' && (
+                <button
+                  onClick={() => setIsExploded(!isExploded)}
+                  className={`flex-1 py-1 px-2 rounded-lg font-bold ${isExploded ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                >
+                  💥 {isExploded ? 'Exploded' : 'Explode'}
+                </button>
+              )}
+              <button
+                onClick={handleHonkHorn}
+                className="py-1 px-2.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold"
+              >
+                🔔 Horn
+              </button>
+              <button
+                onClick={handleToggleSound}
+                className={`p-1.5 rounded-lg border ${isSoundEnabled ? 'bg-blue-600/30 text-blue-300 border-blue-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+              >
+                {isSoundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop Full Control Dock (hidden sm:flex) */}
+        <div className="hidden sm:flex pointer-events-auto items-center bg-slate-950/90 backdrop-blur-md p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-800 shadow-2xl gap-0.5 sm:gap-1 text-xs">
           {/* Sky Switcher (Default: Night!) */}
           <div className="flex items-center bg-slate-900/90 rounded-lg sm:rounded-xl p-0.5 border border-slate-800">
             <button
@@ -648,10 +770,10 @@ export default function TrainScene({
       {effectiveWalkthrough && viewMode !== 'full-train' && (
         <>
           {/* Top Center: Bay Jumper Selector */}
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-3 py-2 shadow-2xl flex items-center gap-1.5 max-w-[95vw] overflow-x-auto">
+          <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-2xl flex items-center gap-1 sm:gap-1.5 max-w-[94vw] overflow-x-auto scrollbar-none">
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 whitespace-nowrap mr-1 flex items-center gap-1">
               <Compass className="w-3 h-3" />
-              <span>Jump to Bay:</span>
+              <span>Bay:</span>
             </span>
             {bayPositions.map((b) => (
               <button
@@ -660,36 +782,59 @@ export default function TrainScene({
                   setAutoTour(false);
                   setTargetBayX(b.x);
                 }}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700 hover:border-blue-400 transition shadow-sm whitespace-nowrap active:scale-95"
+                className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700 hover:border-blue-400 transition shadow-sm whitespace-nowrap active:scale-95"
               >
                 Bay {b.bayNumber}
               </button>
             ))}
           </div>
 
-          {/* Bottom Left: Virtual D-Pad / Touch Walk Controls */}
-          <div className="absolute bottom-4 left-4 z-20 bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-3 shadow-2xl space-y-2">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5">
-              <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                <span>🚶</span>
-                <span>Walk Controls</span>
-              </span>
+          {/* Bottom Left: Collapsible Virtual D-Pad / Touch Walk Controls */}
+          <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20 pointer-events-auto">
+            {!isDpadOpen && (
               <button
-                onClick={() => setWalkSpeedMult((prev) => (prev === 1.0 ? 2.0 : 1.0))}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
-                  walkSpeedMult > 1.0
-                    ? 'bg-amber-500 text-slate-950 border-amber-400'
-                    : 'bg-slate-800 text-slate-300 border-slate-700'
-                }`}
-                title="Toggle between Normal Walk and Jog Speed"
+                onClick={() => setIsDpadOpen(true)}
+                className="sm:hidden px-3 py-1.5 rounded-xl bg-slate-950/90 border border-blue-500/50 text-blue-300 font-bold text-xs flex items-center gap-1.5 shadow-2xl backdrop-blur-md active:scale-95"
               >
-                <Zap className="w-2.5 h-2.5 inline mr-0.5" />
-                {walkSpeedMult > 1.0 ? '2x Jog' : '1x Walk'}
+                <span>🚶 Controls</span>
               </button>
-            </div>
+            )}
 
-            {/* D-Pad Buttons */}
-            <div className="grid grid-cols-3 gap-1.5 w-36 mx-auto">
+            <div
+              className={`${
+                !isDpadOpen ? 'hidden sm:block' : 'block'
+              } bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-2.5 sm:p-3 shadow-2xl space-y-2`}
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5">
+                <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                  <span>🚶</span>
+                  <span>Walk Controls</span>
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setWalkSpeedMult((prev) => (prev === 1.0 ? 2.0 : 1.0))}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition ${
+                      walkSpeedMult > 1.0
+                        ? 'bg-amber-500 text-slate-950 border-amber-400'
+                        : 'bg-slate-800 text-slate-300 border-slate-700'
+                    }`}
+                    title="Toggle between Normal Walk and Jog Speed"
+                  >
+                    <Zap className="w-2.5 h-2.5 inline mr-0.5" />
+                    {walkSpeedMult > 1.0 ? '2x' : '1x'}
+                  </button>
+                  <button
+                    onClick={() => setIsDpadOpen(false)}
+                    className="sm:hidden p-1 text-slate-400 hover:text-white rounded"
+                    title="Hide Walkpad"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* D-Pad Buttons */}
+              <div className="grid grid-cols-3 gap-1.5 w-32 sm:w-36 mx-auto">
               <div />
               {/* Forward Button */}
               <button
@@ -784,8 +929,9 @@ export default function TrainScene({
               </button>
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </>
+    )}
 
       {/* ======================================================== */}
       {/* FULL TRAIN MODE: 3D Coach-to-Coach Distance Caliper     */}

@@ -16,6 +16,7 @@ import { formatBerthInfo } from '@/lib/berth-finder';
 import { analyzeLiveJourney } from '@/lib/live-tracking-engine';
 import StarTrainButton from '@/components/ui/StarTrainButton';
 import HornButton from '@/components/ui/HornButton';
+import { useAuth } from '@/context/AuthContext';
 import {
   Train, Loader2, AlertCircle, MapPin, ArrowRight, Clock, Eye,
   Maximize2, ChevronRight, Navigation, Ruler, Activity, CheckCircle2,
@@ -65,6 +66,7 @@ function TrainExplorerContent() {
     selectTrain, fetchTrainStatus, selectCoach, selectBerth, setViewMode, viewMode, clearError,
   } = useTrainStore();
 
+  const { user } = useAuth();
   const [berthInput, setBerthInput] = useState('');
   const [distanceFrom, setDistanceFrom] = useState<string | null>(null);
   const [distanceTo, setDistanceTo] = useState<string | null>(null);
@@ -240,15 +242,19 @@ function TrainExplorerContent() {
 
             {/* Action buttons & Tab navigation */}
             <div className="flex items-center gap-2 flex-wrap">
-              <StarTrainButton
-                trainNumber={activeTrain.trainNumber}
-                trainName={activeTrain.trainName}
-                origin={activeTrain.origin}
-                destination={activeTrain.destination}
-                size="sm"
-                showLabel={true}
-              />
-              <HornButton size="sm" showLabel={false} />
+              {user && (
+                <>
+                  <StarTrainButton
+                    trainNumber={activeTrain.trainNumber}
+                    trainName={activeTrain.trainName}
+                    origin={activeTrain.origin}
+                    destination={activeTrain.destination}
+                    size="sm"
+                    showLabel={true}
+                  />
+                  <HornButton size="sm" showLabel={false} />
+                </>
+              )}
 
               <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
                 {[
@@ -367,8 +373,8 @@ function TrainExplorerContent() {
       {activeTab === '3d' && (
         <div className="flex-1 flex flex-col">
           <div className="flex-1 flex flex-col lg:flex-row">
-            {/* 3D Viewport */}
-            <div className="flex-1 h-[54vh] sm:h-[60vh] lg:h-[650px] min-h-[390px] relative">
+            {/* 3D Viewport - Responsive Height Optimized for Mobile */}
+            <div className="flex-1 h-[64vh] sm:h-[62vh] lg:h-[650px] min-h-[440px] sm:min-h-[480px] relative">
               {isLoading && !selectedTrain ? (
                 <div className="w-full h-full flex items-center justify-center bg-slate-900">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />

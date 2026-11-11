@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { getBerthDescription, getBerthColor } from '@/lib/berth-finder';
 import type { BerthType } from '@/data/coach-database';
+import { ArrowLeftRight } from 'lucide-react';
 
 interface BerthInfoPanelProps {
   berthNumber: number;
@@ -121,7 +123,7 @@ export default function BerthInfoPanel({
       </div>
 
       {/* Neighboring berths */}
-      <div>
+      <div className="mb-4">
         <p className="text-xs text-slate-500 mb-2 font-medium">Nearby Berths in Bay {bayNumber}</p>
         <div className="flex flex-wrap gap-1.5">
           {neighbors.map((nb) => (
@@ -135,6 +137,15 @@ export default function BerthInfoPanel({
           ))}
         </div>
       </div>
+
+      {/* Mutual Seat Swap Action */}
+      <Link
+        href={`/seat-swap?coach=${coachId}&berth=${berthNumber}`}
+        className="w-full py-2.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition active:scale-98 shadow-md"
+      >
+        <ArrowLeftRight className="w-4 h-4" />
+        <span>Request Mutual Swap for Berth #{berthNumber}</span>
+      </Link>
     </div>
   );
 }

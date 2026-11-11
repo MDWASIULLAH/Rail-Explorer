@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import StarTrainButton from '@/components/ui/StarTrainButton';
 import HornButton from '@/components/ui/HornButton';
+import { useAuth } from '@/context/AuthContext';
 import {
   Layers,
   Eye,
@@ -51,6 +52,7 @@ const SPEC_COACHES: RakeCoachSpec[] = [
 ];
 
 export default function AutoExplodeShowcase() {
+  const { user } = useAuth();
   const [isExploded, setIsExploded] = useState(false);
   const [selectedCoachId, setSelectedCoachId] = useState('B1');
 
@@ -81,16 +83,19 @@ export default function AutoExplodeShowcase() {
             </div>
           </div>
 
-          {/* Right Action: Exploded Architecture Switch, Horn, Star */}
+          {/* Right Action: Exploded Architecture Switch, Horn, Star (Gated by Auth) */}
           <div className="flex items-center gap-2 flex-wrap">
-            <StarTrainButton
-              trainNumber="18403"
-              trainName="BBS DHN EXPRESS"
-              size="sm"
-              showLabel={true}
-            />
-
-            <HornButton size="sm" showLabel={false} />
+            {user && (
+              <>
+                <StarTrainButton
+                  trainNumber="18403"
+                  trainName="BBS DHN EXPRESS"
+                  size="sm"
+                  showLabel={true}
+                />
+                <HornButton size="sm" showLabel={false} />
+              </>
+            )}
 
             <button
               onClick={() => setIsExploded(!isExploded)}

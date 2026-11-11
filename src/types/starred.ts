@@ -20,3 +20,4 @@ export interface StarredTrain {
   notes?: string;
   targetStationCode?: string;
 }
+

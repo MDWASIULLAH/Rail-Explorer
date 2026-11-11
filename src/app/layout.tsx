@@ -5,6 +5,7 @@ import NavigationHeader from '@/components/ui/NavigationHeader';
 import Footer from '@/components/ui/Footer';
 import { AuthProvider } from '@/context/AuthContext';
 import { StarredTrainsProvider } from '@/context/StarredTrainsContext';
+import { SeatSwapProvider } from '@/context/SeatSwapContext';
 import StarredTrainsDrawer from '@/components/ui/StarredTrainsDrawer';
 import StationAlarmModal from '@/components/ui/StationAlarmModal';
 import EmergencySosModal from '@/components/ui/EmergencySosModal';
@@ -52,12 +53,14 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased bg-slate-950 text-slate-100 min-h-screen flex flex-col`}>
         <AuthProvider>
           <StarredTrainsProvider>
-            <NavigationHeader />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <StarredTrainsDrawer />
-            <StationAlarmModal />
-            <EmergencySosModal />
+            <SeatSwapProvider>
+              <NavigationHeader />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <StarredTrainsDrawer />
+              <StationAlarmModal />
+              <EmergencySosModal />
+            </SeatSwapProvider>
           </StarredTrainsProvider>
         </AuthProvider>
       </body>

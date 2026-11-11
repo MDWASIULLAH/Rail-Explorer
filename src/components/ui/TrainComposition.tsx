@@ -28,7 +28,7 @@ export default function TrainComposition({ coaches, selectedCoachId, onCoachClic
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-0.5 overflow-x-auto pb-2 scrollbar-thin touch-pan-x select-none">
+      <div className="flex items-center gap-0.5 overflow-x-auto pb-1 sm:pb-2 scrollbar-none sm:scrollbar-thin touch-pan-x select-none snap-x">
         {/* Locomotive */}
         <div className={`flex-shrink-0 ${compact ? 'h-8 w-14' : 'h-12 w-20'} bg-gradient-to-r from-blue-800 to-blue-600 rounded-l-lg flex items-center justify-center text-white text-xs font-bold border border-blue-500`}>
           LOCO

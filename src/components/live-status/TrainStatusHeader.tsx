@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { LiveJourneyAnalysis, StatusConfidence } from '@/lib/live-tracking-engine';
 import StarTrainButton from '@/components/ui/StarTrainButton';
 import HornButton from '@/components/ui/HornButton';
+import { useAuth } from '@/context/AuthContext';
 import {
   Train,
   Calendar,
@@ -39,6 +40,7 @@ export default function TrainStatusHeader({
   onChangeDate,
 }: TrainStatusHeaderProps) {
   const [isInsideTrain, setIsInsideTrain] = useState(false);
+  const { user } = useAuth();
   const { trainNumber, trainName, origin, destination, position, statusConfidence } = journey;
 
   const confidenceStyles: Record<StatusConfidence, { label: string; bg: string; text: string }> = {
@@ -81,18 +83,21 @@ export default function TrainStatusHeader({
             </div>
           </div>
 
-          {/* Quick Actions (Star, Horn, 3D Explorer, Share) */}
+          {/* Quick Actions (Star & Horn when logged in, 3D Explorer, Share) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <StarTrainButton
-              trainNumber={trainNumber}
-              trainName={trainName}
-              origin={origin}
-              destination={destination}
-              size="sm"
-              showLabel={true}
-            />
-
-            <HornButton size="sm" showLabel={false} />
+            {user && (
+              <>
+                <StarTrainButton
+                  trainNumber={trainNumber}
+                  trainName={trainName}
+                  origin={origin}
+                  destination={destination}
+                  size="sm"
+                  showLabel={true}
+                />
+                <HornButton size="sm" showLabel={false} />
+              </>
+            )}
 
             <Link
               href={`/train/${trainNumber}`}

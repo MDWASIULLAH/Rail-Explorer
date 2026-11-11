@@ -7,7 +7,7 @@ import Link from 'next/link';
 import SearchBar from '@/components/ui/SearchBar';
 import {
   Ticket, Loader2, AlertCircle, Train, MapPin, ArrowRight,
-  User, Eye, CheckCircle, Clock, XCircle,
+  User, Eye, CheckCircle, Clock, XCircle, ArrowLeftRight,
 } from 'lucide-react';
 
 function PnrContent() {
@@ -162,13 +162,22 @@ function PnrContent() {
                       <div className="text-right flex flex-col items-end">
                         <p className="text-sm font-bold text-white">{pax.coachId} / {pax.berthNumber}</p>
                         <p className="text-xs text-slate-400">{pax.berthType}</p>
-                        <Link
-                          href={`/train/${pnrData.trainNumber}?coach=${pax.coachId}&berth=${pax.berthNumber}`}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-400 hover:text-blue-300 mt-1 bg-blue-600/15 hover:bg-blue-600/25 px-2 py-0.5 rounded border border-blue-500/30 transition"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>View Berth in 3D</span>
-                        </Link>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Link
+                            href={`/train/${pnrData.trainNumber}?coach=${pax.coachId}&berth=${pax.berthNumber}`}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-400 hover:text-blue-300 bg-blue-600/15 hover:bg-blue-600/25 px-2 py-0.5 rounded border border-blue-500/30 transition"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>3D Berth</span>
+                          </Link>
+                          <Link
+                            href={`/seat-swap?train=${pnrData.trainNumber}&coach=${pax.coachId}&berth=${pax.berthNumber}`}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 px-2 py-0.5 rounded border border-amber-500/30 transition"
+                          >
+                            <ArrowLeftRight className="w-3 h-3" />
+                            <span>Swap Seat</span>
+                          </Link>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-right">
@@ -181,8 +190,8 @@ function PnrContent() {
             </div>
           </div>
 
-          {/* View in 3D & Live Status Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* View in 3D, Live Status & Mutual Seat Swap Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Link
               href={
                 pnrData.passengers?.[0]?.coachId
@@ -192,7 +201,7 @@ function PnrContent() {
               className="flex items-center justify-center gap-2 w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-500/20"
             >
               <Eye className="w-4 h-4" />
-              <span>Explore Rake in 3D</span>
+              <span>Explore in 3D</span>
             </Link>
 
             <Link
@@ -201,6 +210,14 @@ function PnrContent() {
             >
               <Train className="w-4 h-4 text-emerald-400" />
               <span>Track Live Status</span>
+            </Link>
+
+            <Link
+              href={`/seat-swap?train=${pnrData.trainNumber}`}
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 font-bold text-sm rounded-xl border border-amber-500/40 transition shadow-sm"
+            >
+              <ArrowLeftRight className="w-4 h-4 text-amber-400" />
+              <span>Mutual Seat Swap</span>
             </Link>
           </div>
 

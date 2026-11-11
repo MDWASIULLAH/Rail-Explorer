@@ -21,6 +21,7 @@ import {
   Volume2,
   BellRing,
   ShieldAlert,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStarredTrains } from '@/context/StarredTrainsContext';
@@ -52,6 +53,7 @@ function GoogleMiniIcon({ className = 'w-4 h-4' }: { className?: string }) {
 const navLinks = [
   { href: '/', label: 'Home', icon: Train },
   { href: '/live-status', label: 'Live Status', icon: Radio, isLive: true },
+  { href: '/seat-swap', label: 'Seat Swap', icon: ArrowLeftRight, isNew: true },
   { href: '/station/BBS', label: 'Station Board', icon: Building2 },
   { href: '/search', label: 'Explorer', icon: Search },
   { href: '/pnr', label: 'PNR', icon: Ticket },
@@ -104,52 +106,58 @@ export default function NavigationHeader() {
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-0.5">
-            {navLinks.map(({ href, label, icon: Icon, isLive }: any) => (
+            {navLinks.map(({ href, label, icon: Icon, isLive, isNew }: any) => (
               <Link
                 key={href}
                 href={href}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs xl:text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors relative"
               >
-                <Icon className={`w-3.5 h-3.5 xl:w-4 xl:h-4 ${isLive ? 'text-emerald-400' : ''}`} />
+                <Icon className={`w-3.5 h-3.5 xl:w-4 xl:h-4 ${isLive ? 'text-emerald-400' : isNew ? 'text-amber-400' : ''}`} />
                 <span>{label}</span>
                 {isLive && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                )}
+                {isNew && (
+                  <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 ml-0.5">
+                    NEW
+                  </span>
                 )}
               </Link>
             ))}
           </nav>
 
-          {/* Right Actions: Horn, Starred Drawer, User Profile */}
+          {/* Right Actions: Horn, Starred Drawer, User Profile (Gated by Auth) */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Quick Locomotive Horn Blast */}
-            <button
-              onClick={handleHorn}
-              title="Blast Authentic WAP-7 Locomotive Air Horn (370 Hz / 311 Hz)"
-              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border transition text-xs flex items-center gap-1.5 font-bold active:scale-95 ${
-                hornBlasting
-                  ? 'bg-amber-400 text-slate-950 border-amber-300 scale-105 shadow-lg shadow-amber-400/30'
-                  : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700/80 shadow'
-              }`}
-            >
-              <Volume2 className={`w-3.5 h-3.5 text-amber-400 ${hornBlasting ? 'animate-bounce text-slate-950' : ''}`} />
-              <span className="hidden md:inline font-mono text-[11px] text-amber-300">Horn</span>
-            </button>
-
-            {/* Quick Starred Trains Drawer Trigger */}
-            <button
-              onClick={() => setIsDrawerOpen(true)}
-              title="View Starred Trains & Live Status"
-              className="flex items-center gap-1.5 py-1.5 px-2 sm:px-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 transition text-xs font-semibold text-amber-300 shadow active:scale-95"
-            >
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="hidden sm:inline">Starred</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
-                {starredTrains.length}
-              </span>
-            </button>
-
             {user ? (
-              <div className="relative" ref={menuRef}>
+              <>
+                {/* Quick Locomotive Horn Blast */}
+                <button
+                  onClick={handleHorn}
+                  title="Blast Authentic WAP-7 Locomotive Air Horn (370 Hz / 311 Hz)"
+                  className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border transition text-xs flex items-center gap-1.5 font-bold active:scale-95 ${
+                    hornBlasting
+                      ? 'bg-amber-400 text-slate-950 border-amber-300 scale-105 shadow-lg shadow-amber-400/30'
+                      : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700/80 shadow'
+                  }`}
+                >
+                  <Volume2 className={`w-3.5 h-3.5 text-amber-400 ${hornBlasting ? 'animate-bounce text-slate-950' : ''}`} />
+                  <span className="hidden md:inline font-mono text-[11px] text-amber-300">Horn</span>
+                </button>
+
+                {/* Quick Starred Trains Drawer Trigger */}
+                <button
+                  onClick={() => setIsDrawerOpen(true)}
+                  title="View Starred Trains & Live Status"
+                  className="flex items-center gap-1.5 py-1.5 px-2 sm:px-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 transition text-xs font-semibold text-amber-300 shadow active:scale-95"
+                >
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span className="hidden sm:inline">Starred</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
+                    {starredTrains.length}
+                  </span>
+                </button>
+
+                <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 py-1 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 transition-all text-xs"
@@ -270,6 +278,7 @@ export default function NavigationHeader() {
                   </div>
                 )}
               </div>
+              </>
             ) : (
               <Link
                 href="/login"
@@ -339,40 +348,42 @@ export default function NavigationHeader() {
             </div>
           )}
 
-          {/* Quick Tools Row for Mobile */}
-          <div className="grid grid-cols-3 gap-2 px-4 py-3 border-b border-slate-800 bg-slate-950/40 text-xs">
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                setIsDrawerOpen(true);
-              }}
-              className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 text-amber-300 font-semibold flex flex-col items-center gap-1 text-center"
-            >
-              <Star className="w-4 h-4 fill-amber-400" />
-              <span className="text-[10px]">Starred ({starredTrains.length})</span>
-            </button>
+          {/* Quick Tools Row for Mobile (Only for Logged-In Users) */}
+          {user && (
+            <div className="grid grid-cols-3 gap-2 px-4 py-3 border-b border-slate-800 bg-slate-950/40 text-xs">
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  setIsDrawerOpen(true);
+                }}
+                className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 text-amber-300 font-semibold flex flex-col items-center gap-1 text-center"
+              >
+                <Star className="w-4 h-4 fill-amber-400" />
+                <span className="text-[10px]">Starred ({starredTrains.length})</span>
+              </button>
 
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                setIsAlarmModalOpen(true);
-              }}
-              className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 text-slate-300 font-semibold flex flex-col items-center gap-1 text-center"
-            >
-              <BellRing className="w-4 h-4 text-amber-400" />
-              <span className="text-[10px]">Wake Alarm</span>
-            </button>
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  setIsAlarmModalOpen(true);
+                }}
+                className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 text-slate-300 font-semibold flex flex-col items-center gap-1 text-center"
+              >
+                <BellRing className="w-4 h-4 text-amber-400" />
+                <span className="text-[10px]">Wake Alarm</span>
+              </button>
 
-            <button
-              onClick={() => {
-                handleHorn();
-              }}
-              className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 text-blue-300 font-semibold flex flex-col items-center gap-1 text-center"
-            >
-              <Volume2 className="w-4 h-4 text-blue-400" />
-              <span className="text-[10px]">WAP-7 Horn</span>
-            </button>
-          </div>
+              <button
+                onClick={() => {
+                  handleHorn();
+                }}
+                className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 text-blue-300 font-semibold flex flex-col items-center gap-1 text-center"
+              >
+                <Volume2 className="w-4 h-4 text-blue-400" />
+                <span className="text-[10px]">WAP-7 Horn</span>
+              </button>
+            </div>
+          )}
 
           {navLinks.map(({ href, label, icon: Icon }) => (
             <Link
