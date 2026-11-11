@@ -133,6 +133,8 @@ export default function SeatSwapPage() {
     proposeSwap,
     findMatchesForOffer,
     notifications,
+    syncError,
+    sharedReady,
     isSwapModalOpen,
     setIsSwapModalOpen,
     prefilledCoach,
@@ -290,7 +292,7 @@ export default function SeatSwapPage() {
   }, [offers]);
 
   /* ─── Handlers ─── */
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     const normalizedTrainNumber = trainNumber.trim();
@@ -313,28 +315,32 @@ export default function SeatSwapPage() {
       .map((s) => s.trim().toUpperCase())
       .filter(Boolean);
 
-    createOffer({
-      trainNumber: normalizedTrainNumber,
-      trainName: verifiedTrainNumber === normalizedTrainNumber && trainName
-        ? trainName
-        : `Train ${normalizedTrainNumber}`,
-      journeyDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      fromStation: fromStation.trim(),
-      toStation: toStation.trim(),
-      currentCoach: coachId.toUpperCase(),
-      currentBerth: Number(berthNumber),
-      currentBerthType: berthType,
-      currentCoachClass: coachClass,
-      desiredCoaches: desiredCoaches.length > 0 ? desiredCoaches : undefined,
-      desiredBerthTypes: desiredBerthType === 'ANY' ? undefined : [desiredBerthType],
-      desiredBerthNumber: desiredBerthNumber === '' ? undefined : Number(desiredBerthNumber),
-      userId: user.id,
-      userEmail: user.email,
-      reasonCategory,
-      reasonDescription:
-        reasonDescription || 'Seeking mutual berth exchange for comfortable travel.',
-      passengerName: passengerName || user.name || 'Passenger',
-    });
+    try {
+      await createOffer({
+        trainNumber: normalizedTrainNumber,
+        trainName: verifiedTrainNumber === normalizedTrainNumber && trainName
+          ? trainName
+          : `Train ${normalizedTrainNumber}`,
+        journeyDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        fromStation: fromStation.trim(),
+        toStation: toStation.trim(),
+        currentCoach: coachId.toUpperCase(),
+        currentBerth: Number(berthNumber),
+        currentBerthType: berthType,
+        currentCoachClass: coachClass,
+        desiredCoaches: desiredCoaches.length > 0 ? desiredCoaches : undefined,
+        desiredBerthTypes: desiredBerthType === 'ANY' ? undefined : [desiredBerthType],
+        desiredBerthNumber: desiredBerthNumber === '' ? undefined : Number(desiredBerthNumber),
+        userId: user.id,
+        userEmail: user.email,
+        reasonCategory,
+        reasonDescription: reasonDescription || 'Seeking mutual berth exchange for comfortable travel.',
+        passengerName: passengerName || user.name || 'Passenger',
+      });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Could not share this listing. Your form is still here; try again later.');
+      return;
+    }
 
     // Reset form
     setTrainNumber('');
@@ -354,11 +360,11 @@ export default function SeatSwapPage() {
     setIsSwapModalOpen(false);
   };
 
-  const handleProposeSubmit = (e: React.FormEvent) => {
+  const handleProposeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeHandshakeOffer || !user) return;
 
-    const proposal = proposeSwap({
+    const proposal = await proposeSwap({
       offerId: activeHandshakeOffer.id,
       proposerName: user.name || 'Passenger',
       proposerUserId: user.id,
@@ -496,6 +502,14 @@ export default function SeatSwapPage() {
   /* ═══════════════════════════════════════════════════════ */
   return (
     <div className="min-h-screen pb-20">
+      {syncError && (
+        <div role="status" className="mx-auto mt-4 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+            <strong>{sharedReady ? 'Swap sync paused' : 'Listings are not shared yet'}</strong>
+            <span className="ml-2 text-amber-200/80">{syncError}</span>
+          </div>
+        </div>
+      )}
       {/* ─── Hero Section ─── */}
       <section className="bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-b border-slate-800 py-8 sm:py-12 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto space-y-5">

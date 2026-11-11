@@ -50,21 +50,11 @@ function InstancedSeatParts({
 
 function PassingScenery({ paused }: { paused: boolean }) {
   const scenery = useRef<THREE.Group>(null);
-  const sceneryItems = useMemo(() => {
-    const items: Array<{ position: [number, number, number]; size: [number, number, number]; color: string }> = [];
-    for (const side of [-1, 1]) {
-      for (let index = 0; index < 24; index += 1) {
-        const z = -24 + index * 1.55;
-        const height = 0.5 + ((index * 17) % 11) / 13;
-        items.push({
-          position: [side * (2.85 + ((index * 7) % 6) * 0.16), 0.15 + height / 2, z],
-          size: [0.12 + ((index * 3) % 5) * 0.07, height, 0.18 + ((index * 5) % 4) * 0.12],
-          color: index % 5 === 0 ? '#38bdf8' : index % 3 === 0 ? '#34d399' : '#334c71',
-        });
-      }
-    }
-    return items;
-  }, []);
+  const trees = useMemo(() => Array.from({ length: 14 }, (_, index) => ({
+    z: -25 + index * 2.2,
+    height: 1.1 + (index % 3) * 0.18,
+    color: index % 2 === 0 ? '#244a43' : '#31584a',
+  })), []);
 
   useFrame((_, delta) => {
     if (!paused && scenery.current) {
@@ -74,20 +64,18 @@ function PassingScenery({ paused }: { paused: boolean }) {
 
   return (
     <group ref={scenery}>
-      {sceneryItems.map((item, index) => (
-        <mesh key={index} position={item.position}>
-          <boxGeometry args={item.size} />
-          <meshStandardMaterial color={item.color} emissive={item.color} emissiveIntensity={0.08} />
-        </mesh>
-      ))}
-      {[-1, 1].map((side) =>
-        Array.from({ length: 10 }, (_, index) => (
-          <mesh key={`${side}-${index}`} position={[side * 2.62, 1.15, -22 + index * 3.15]}>
-            <boxGeometry args={[0.045, 2.3, 0.055]} />
-            <meshBasicMaterial color="#7dd3fc" transparent opacity={0.42} />
+      {[-1, 1].flatMap((side) => trees.map((tree, index) => (
+        <group key={`${side}-${index}`} position={[side * (4.3 + (index % 2) * 0.45), 0, tree.z]}>
+          <mesh position={[0, tree.height * 0.42, 0]}>
+            <cylinderGeometry args={[0.055, 0.09, tree.height * 0.84, 6]} />
+            <meshStandardMaterial color="#594b3d" roughness={1} />
           </mesh>
-        )),
-      )}
+          <mesh position={[0, tree.height * 1.15, 0]}>
+            <coneGeometry args={[0.52 + (index % 2) * 0.12, tree.height * 1.3, 7]} />
+            <meshStandardMaterial color={tree.color} roughness={1} />
+          </mesh>
+        </group>
+      )))}
     </group>
   );
 }
@@ -99,8 +87,10 @@ function CoachInterior({ paused }: { paused: boolean }) {
   const headrests = useMemo(() => rowZ.flatMap((z) => [-0.92, 0.92].map((x) => [x, 1.58, z + 0.28] as [number, number, number])), []);
 
   useFrame(({ clock }) => {
-    if (cameraRig.current && !paused) {
-      const t = clock.getElapsedTime();
+    if (cameraRig.current) {
+      const t = clock.getElapsedTime() % 26;
+      cameraRig.current.visible = paused || t < 7.2 || t > 25.2;
+      if (paused) return;
       cameraRig.current.position.x = Math.sin(t * 0.35) * 0.025;
       cameraRig.current.position.y = Math.sin(t * 0.7) * 0.018;
       cameraRig.current.rotation.z = Math.sin(t * 0.32) * 0.002;
@@ -185,20 +175,21 @@ function CoachInterior({ paused }: { paused: boolean }) {
 
 function MovingRake({ paused }: { paused: boolean }) {
   const rake = useRef<THREE.Group>(null);
-  const coaches = useMemo(() => Array.from({ length: 7 }, (_, index) => index), []);
+  const coaches = useMemo(() => Array.from({ length: 16 }, (_, index) => index), []);
 
   useFrame(({ clock }) => {
     if (!rake.current || paused) return;
-    rake.current.position.z = ((clock.getElapsedTime() * 1.8) % 3.4) - 1.7;
-    rake.current.position.x = Math.sin(clock.getElapsedTime() * 0.32) * 0.12;
-    rake.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.32) * 0.008;
+    const time = clock.getElapsedTime();
+    // The consist advances steadily; a long rake keeps the camera surrounded by coaches.
+    rake.current.position.z = (time * 0.72) % 4.25;
+    rake.current.position.x = Math.sin(time * 0.16) * 0.035;
   });
 
   return (
     <group ref={rake} position={[0, 0, 0]}>
-      {/* A compact exterior rake gives the second camera shot a clear sense of scale. */}
+      {/* A long, continuous rake gives the outside camera a real train to reveal. */}
       {coaches.map((index) => {
-        const z = 14 - index * 4.25;
+        const z = 18 - index * 4.25;
         const isEngine = index === 0;
         return (
           <group key={index} position={[0, 0, z]}>
@@ -219,6 +210,12 @@ function MovingRake({ paused }: { paused: boolean }) {
                 </mesh>
               );
             })}
+            {!isEngine && [-1.25, 1.25].map((bogieZ) => (
+              <mesh key={`bogie-${bogieZ}`} position={[0, 0.43, bogieZ]}>
+                <boxGeometry args={[1.82, 0.16, 0.62]} />
+                <meshStandardMaterial color="#283446" metalness={0.38} roughness={0.72} />
+              </mesh>
+            ))}
             {!isEngine && [-1.78, 1.78].map((doorZ) => (
               <mesh key={doorZ} position={[1.115, 1.44, doorZ]}>
                 <boxGeometry args={[0.035, 1.65, 0.25]} />
@@ -235,34 +232,73 @@ function MovingRake({ paused }: { paused: boolean }) {
           </group>
         );
       })}
-      <mesh position={[0, -0.28, 0]}>
-        <boxGeometry args={[2.2, 0.12, 52]} />
+      <mesh position={[0, -0.28, -10]}>
+        <boxGeometry args={[2.2, 0.12, 72]} />
         <meshStandardMaterial color="#64748b" metalness={0.75} roughness={0.35} />
       </mesh>
       {[-0.72, 0.72].map((x) => (
-        <mesh key={`rail-${x}`} position={[x, -0.18, 0]}>
-          <boxGeometry args={[0.09, 0.12, 54]} />
+        <mesh key={`rail-${x}`} position={[x, -0.18, -10]}>
+          <boxGeometry args={[0.09, 0.12, 74]} />
           <meshStandardMaterial color="#9ca3af" metalness={0.82} roughness={0.32} />
         </mesh>
+      ))}
+      {/* Generic Indian station platform and canopy, kept deliberately unlabelled. */}
+      <mesh position={[3.65, -0.2, -10]}>
+        <boxGeometry args={[2.5, 0.32, 74]} />
+        <meshStandardMaterial color="#4b5563" roughness={0.9} />
+      </mesh>
+      <mesh position={[4.55, 4.65, -10]}>
+        <boxGeometry args={[5.2, 0.18, 44]} />
+        <meshStandardMaterial color="#26374b" metalness={0.22} roughness={0.72} />
+      </mesh>
+      {[-29, -20, -11, -2, 7].map((z) => (
+        <group key={`platform-lamp-${z}`} position={[4.45, 0, z]}>
+          <mesh position={[0, 2.25, 0]}><boxGeometry args={[0.12, 4.5, 0.12]} /><meshStandardMaterial color="#64748b" metalness={0.5} /></mesh>
+          <mesh position={[0, 4.4, 0]}><boxGeometry args={[1.05, 0.08, 0.24]} /><meshBasicMaterial color="#c5e7ff" /></mesh>
+          <pointLight position={[-0.25, 4.15, 0]} intensity={0.65} distance={10} color="#dceeff" />
+        </group>
       ))}
     </group>
   );
 }
 
 function CameraJourney({ reducedMotion }: { reducedMotion: boolean }) {
-  useFrame(({ camera, clock }) => {
+  useFrame(({ camera, clock, size }) => {
     if (reducedMotion) return;
-    const t = clock.getElapsedTime() % 22;
-    // Travel down the carriage, pass through a side window, then track beside the moving rake.
-    const leave = THREE.MathUtils.smoothstep(t, 5.2, 8.2);
-    const returnInside = THREE.MathUtils.smoothstep(t, 18, 21.5);
-    const outside = Math.max(0, leave - returnInside);
-    const insidePosition = new THREE.Vector3(Math.sin(t * 0.3) * 0.025, 1.62, 4.25 - Math.min(t, 5.2) * 1.1);
-    const outsidePosition = new THREE.Vector3(7.2, 3.15, -1.5);
-    camera.position.lerpVectors(insidePosition, outsidePosition, outside);
-    const insideLook = new THREE.Vector3(0, 1.35, -12);
-    const outsideLook = new THREE.Vector3(0, 1.15, -1.5);
-    camera.lookAt(insideLook.lerp(outsideLook, outside));
+    const t = clock.getElapsedTime() % 26;
+    const mix = (start: number, end: number, value: number) => THREE.MathUtils.smoothstep(value, start, end);
+    const insideStart = new THREE.Vector3(0, 1.62, 4.25);
+    const windowExit = new THREE.Vector3(2.65, 2.2, -1.4);
+    const outsideWide = new THREE.Vector3(10.5, 4.1, 1.5);
+    const outsideTrack = new THREE.Vector3(15.5, 4.7, -12);
+    const lookInside = new THREE.Vector3(0, 1.35, -12);
+    const lookWindow = new THREE.Vector3(0, 1.65, -1.4);
+    const lookRake = new THREE.Vector3(0, 1.2, -15);
+    const phaseTwo = mix(7.2, 10.2, t);
+    const phaseThree = mix(10.2, 18, t);
+    const phaseReturn = mix(20, 25.5, t);
+    const cameraPosition = new THREE.Vector3();
+    const cameraLook = new THREE.Vector3();
+    if (t < 7.2) {
+      cameraPosition.lerpVectors(insideStart, windowExit, mix(0, 7.2, t));
+      cameraLook.copy(lookInside).lerp(lookWindow, mix(3.8, 7.2, t));
+    } else if (t < 10.2) {
+      cameraPosition.lerpVectors(windowExit, outsideWide, phaseTwo);
+      cameraLook.copy(lookWindow).lerp(lookRake, phaseTwo);
+    } else if (t < 20) {
+      cameraPosition.lerpVectors(outsideWide, outsideTrack, phaseThree);
+      cameraLook.copy(lookRake);
+    } else {
+      const outsideBlend = 1 - phaseReturn;
+      cameraPosition.lerpVectors(insideStart, outsideTrack, outsideBlend);
+      cameraLook.copy(lookInside).lerp(lookRake, outsideBlend);
+    }
+    const outsideAmount = THREE.MathUtils.smoothstep(t, 7.2, 10.2) * (1 - THREE.MathUtils.smoothstep(t, 20, 25.5));
+    const portraitDistance = size.width / Math.max(size.height, 1) < 0.8 ? 1.45 : 1;
+    cameraPosition.x *= THREE.MathUtils.lerp(1, portraitDistance, outsideAmount);
+    cameraPosition.z *= THREE.MathUtils.lerp(1, portraitDistance, outsideAmount);
+    camera.position.copy(cameraPosition);
+    camera.lookAt(cameraLook);
   });
   return null;
 }

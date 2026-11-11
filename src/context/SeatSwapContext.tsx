@@ -21,11 +21,11 @@ interface SeatSwapContextType {
   notifications: SwapNotification[];
   incomingProposals: SwapProposal[];
   sentProposals: SwapProposal[];
-  createOffer: (offer: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => SwapOffer;
-  proposeSwap: (proposal: Omit<SwapProposal, 'id' | 'createdAt' | 'status'>) => SwapProposal | null;
-  acceptSwap: (proposalId: string) => void;
-  declineSwap: (proposalId: string) => void;
-  deleteOffer: (offerId: string) => void;
+  createOffer: (offer: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => Promise<SwapOffer>;
+  proposeSwap: (proposal: Omit<SwapProposal, 'id' | 'createdAt' | 'status'>) => Promise<SwapProposal | null>;
+  acceptSwap: (proposalId: string) => Promise<void>;
+  declineSwap: (proposalId: string) => Promise<void>;
+  deleteOffer: (offerId: string) => Promise<void>;
   findMatchesForOffer: (offer: SwapOffer) => SwapOffer[];
   isSwapModalOpen: boolean;
   setIsSwapModalOpen: (open: boolean) => void;
@@ -35,6 +35,8 @@ interface SeatSwapContextType {
   prefilledBerth: number | null;
   prefilledTrain: string | null;
   openSwapWithPreFill: (trainNumber: string, coach: string, berth: number) => void;
+  syncError: string | null;
+  sharedReady: boolean;
 }
 
 const SeatSwapContext = createContext<SeatSwapContextType | null>(null);
@@ -52,23 +54,61 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   const proposalsRef = useRef<SwapProposal[]>([]);
   const notificationsRef = useRef<SwapNotification[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [sharedReady, setSharedReady] = useState(false);
 
   const updateOffers = useCallback((update: (current: SwapOffer[]) => SwapOffer[]) => {
     const next = update(offersRef.current);
     offersRef.current = next;
     setOffers(next);
   }, []);
-  const updateProposals = useCallback((update: (current: SwapProposal[]) => SwapProposal[]) => {
-    const next = update(proposalsRef.current);
-    proposalsRef.current = next;
-    setProposals(next);
-  }, []);
-  const updateNotifications = useCallback((update: (current: SwapNotification[]) => SwapNotification[]) => {
-    const next = update(notificationsRef.current);
-    notificationsRef.current = next;
-    setNotifications(next);
+
+  const refreshShared = useCallback(async () => {
+    try {
+      const response = await fetch('/api/seat-swaps', { cache: 'no-store' });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Shared swap service is unavailable.');
+      const data = result.data as { offers?: SwapOffer[]; proposals?: SwapProposal[]; notifications?: SwapNotification[] };
+      const nextOffers = data.offers || [];
+      const nextProposals = data.proposals || [];
+      const nextNotifications = data.notifications || [];
+      offersRef.current = nextOffers;
+      proposalsRef.current = nextProposals;
+      notificationsRef.current = nextNotifications;
+      setOffers(nextOffers);
+      setProposals(nextProposals);
+      setNotifications(nextNotifications);
+      setSyncError(null);
+      setSharedReady(true);
+      return true;
+    } catch (error) {
+      setSharedReady(false);
+      setSyncError(error instanceof Error ? error.message : 'Shared swap service is unavailable.');
+      return false;
+    }
   }, []);
 
+  // Import the signed-in user's existing browser listing once, then poll shared state
+  // so requests and acceptance notifications appear in both accounts.
+  useEffect(() => {
+    if (!isLoaded || !user?.id) return;
+    let cancelled = false;
+    const syncAndRefresh = async () => {
+      const legacyOffers = offersRef.current.filter((offer) => offer.isCurrentUser && (!offer.userId || offer.userId === user.id));
+      if (legacyOffers.length) {
+        try {
+          await fetch('/api/seat-swaps/sync', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ offers: legacyOffers }),
+          });
+        } catch { /* refresh below reports backend availability */ }
+      }
+      if (!cancelled) await refreshShared();
+    };
+    void syncAndRefresh();
+    const timer = window.setInterval(() => { if (!cancelled) void refreshShared(); }, 12000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [isLoaded, refreshShared, user?.id]);
   // Pre-fill state
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -148,7 +188,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   );
 
   const createOffer = useCallback(
-    (newOfferData: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => {
+    async (newOfferData: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => {
       const newOffer: SwapOffer = {
         ...newOfferData,
         id: `swap-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -157,15 +197,26 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       updateOffers((prev) => [newOffer, ...prev]);
+      try {
+        const response = await fetch('/api/seat-swaps', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newOffer),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Could not share this listing.');
+        await refreshShared();
+      } catch (error) {
+        setSyncError(error instanceof Error ? error.message : 'Could not share this listing.');
+        throw error;
+      }
       return newOffer;
     },
-    [updateOffers]
+    [refreshShared, updateOffers]
   );
 
   const proposeSwap = useCallback(
-    (proposalData: Omit<SwapProposal, 'id' | 'createdAt' | 'status'>) => {
+    async (proposalData: Omit<SwapProposal, 'id' | 'createdAt' | 'status'>) => {
       const targetOffer = offersRef.current.find((offer) => offer.id === proposalData.offerId);
-      if (!targetOffer || targetOffer.status !== 'AVAILABLE') return null;
+      if (!targetOffer || !['AVAILABLE', 'REQUEST_PENDING'].includes(targetOffer.status)) return null;
       if (targetOffer.userId && targetOffer.userId === (proposalData.proposerUserId || user?.id)) return null;
 
       const newProposal: SwapProposal = {
@@ -175,20 +226,24 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
         isCurrentUser: true,
         createdAt: new Date().toISOString(),
       };
-      updateProposals((prev) => [newProposal, ...prev]);
-      updateOffers((prev) =>
-        prev.map((o) =>
-          o.id === proposalData.offerId && o.status === 'AVAILABLE'
-            ? { ...o, status: 'REQUEST_PENDING' }
-            : o
-        )
-      );
+      try {
+        const response = await fetch('/api/seat-swaps/actions', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'propose', offerId: newProposal.offerId, proposalId: newProposal.id, payload: newProposal }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Could not send this proposal.');
+        await refreshShared();
+      } catch (error) {
+        setSyncError(error instanceof Error ? error.message : 'Could not send this proposal.');
+        return null;
+      }
       return newProposal;
     },
-    [updateOffers, updateProposals, user?.id]
+    [refreshShared, user?.id]
   );
 
-  const acceptSwap = useCallback((proposalId: string) => {
+  const acceptSwap = useCallback(async (proposalId: string) => {
     const pendingProposal = proposalsRef.current.find((proposal) => proposal.id === proposalId && proposal.status === 'PENDING');
     if (!pendingProposal) return;
     const offer = offersRef.current.find((candidate) => candidate.id === pendingProposal.offerId);
@@ -198,61 +253,35 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       : Boolean(offer.isCurrentUser);
     if (!currentUserOwnsOffer) return;
 
-    const acceptedAt = new Date().toISOString();
-    const acceptedProposal: SwapProposal = { ...pendingProposal, status: 'ACCEPTED' };
-    updateProposals((current) => current.map((proposal) => {
-      if (proposal.offerId !== offer.id || proposal.status !== 'PENDING') return proposal;
-      return proposal.id === acceptedProposal.id
-        ? acceptedProposal
-        : { ...proposal, status: 'DECLINED' };
-    }));
-    updateOffers((current) => current.map((candidate) => candidate.id === offer.id
-      ? { ...candidate, status: 'SWAP_ACCEPTED', acceptedProposal, acceptedAt }
-      : candidate));
+    try {
+      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'accept', proposalId }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Could not accept this proposal.');
+      await refreshShared();
+    } catch (error) { setSyncError(error instanceof Error ? error.message : 'Could not accept this proposal.'); }
+  }, [refreshShared, user?.id]);
 
-    const recipients = [
-      {
-        recipientUserId: offer.userId || (offer.isCurrentUser ? user?.id : undefined),
-        recipientEmail: offer.userEmail || (offer.isCurrentUser ? user?.email : undefined),
-        role: 'Your listed berth',
-      },
-      { recipientUserId: pendingProposal.proposerUserId, recipientEmail: pendingProposal.proposerEmail, role: 'Your swap proposal' },
-    ].filter((recipient, index, all) => recipient.recipientUserId || recipient.recipientEmail
-      ? all.findIndex((other) => (other.recipientUserId || '').toLowerCase() === (recipient.recipientUserId || '').toLowerCase()
-        && (other.recipientEmail || '').toLowerCase() === (recipient.recipientEmail || '').toLowerCase()) === index
-      : index === 0);
-    const newNotifications = recipients.map((recipient) => ({
-      id: `swap-notice-${acceptedProposal.id}-${recipient.role.replaceAll(' ', '-').toLowerCase()}`,
-      recipientUserId: recipient.recipientUserId,
-      recipientEmail: recipient.recipientEmail,
-      offerId: offer.id,
-      proposalId: acceptedProposal.id,
-      message: `${recipient.role} for train ${offer.trainNumber} was accepted. The berth exchange is confirmed in this local session.`,
-      createdAt: acceptedAt,
-    }));
-    updateNotifications((current) => [...newNotifications, ...current].slice(0, 100));
-  }, [updateNotifications, updateOffers, updateProposals, user?.email, user?.id]);
-
-  const declineSwap = useCallback((proposalId: string) => {
+  const declineSwap = useCallback(async (proposalId: string) => {
     const targetProposal = proposalsRef.current.find((proposal) => proposal.id === proposalId && proposal.status === 'PENDING');
     if (!targetProposal) return;
     const targetOffer = offersRef.current.find((offer) => offer.id === targetProposal.offerId);
     if (targetOffer?.status === 'SWAP_ACCEPTED') return;
-    updateProposals((current) => current.map((proposal) => proposal.id === proposalId && proposal.status === 'PENDING'
-      ? { ...proposal, status: 'DECLINED' }
-      : proposal));
-    if (targetOffer) {
-      const hasOtherPending = proposalsRef.current.some((proposal) => proposal.offerId === targetOffer.id && proposal.id !== proposalId && proposal.status === 'PENDING');
-      updateOffers((current) => current.map((offer) => offer.id === targetOffer.id
-        ? { ...offer, status: hasOtherPending ? 'REQUEST_PENDING' : 'AVAILABLE' }
-        : offer));
-    }
-  }, [updateOffers, updateProposals]);
+    try {
+      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'decline', proposalId }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Could not decline this proposal.');
+      await refreshShared();
+    } catch (error) { setSyncError(error instanceof Error ? error.message : 'Could not decline this proposal.'); }
+  }, [refreshShared]);
 
-  const deleteOffer = useCallback((offerId: string) => {
-    updateOffers((prev) => prev.filter((o) => o.id !== offerId));
-    updateProposals((prev) => prev.filter((p) => p.offerId !== offerId));
-  }, [updateOffers, updateProposals]);
+  const deleteOffer = useCallback(async (offerId: string) => {
+    try {
+      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', offerId }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Could not remove this listing.');
+      await refreshShared();
+    } catch (error) { setSyncError(error instanceof Error ? error.message : 'Could not remove this listing.'); }
+  }, [refreshShared]);
 
   const findMatchesForOffer = useCallback(
     (targetOffer: SwapOffer) => {
@@ -309,6 +338,8 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
         prefilledBerth,
         prefilledTrain,
         openSwapWithPreFill,
+        syncError,
+        sharedReady,
       }}
     >
       {children}
