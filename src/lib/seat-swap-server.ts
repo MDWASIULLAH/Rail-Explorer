@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { verifyProviderSession } from '@/lib/auth-session';
 
 export interface SwapServerUser {
   id: string;
@@ -24,7 +25,16 @@ export function getSeatSwapAdminClient(): SupabaseClient | null {
 
 export async function getSeatSwapUser(request: Request): Promise<SwapServerUser | null> {
   const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
-  if (!token) return null;
+  if (!token) {
+    const cookie = request.headers.get('cookie') || '';
+    const session = cookie.match(/(?:^|;\s*)rail_session=([^;]+)/)?.[1];
+    if (!session) return null;
+    try {
+      return verifyProviderSession(decodeURIComponent(session));
+    } catch {
+      return null;
+    }
+  }
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
