@@ -183,6 +183,90 @@ function CoachInterior({ paused }: { paused: boolean }) {
   );
 }
 
+function MovingRake({ paused }: { paused: boolean }) {
+  const rake = useRef<THREE.Group>(null);
+  const coaches = useMemo(() => Array.from({ length: 7 }, (_, index) => index), []);
+
+  useFrame(({ clock }) => {
+    if (!rake.current || paused) return;
+    rake.current.position.z = ((clock.getElapsedTime() * 1.8) % 3.4) - 1.7;
+    rake.current.position.x = Math.sin(clock.getElapsedTime() * 0.32) * 0.12;
+    rake.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.32) * 0.008;
+  });
+
+  return (
+    <group ref={rake} position={[0, 0, 0]}>
+      {/* A compact exterior rake gives the second camera shot a clear sense of scale. */}
+      {coaches.map((index) => {
+        const z = 14 - index * 4.25;
+        const isEngine = index === 0;
+        return (
+          <group key={index} position={[0, 0, z]}>
+            <mesh position={[0, 1.45, 0]}>
+              <boxGeometry args={isEngine ? [2.3, 2.55, 4.1] : [2.2, 2.3, 4]} />
+              <meshStandardMaterial color={isEngine ? '#123c66' : '#183454'} metalness={0.52} roughness={0.34} />
+            </mesh>
+            <mesh position={[0, 2.77, 0]}>
+              <boxGeometry args={isEngine ? [2.12, 0.14, 3.8] : [2.06, 0.13, 3.78]} />
+              <meshStandardMaterial color="#6da5c8" metalness={0.65} roughness={0.3} />
+            </mesh>
+            {Array.from({ length: isEngine ? 2 : 5 }, (_, windowIndex) => {
+              const zOffset = isEngine ? (windowIndex === 0 ? -0.55 : 0.55) : -1.4 + windowIndex * 0.7;
+              return (
+                <mesh key={windowIndex} position={[1.115, isEngine ? 1.7 : 1.72, zOffset]}>
+                  <boxGeometry args={[0.035, 0.75, isEngine ? 0.46 : 0.5]} />
+                  <meshBasicMaterial color="#6fd8ff" transparent opacity={0.8} />
+                </mesh>
+              );
+            })}
+            {!isEngine && [-1.78, 1.78].map((doorZ) => (
+              <mesh key={doorZ} position={[1.115, 1.44, doorZ]}>
+                <boxGeometry args={[0.035, 1.65, 0.25]} />
+                <meshStandardMaterial color="#d8a347" metalness={0.35} roughness={0.4} />
+              </mesh>
+            ))}
+            {[-0.78, 0.78].flatMap((x) => [-1.25, 1.25].map((wheelZ) => (
+              <mesh key={`${x}-${wheelZ}`} position={[x, 0.34, wheelZ]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.32, 0.32, 0.13, 12]} />
+                <meshStandardMaterial color="#111827" metalness={0.48} roughness={0.6} />
+              </mesh>
+            )))}
+            {isEngine && <mesh position={[0, 1.2, 2.09]}><boxGeometry args={[0.3, 0.32, 0.08]} /><meshBasicMaterial color="#fff0a6" /></mesh>}
+          </group>
+        );
+      })}
+      <mesh position={[0, -0.28, 0]}>
+        <boxGeometry args={[2.2, 0.12, 52]} />
+        <meshStandardMaterial color="#64748b" metalness={0.75} roughness={0.35} />
+      </mesh>
+      {[-0.72, 0.72].map((x) => (
+        <mesh key={`rail-${x}`} position={[x, -0.18, 0]}>
+          <boxGeometry args={[0.09, 0.12, 54]} />
+          <meshStandardMaterial color="#9ca3af" metalness={0.82} roughness={0.32} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function CameraJourney({ reducedMotion }: { reducedMotion: boolean }) {
+  useFrame(({ camera, clock }) => {
+    if (reducedMotion) return;
+    const t = clock.getElapsedTime() % 22;
+    // Travel down the carriage, pass through a side window, then track beside the moving rake.
+    const leave = THREE.MathUtils.smoothstep(t, 5.2, 8.2);
+    const returnInside = THREE.MathUtils.smoothstep(t, 18, 21.5);
+    const outside = Math.max(0, leave - returnInside);
+    const insidePosition = new THREE.Vector3(Math.sin(t * 0.3) * 0.025, 1.62, 4.25 - Math.min(t, 5.2) * 1.1);
+    const outsidePosition = new THREE.Vector3(7.2, 3.15, -1.5);
+    camera.position.lerpVectors(insidePosition, outsidePosition, outside);
+    const insideLook = new THREE.Vector3(0, 1.35, -12);
+    const outsideLook = new THREE.Vector3(0, 1.15, -1.5);
+    camera.lookAt(insideLook.lerp(outsideLook, outside));
+  });
+  return null;
+}
+
 export default function HeroTrainBackground() {
   const [reducedMotion, setReducedMotion] = useState(true);
 
@@ -206,7 +290,9 @@ export default function HeroTrainBackground() {
         frameloop={reducedMotion ? 'never' : 'always'}
         fallback={<div className="absolute inset-0 bg-slate-950" />}
       >
+        <CameraJourney reducedMotion={reducedMotion} />
         <CoachInterior paused={reducedMotion} />
+        <MovingRake paused={reducedMotion} />
       </Canvas>
       <div className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/65 to-slate-950/95" />
       <div

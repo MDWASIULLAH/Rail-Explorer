@@ -1,11 +1,5 @@
-'use client';
-
-import { Train } from 'lucide-react';
-import { useState, useEffect } from 'react';
-
 export default function Footer() {
-  const [year, setYear] = useState(2026);
-  useEffect(() => { setYear(new Date().getFullYear()); }, []);
+  const year = 2026;
 
   return (
     <footer className="bg-slate-950 border-t border-slate-800 mt-auto">
@@ -30,7 +24,7 @@ export default function Footer() {
             <p className="text-xs text-slate-400 leading-relaxed">
               Train data powered by Railway Engine API. Coach specifications based on RDSO
               standards and verified technical references. 3D models are representative
-              approximations — not official RDSO drawings.
+              approximations - not official RDSO drawings.
             </p>
           </div>
 
@@ -44,8 +38,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
-          &copy; {year} Indian Railway 3D Explorer. Built with Next.js, Three.js, and Railway Engine API.
+        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+          <p className="text-sm text-slate-400 italic">“The best journeys are made better when every passenger feels at home.”</p>
+          <p className="mt-3 text-xs text-slate-500">
+            &copy; {year} Rail Explorer. All rights reserved. Built with care for every journey.
+          </p>
         </div>
       </div>
     </footer>

@@ -7,6 +7,7 @@
  */
 
 import { getKnownStationCoordinates, getStationCoordinates } from '../data/station-coordinates.ts';
+import type { KnownTrain } from '../data/train-directory';
 import type { TrainSchedule, TrainStatus, ScheduleStation } from './railway-api';
 
 export type StationState = 'COMPLETED' | 'CURRENT' | 'UPCOMING';
@@ -170,7 +171,7 @@ function addMinutesToTime(timeStr: string | null, minutes: number): string | nul
   if (!timeStr) return null;
   const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return timeStr;
-  let [_, h, m] = match;
+  const [, h, m] = match;
   let totalMins = parseInt(h, 10) * 60 + parseInt(m, 10) + minutes;
   totalMins = (totalMins + 24 * 60) % (24 * 60);
   const newH = Math.floor(totalMins / 60).toString().padStart(2, '0');
@@ -184,12 +185,13 @@ function addMinutesToTime(timeStr: string | null, minutes: number): string | nul
 export function analyzeLiveJourney(
   trainNumber: string,
   trainName: string,
-  schedule: TrainSchedule,
+  schedule: TrainSchedule | Pick<KnownTrain, 'schedule'>,
   status: TrainStatus | null,
   journeyDate: string = 'Today',
 ): LiveJourneyAnalysis {
-  const rawStations = schedule.stations || (schedule as any).schedule || [];
-  const stations = rawStations as ScheduleStation[];
+  const stations: ScheduleStation[] = 'stations' in schedule
+    ? schedule.stations
+    : schedule.schedule.map((station) => ({ ...station, platform: null }));
   const totalStops = stations.length;
   if (totalStops === 0) {
     const position: LiveTrainPosition = {
@@ -409,7 +411,7 @@ export function analyzeLiveJourney(
     const scheduledDep = stn.departureTime;
 
     // Platform assignments are live operational data and cannot be derived from station codes.
-    const platform = typeof (stn as any).platform === 'string' ? (stn as any).platform : null;
+    const platform = typeof stn.platform === 'string' ? stn.platform : null;
 
     // Actual times with delay
     const stationDelay = idx <= currentIndex ? Math.max(0, currentDelay - (currentIndex - idx) * 2) : currentDelay;
@@ -441,7 +443,7 @@ export function analyzeLiveJourney(
       state,
       coordinates: coords,
       isMajor,
-      isPassingHalt: Boolean((stn as any).isPassingHalt || (stn.haltMinutes === 0 && scheduledArr && scheduledArr === scheduledDep)),
+      isPassingHalt: Boolean(stn.isPassingHalt || (stn.haltMinutes === 0 && scheduledArr && scheduledArr === scheduledDep)),
     };
   });
 

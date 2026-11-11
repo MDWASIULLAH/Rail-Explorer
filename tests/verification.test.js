@@ -224,8 +224,10 @@ test('7. OAuth session validation rejects forged cookies and external redirects'
   process.env.GITHUB_CLIENT_SECRET = 'test-only-session-signing-key';
   const profile = { id: 'account-1', email: 'user@example.test', name: 'Test User', provider: 'github', createdAt: new Date().toISOString() };
   const signed = signProviderSession(profile);
+  const [payload, signature] = signed.split('.');
+  const forgedSignature = `${signature[0] === 'a' ? 'b' : 'a'}${signature.slice(1)}`;
   assert.deepStrictEqual(verifyProviderSession(signed), profile);
-  assert.strictEqual(verifyProviderSession(`${signed.slice(0, -1)}x`), null);
+  assert.strictEqual(verifyProviderSession(`${payload}.${forgedSignature}`), null);
   assert.strictEqual(safeReturnPath('//attacker.example/path'), '/');
   assert.strictEqual(safeReturnPath('/train/18403?coach=S1'), '/train/18403?coach=S1');
   if (previousSecret === undefined) delete process.env.GITHUB_CLIENT_SECRET;

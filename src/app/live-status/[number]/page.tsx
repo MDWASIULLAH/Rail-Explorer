@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useSearchParams } from 'next/navigation';
 import TrainStatusHeader from '@/components/live-status/TrainStatusHeader';
 import HorizontalRouteProgress from '@/components/live-status/HorizontalRouteProgress';
 import VerticalRailwayTimeline from '@/components/live-status/VerticalRailwayTimeline';
 import StickyBottomStatusBar from '@/components/live-status/StickyBottomStatusBar';
-import { analyzeLiveJourney, type LiveJourneyAnalysis, type TimelineStation } from '@/lib/live-tracking-engine';
+import { analyzeLiveJourney, type LiveJourneyAnalysis } from '@/lib/live-tracking-engine';
 import { getOrSynthesizeTrain } from '@/data/train-directory';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -39,15 +39,18 @@ function LiveStatusContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [journeyData, setJourneyData] = useState<LiveJourneyAnalysis | null>(null);
+  const latestRequestId = useRef(0);
 
   // Default to Timeline view on mobile (< 1024px) for Where Is My Train / ConfirmTkt experience
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      setViewMode('timeline');
+      const frame = window.requestAnimationFrame(() => setViewMode('timeline'));
+      return () => window.cancelAnimationFrame(frame);
     }
   }, []);
 
   const fetchLiveStatus = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
     setIsRefreshing(true);
     try {
       // Parallel fetch schedule and status from API
@@ -68,17 +71,6 @@ function LiveStatusContent() {
           ? statRes.value.data
           : null;
 
-      // If active running train belongs to yesterday, sync selector
-      if (statusData?.journeyDate && selectedDate === 'Today') {
-        const now = new Date();
-        const istOffsetMs = 5.5 * 60 * 60 * 1000;
-        const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + istOffsetMs);
-        const yesterdayStr = new Date(istNow.getTime() - 86400000).toISOString().slice(0, 10);
-        if (statusData.journeyDate === yesterdayStr) {
-          setSelectedDate('Yesterday');
-        }
-      }
-
       const analysis = analyzeLiveJourney(
         trainNumber,
         scheduleData.trainName || `Train ${trainNumber}`,
@@ -87,26 +79,29 @@ function LiveStatusContent() {
         selectedDate,
       );
 
-      setJourneyData(analysis);
-    } catch (err) {
+      if (requestId === latestRequestId.current) setJourneyData(analysis);
+    } catch {
       // Graceful fallback from local synthesized directory
       const train = getOrSynthesizeTrain(trainNumber);
       const analysis = analyzeLiveJourney(
         trainNumber,
         train.trainName,
-        train as any,
+        train,
         null,
         selectedDate,
       );
-      setJourneyData(analysis);
+      if (requestId === latestRequestId.current) setJourneyData(analysis);
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (requestId === latestRequestId.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, [trainNumber, selectedDate]);
 
   useEffect(() => {
-    fetchLiveStatus();
+    const timer = window.setTimeout(() => void fetchLiveStatus(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchLiveStatus]);
 
   // Refresh from the provider on its 30 second cache cadence. The marker is

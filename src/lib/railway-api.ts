@@ -120,6 +120,7 @@ export interface ScheduleStation {
   distance: number;
   day: number;
   platform: string | null;
+  isPassingHalt?: boolean;
   latitude?: number;
   longitude?: number;
 }

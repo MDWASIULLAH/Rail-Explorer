@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useSeatSwap } from '@/context/SeatSwapContext';
@@ -24,18 +24,17 @@ import {
   Clock,
   MapPin,
   Train,
-  AlertTriangle,
   Trash2,
   Info,
   Zap,
   ChevronDown,
-  LogIn,
+  Bell,
 } from 'lucide-react';
 
 /* ─────────────────── Reason Configs ─────────────────── */
 const REASON_CONFIG: Record<
   SwapReasonCategory,
-  { label: string; shortLabel: string; icon: any; color: string; bg: string; border: string; gradient: string }
+  { label: string; shortLabel: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string; border: string; gradient: string }
 > = {
   FAMILY_PROXIMITY: {
     label: 'Family Split in Coaches',
@@ -115,6 +114,12 @@ function getBerthClass(type: string): string {
   }
 }
 
+function formatStation(station?: { code?: string; name?: string } | null): string {
+  if (!station) return '';
+  if (station.name && station.code) return `${station.name} (${station.code})`;
+  return station.name || station.code || '';
+}
+
 /* ═══════════════════════════════════════════════════════ */
 /* MAIN PAGE                                              */
 /* ═══════════════════════════════════════════════════════ */
@@ -127,6 +132,7 @@ export default function SeatSwapPage() {
     deleteOffer,
     proposeSwap,
     findMatchesForOffer,
+    notifications,
     isSwapModalOpen,
     setIsSwapModalOpen,
     prefilledCoach,
@@ -149,17 +155,99 @@ export default function SeatSwapPage() {
 
   // Form states
   const [trainNumber, setTrainNumber] = useState(prefilledTrain || '');
+  const [trainName, setTrainName] = useState(prefilledTrain ? `Train ${prefilledTrain}` : '');
+  const [verifiedTrainNumber, setVerifiedTrainNumber] = useState<string | null>(null);
+  const [trainLookupStatus, setTrainLookupStatus] = useState<'idle' | 'loading' | 'verified' | 'unavailable'>('idle');
   const [coachId, setCoachId] = useState(prefilledCoach || '');
   const [berthNumber, setBerthNumber] = useState<number | ''>(prefilledBerth || '');
   const [berthType, setBerthType] = useState<'LB' | 'MB' | 'UB' | 'SL' | 'SU'>('LB');
   const [coachClass, setCoachClass] = useState('Sleeper Class (SL)');
   const [desiredCoachText, setDesiredCoachText] = useState('');
-  const [desiredBerthType, setDesiredBerthType] = useState<'LB' | 'MB' | 'UB' | 'SL' | 'SU'>('LB');
+  const [desiredBerthType, setDesiredBerthType] = useState<'ANY' | 'LB' | 'MB' | 'UB' | 'SL' | 'SU'>('ANY');
+  const [desiredBerthNumber, setDesiredBerthNumber] = useState<number | ''>('');
   const [reasonCategory, setReasonCategory] = useState<SwapReasonCategory>('FAMILY_PROXIMITY');
   const [reasonDescription, setReasonDescription] = useState('');
-  const [passengerName, setPassengerName] = useState(user?.name || '');
+  const passengerName = user?.name || '';
   const [fromStation, setFromStation] = useState('');
   const [toStation, setToStation] = useState('');
+  const [trainLookupMessage, setTrainLookupMessage] = useState('');
+  const [formError, setFormError] = useState('');
+  const [proposalError, setProposalError] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const queryTrain = params.get('train')?.trim() || '';
+      const queryCoach = params.get('coach')?.trim() || '';
+      const queryBerth = Number(params.get('berth'));
+
+      if (queryTrain) {
+        setTrainNumber(queryTrain);
+        setTrainName(`Train ${queryTrain}`);
+        setIsSwapModalOpen(true);
+      }
+      if (queryCoach) setCoachId(queryCoach.toUpperCase());
+      if (Number.isInteger(queryBerth) && queryBerth > 0) setBerthNumber(queryBerth);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [setIsSwapModalOpen]);
+
+  useEffect(() => {
+    const requestedNumber = trainNumber.trim();
+    if (!/^\d{2,5}$/.test(requestedNumber)) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setTrainLookupStatus('loading');
+      setTrainLookupMessage('Looking up the train name and scheduled endpoints...');
+      try {
+        const response = await fetch(`/api/train/search?q=${encodeURIComponent(requestedNumber)}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        const payload = await response.json();
+        const results = Array.isArray(payload?.data?.results)
+          ? payload.data.results
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+        const train = results.find((item: {
+          trainNumber?: string | number;
+          trainName?: string;
+          origin?: { code?: string; name?: string };
+          destination?: { code?: string; name?: string };
+        }) => String(item.trainNumber) === requestedNumber);
+
+        if (!response.ok || !payload?.success || !train) {
+          setTrainLookupStatus('unavailable');
+          setVerifiedTrainNumber(null);
+          setTrainName('');
+          setTrainLookupMessage('Train details could not be verified. Check the number or enter the journey stations manually.');
+          return;
+        }
+
+        setTrainName(train.trainName || `Train ${requestedNumber}`);
+        setFromStation(formatStation(train.origin));
+        setToStation(formatStation(train.destination));
+        setVerifiedTrainNumber(requestedNumber);
+        setTrainLookupStatus('verified');
+        setTrainLookupMessage('Train found. Origin and destination were filled from the train directory; you can edit either station.');
+      } catch {
+        if (controller.signal.aborted) return;
+        setTrainLookupStatus('unavailable');
+        setVerifiedTrainNumber(null);
+        setTrainName('');
+        setTrainLookupMessage('Train lookup is unavailable right now. Enter the journey stations manually.');
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [trainNumber]);
 
   // Propose form
   const [myProposalCoach, setMyProposalCoach] = useState('');
@@ -205,23 +293,43 @@ export default function SeatSwapPage() {
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const normalizedTrainNumber = trainNumber.trim();
+    if (!/^\d{1,5}$/.test(normalizedTrainNumber)) {
+      setFormError('Enter a valid train number with 1 to 5 digits.');
+      return;
+    }
+    if (!fromStation.trim() || !toStation.trim()) {
+      setFormError('Enter both the boarding station and destination.');
+      return;
+    }
+    if (desiredBerthNumber !== '' && (!Number.isInteger(desiredBerthNumber) || desiredBerthNumber < 1 || desiredBerthNumber > 80)) {
+      setFormError('Preferred berth number must be between 1 and 80.');
+      return;
+    }
+    setFormError('');
+
     const desiredCoaches = desiredCoachText
       .split(',')
       .map((s) => s.trim().toUpperCase())
       .filter(Boolean);
 
     createOffer({
-      trainNumber,
-      trainName: `Train ${trainNumber}`,
+      trainNumber: normalizedTrainNumber,
+      trainName: verifiedTrainNumber === normalizedTrainNumber && trainName
+        ? trainName
+        : `Train ${normalizedTrainNumber}`,
       journeyDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      fromStation: fromStation || 'Boarding Station',
-      toStation: toStation || 'Destination',
+      fromStation: fromStation.trim(),
+      toStation: toStation.trim(),
       currentCoach: coachId.toUpperCase(),
       currentBerth: Number(berthNumber),
       currentBerthType: berthType,
       currentCoachClass: coachClass,
       desiredCoaches: desiredCoaches.length > 0 ? desiredCoaches : undefined,
-      desiredBerthTypes: [desiredBerthType],
+      desiredBerthTypes: desiredBerthType === 'ANY' ? undefined : [desiredBerthType],
+      desiredBerthNumber: desiredBerthNumber === '' ? undefined : Number(desiredBerthNumber),
+      userId: user.id,
+      userEmail: user.email,
       reasonCategory,
       reasonDescription:
         reasonDescription || 'Seeking mutual berth exchange for comfortable travel.',
@@ -230,12 +338,19 @@ export default function SeatSwapPage() {
 
     // Reset form
     setTrainNumber('');
+    setTrainName('');
+    setVerifiedTrainNumber(null);
+    setTrainLookupStatus('idle');
+    setTrainLookupMessage('');
     setCoachId('');
     setBerthNumber('');
     setDesiredCoachText('');
+    setDesiredBerthType('ANY');
+    setDesiredBerthNumber('');
     setReasonDescription('');
     setFromStation('');
     setToStation('');
+    setFormError('');
     setIsSwapModalOpen(false);
   };
 
@@ -243,15 +358,22 @@ export default function SeatSwapPage() {
     e.preventDefault();
     if (!activeHandshakeOffer || !user) return;
 
-    proposeSwap({
+    const proposal = proposeSwap({
       offerId: activeHandshakeOffer.id,
       proposerName: user.name || 'Passenger',
+      proposerUserId: user.id,
+      proposerEmail: user.email,
       proposerCoach: myProposalCoach.toUpperCase(),
       proposerBerth: Number(myProposalBerth),
       proposerBerthType: myProposalBerthType,
       message: myProposalMessage || 'I would like to swap berths with you.',
     });
+    if (!proposal) {
+      setProposalError('This berth is no longer available. Refresh the listings and choose another offer.');
+      return;
+    }
 
+    setProposalError('');
     setConfirmedSwapData({
       offer: activeHandshakeOffer,
       proposerCoach: myProposalCoach.toUpperCase(),
@@ -264,6 +386,13 @@ export default function SeatSwapPage() {
     setMyProposalBerth('');
     setMyProposalMessage('');
   };
+
+  const userNotifications = useMemo(() => notifications
+    .filter((notification) =>
+      (notification.recipientUserId && notification.recipientUserId === user?.id) ||
+      (notification.recipientEmail && notification.recipientEmail.toLowerCase() === user?.email?.toLowerCase())
+    )
+    .slice(0, 5), [notifications, user]);
 
   /* ═══════════════════════════════════════════════════════ */
   /* AUTH GATE — Full-page login prompt for unauthenticated */
@@ -419,6 +548,23 @@ export default function SeatSwapPage() {
 
       {/* ─── Main Container ─── */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 space-y-5">
+
+        {userNotifications.length > 0 && (
+          <section aria-label="Seat swap notifications" className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25">
+            <div className="flex items-center gap-2 mb-2">
+              <Bell className="w-4 h-4 text-emerald-300" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-200">Accepted swap updates · saved on this browser</h2>
+            </div>
+            <ul className="space-y-2">
+              {userNotifications.map((notification) => (
+                <li key={notification.id} className="text-xs text-slate-200 rounded-lg bg-slate-950/60 px-3 py-2">
+                  {notification.message}
+                  <span className="block text-[10px] text-slate-500 mt-1">{new Date(notification.createdAt).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* ─── How It Works Bar ─── */}
         <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-slate-900/50 to-amber-950/40 border border-slate-800">
@@ -606,7 +752,8 @@ export default function SeatSwapPage() {
                         <div className="col-span-5 bg-slate-900/90 p-2.5 rounded-lg border border-blue-500/20">
                           <span className="text-[9px] uppercase font-bold text-blue-400 block tracking-wider">Wants</span>
                           <div className="font-mono font-black text-sm text-white mt-0.5">
-                            {offer.desiredCoaches?.join('/') || 'Any'} · {offer.desiredBerthTypes?.join('/') || 'Any'}
+                            {offer.desiredCoaches?.join('/') || 'Any Coach'} · {offer.desiredBerthTypes?.join('/') || 'Any Berth'}
+                            {offer.desiredBerthNumber ? ` · #${offer.desiredBerthNumber} preferred` : ''}
                           </div>
                           <span className="text-[10px] text-slate-400">
                             {offer.desiredBerthTypes?.includes('LB') ? 'Lower Preferred' : 'Flexible'}
@@ -742,14 +889,26 @@ export default function SeatSwapPage() {
                     <input
                       type="text"
                       value={trainNumber}
-                      onChange={(e) => setTrainNumber(e.target.value)}
+                      inputMode="numeric"
+                      maxLength={5}
+                      onChange={(e) => {
+                        const nextNumber = e.target.value.replace(/\D/g, '').slice(0, 5);
+                        setTrainNumber(nextNumber);
+                        setTrainName('');
+                        setVerifiedTrainNumber(null);
+                        setTrainLookupStatus('idle');
+                        setTrainLookupMessage(nextNumber.length === 1 ? 'Enter at least two digits to search the train directory.' : '');
+                        setFromStation('');
+                        setToStation('');
+                        setFormError('');
+                      }}
                       placeholder="e.g. 12301"
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500 transition"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">From Station</label>
+                    <label className="block text-[11px] text-slate-400 mb-1">From Station (editable)</label>
                     <input
                       type="text"
                       value={fromStation}
@@ -759,7 +918,7 @@ export default function SeatSwapPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">To Station</label>
+                    <label className="block text-[11px] text-slate-400 mb-1">To Station (editable)</label>
                     <input
                       type="text"
                       value={toStation}
@@ -769,6 +928,11 @@ export default function SeatSwapPage() {
                     />
                   </div>
                 </div>
+                {(trainLookupMessage || trainName) && (
+                  <div className={`rounded-lg border px-3 py-2 text-[11px] ${trainLookupStatus === 'verified' ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : trainLookupStatus === 'unavailable' ? 'border-amber-500/25 bg-amber-500/10 text-amber-200' : 'border-slate-800 bg-slate-900/70 text-slate-400'}`}>
+                    {trainLookupStatus === 'loading' ? 'Looking up train details...' : trainLookupStatus === 'verified' ? `${trainName} - ${trainLookupMessage}` : trainLookupMessage}
+                  </div>
+                )}
               </div>
 
               {/* Current Berth */}
@@ -806,7 +970,7 @@ export default function SeatSwapPage() {
                     <label className="block text-[11px] text-slate-400 mb-1">Berth Type</label>
                     <select
                       value={berthType}
-                      onChange={(e: any) => setBerthType(e.target.value)}
+                      onChange={(event) => setBerthType(event.target.value as typeof berthType)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-mono focus:outline-none"
                     >
                       <option value="LB">LB (Lower)</option>
@@ -839,14 +1003,14 @@ export default function SeatSwapPage() {
                   <TrendingUp className="w-3.5 h-3.5" />
                   Preferred Swap Destination
                 </span>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Target Coaches (comma-separated)</label>
+                    <label className="block text-[11px] text-slate-400 mb-1">Preferred Coach(es)</label>
                     <input
                       type="text"
                       value={desiredCoachText}
                       onChange={(e) => setDesiredCoachText(e.target.value)}
-                      placeholder="S1, S2 or leave empty"
+                      placeholder="S1, S2 or any coach"
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-mono focus:outline-none focus:border-blue-500 transition"
                     />
                   </div>
@@ -854,9 +1018,10 @@ export default function SeatSwapPage() {
                     <label className="block text-[11px] text-slate-400 mb-1">Preferred Berth Type</label>
                     <select
                       value={desiredBerthType}
-                      onChange={(e: any) => setDesiredBerthType(e.target.value)}
+                      onChange={(event) => setDesiredBerthType(event.target.value as typeof desiredBerthType)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-mono focus:outline-none"
                     >
+                      <option value="ANY">Any berth is fine</option>
                       <option value="LB">Lower Berth (LB)</option>
                       <option value="MB">Middle Berth (MB)</option>
                       <option value="UB">Upper Berth (UB)</option>
@@ -864,7 +1029,20 @@ export default function SeatSwapPage() {
                       <option value="SU">Side Upper (SU)</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Preferred Berth # (optional)</label>
+                    <input
+                      type="number"
+                      value={desiredBerthNumber}
+                      onChange={(e) => setDesiredBerthNumber(e.target.value ? Number(e.target.value) : '')}
+                      placeholder="Any number"
+                      min={1}
+                      max={80}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-mono focus:outline-none focus:border-blue-500 transition"
+                    />
+                  </div>
                 </div>
+                <p className="text-[10px] text-slate-500">These are preferences only. The other passenger must still confirm the exchange.</p>
               </div>
 
               {/* Reason */}
@@ -872,7 +1050,7 @@ export default function SeatSwapPage() {
                 <label className="block text-slate-300 font-semibold text-xs">Why do you need to swap?</label>
                 <select
                   value={reasonCategory}
-                  onChange={(e: any) => setReasonCategory(e.target.value)}
+                  onChange={(event) => setReasonCategory(event.target.value as SwapReasonCategory)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
                 >
                   <option value="FAMILY_PROXIMITY">Family split across different coaches</option>
@@ -901,6 +1079,7 @@ export default function SeatSwapPage() {
                 <Plus className="w-4 h-4" />
                 <span>Post Swap Request</span>
               </button>
+              {formError && <p role="alert" className="text-xs text-rose-300 text-center">{formError}</p>}
             </form>
           </div>
         </div>
@@ -969,7 +1148,7 @@ export default function SeatSwapPage() {
                     <label className="block text-slate-400 text-[11px] mb-1">Type</label>
                     <select
                       value={myProposalBerthType}
-                      onChange={(e: any) => setMyProposalBerthType(e.target.value)}
+                      onChange={(event) => setMyProposalBerthType(event.target.value as typeof myProposalBerthType)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2 py-1.5 text-white font-mono focus:outline-none"
                     >
                       <option value="LB">LB</option>
@@ -1000,6 +1179,7 @@ export default function SeatSwapPage() {
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Send Swap Proposal</span>
               </button>
+              {proposalError && <p role="alert" className="text-xs text-rose-300 text-center">{proposalError}</p>}
             </form>
           </div>
         </div>

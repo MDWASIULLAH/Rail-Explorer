@@ -5,6 +5,8 @@ import {
   errorResponse,
   handleOptions,
   isValidTrainNumber,
+  getIndiaDateString,
+  resolveJourneyDate,
 } from '../../../_lib/helpers';
 
 /**
@@ -24,28 +26,21 @@ export async function GET(
       return errorResponse('Invalid train number. Must be 1-5 digits.', 400);
     }
 
-    // Compute IST dates (Indian Standard Time: UTC+5:30)
-    const now = new Date();
-    const istOffsetMs = 5.5 * 60 * 60 * 1000;
-    const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + istOffsetMs);
-    const todayStr = istNow.toISOString().slice(0, 10);
-    const yesterdayStr = new Date(istNow.getTime() - 86400000).toISOString().slice(0, 10);
-    const tomorrowStr = new Date(istNow.getTime() + 86400000).toISOString().slice(0, 10);
-
-    const dateParam = request.nextUrl.searchParams.get('date')?.toLowerCase().trim();
-    const isExplicitDate = Boolean(dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam));
+    const requestedDate = resolveJourneyDate(request.nextUrl.searchParams.get('date'));
+    if (requestedDate.kind === 'invalid') {
+      return errorResponse('Invalid date. Use today, yesterday, tomorrow, or YYYY-MM-DD.', 400);
+    }
 
     let result;
 
-    if (isExplicitDate && dateParam) {
-      // Explicit specific calendar date requested
-      result = await getTrainStatus(number, dateParam);
-    } else if (dateParam === 'yesterday') {
-      result = await getTrainStatus(number, yesterdayStr);
-    } else if (dateParam === 'tomorrow') {
-      result = await getTrainStatus(number, tomorrowStr);
+    if (requestedDate.kind === 'date') {
+      // The UI date selector is exact: Today never silently switches to a prior journey.
+      result = await getTrainStatus(number, requestedDate.date);
     } else {
-      // Auto-detect active running train (default / 'today'):
+      // Only an omitted date asks for automatic active-train detection.
+      const now = new Date();
+      const todayStr = getIndiaDateString(now);
+      const yesterdayStr = getIndiaDateString(now, -1);
       // Check today's rake first
       const todayResult = await getTrainStatus(number, todayStr);
 

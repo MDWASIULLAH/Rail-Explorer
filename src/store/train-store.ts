@@ -20,7 +20,6 @@ import type {
   PnrPassenger,
   ApiResponse,
 } from '@/lib/railway-api';
-import type { CoachBlueprint, BerthPosition } from '@/data/coach-database';
 
 // ============================================================
 // State Types
@@ -217,7 +216,7 @@ export const useTrainStore = create<TrainState>()(
           }
 
           // Handle both response shapes
-          const results = Array.isArray(res.data) ? res.data : (res.data as any).results || [];
+          const results = Array.isArray(res.data) ? res.data : (res.data as { results?: TrainSearchResult[] }).results || [];
           set({ searchResults: results, isLoading: false });
         } catch (err) {
           set({
@@ -279,7 +278,7 @@ export const useTrainStore = create<TrainState>()(
           );
 
           const searchData = searchRes.data;
-          const results = Array.isArray(searchData) ? searchData : (searchData as any)?.results || [];
+          const results = Array.isArray(searchData) ? searchData : (searchData as { results?: TrainSearchResult[] } | null)?.results || [];
           const match = results.find((t: TrainSearchResult) => t.trainNumber === trainNumber);
 
           if (match) {
@@ -421,13 +420,16 @@ export const useTrainStore = create<TrainState>()(
           }
 
           const pnrData = res.data;
-          set({ pnrData, isLoading: false });
 
           // If we have a PNR, auto-select the train too
           const currentTrain = get().selectedTrain;
           if (!currentTrain || currentTrain.trainNumber !== pnrData.trainNumber) {
             await get().selectTrain(pnrData.trainNumber);
           }
+
+          // selectTrain clears previous PNR data as part of its reset; publish this
+          // lookup only after the train change so the fresh result remains visible.
+          set({ pnrData, isLoading: false, error: null });
 
           // Auto-select the first passenger's coach and berth if available
           const firstPassenger: PnrPassenger | undefined =
@@ -453,7 +455,7 @@ export const useTrainStore = create<TrainState>()(
       selectCoach: (coachId: string, switchViewMode: boolean = false) => {
         const { selectedTrain } = get();
         // Look up coach from train composition if available
-        let coach = selectedTrain?.coaches?.coaches.find(
+        const coach = selectedTrain?.coaches?.coaches.find(
           (c: CoachInfo) => c.coachId === coachId
         );
 

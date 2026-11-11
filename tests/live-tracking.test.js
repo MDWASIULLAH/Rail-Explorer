@@ -4,6 +4,71 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const Module = require('node:module');
+const ts = require('typescript');
+
+test('Journey date resolution uses India calendar dates and distinguishes auto mode', () => {
+  const { getIndiaDateString, resolveJourneyDate } = require('../src/app/api/_lib/helpers.ts');
+  // This UTC instant is already the next calendar day in India.
+  const now = new Date('2026-11-10T20:00:00.000Z');
+  assert.strictEqual(getIndiaDateString(now), '2026-11-11');
+  assert.strictEqual(resolveJourneyDate('today', now).date, '2026-11-11');
+  assert.strictEqual(resolveJourneyDate('yesterday', now).date, '2026-11-10');
+  assert.strictEqual(resolveJourneyDate('tomorrow', now).date, '2026-11-12');
+  assert.deepStrictEqual(resolveJourneyDate(null, now), { kind: 'auto' });
+  assert.deepStrictEqual(resolveJourneyDate('2026-11-31', now), { kind: 'invalid' });
+  assert.deepStrictEqual(resolveJourneyDate('nonsense', now), { kind: 'invalid' });
+});
+
+test('PNR lookup keeps fresh result after selecting its train', async () => {
+  const filename = path.resolve(__dirname, '../src/store/train-store.ts');
+  const source = fs.readFileSync(filename, 'utf8');
+  const js = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
+  }).outputText;
+  const originalLoad = Module._load;
+  let useTrainStore;
+  Module._load = function (request, parent, isMain) {
+    if (request === '@/data/train-directory') return require('../src/data/train-directory.ts');
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  try {
+    const compiled = new Module(filename, module);
+    compiled.filename = filename;
+    compiled.paths = Module._nodeModulePaths(path.dirname(filename));
+    compiled._compile(js, filename);
+    useTrainStore = compiled.exports.useTrainStore;
+  } finally {
+    Module._load = originalLoad;
+  }
+
+  const originalFetch = global.fetch;
+  const pnrData = {
+    pnrNumber: '1234567890',
+    trainNumber: '18403',
+    trainName: 'BBS DHN EXPRESS',
+    passengers: [{ coachId: 'S1', berthNumber: 3 }],
+  };
+  global.fetch = async (url) => ({
+    ok: true,
+    json: async () => String(url).includes('/api/pnr/')
+      ? { success: true, data: pnrData, error: null }
+      : { success: true, data: [], error: null },
+  });
+
+  try {
+    useTrainStore.getState().clearSelection();
+    await useTrainStore.getState().lookupPnr('1234567890');
+    assert.deepStrictEqual(useTrainStore.getState().pnrData, pnrData);
+    assert.strictEqual(useTrainStore.getState().selectedTrain.trainNumber, '18403');
+    assert.strictEqual(useTrainStore.getState().selectedBerth.berthNumber, 3);
+  } finally {
+    global.fetch = originalFetch;
+    useTrainStore.getState().clearSelection();
+  }
+});
 
 test('Live Tracking Engine: Status & Timeline Calculations', async (t) => {
   const { analyzeLiveJourney, formatDelay } = require('../src/lib/live-tracking-engine.ts');

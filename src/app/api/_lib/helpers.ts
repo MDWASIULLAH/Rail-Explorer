@@ -58,6 +58,48 @@ export function isValidTrainNumber(value: string): boolean {
   return /^\d{1,5}$/.test(value);
 }
 
+/** Format a calendar date in India, independent of the host's timezone. */
+export function getIndiaDateString(now: Date = new Date(), dayOffset = 0): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  const indiaMidnight = new Date(Date.UTC(
+    Number(values.year), Number(values.month) - 1, Number(values.day) + dayOffset,
+  ));
+  return indiaMidnight.toISOString().slice(0, 10);
+}
+
+export type RequestedJourneyDate =
+  | { kind: 'auto' }
+  | { kind: 'date'; date: string }
+  | { kind: 'invalid' };
+
+/** Resolve a status date query as an India calendar date, or preserve auto mode. */
+export function resolveJourneyDate(
+  value: string | null,
+  now: Date = new Date(),
+): RequestedJourneyDate {
+  const dateParam = value?.trim().toLowerCase();
+  if (!dateParam) return { kind: 'auto' };
+
+  if (dateParam === 'today') return { kind: 'date', date: getIndiaDateString(now) };
+  if (dateParam === 'yesterday') return { kind: 'date', date: getIndiaDateString(now, -1) };
+  if (dateParam === 'tomorrow') return { kind: 'date', date: getIndiaDateString(now, 1) };
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    const parsed = new Date(`${dateParam}T00:00:00.000Z`);
+    if (!Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === dateParam) {
+      return { kind: 'date', date: dateParam };
+    }
+  }
+
+  return { kind: 'invalid' };
+}
+
 /** Validate a 10-digit PNR */
 export function isValidPnr(value: string): boolean {
   return /^\d{10}$/.test(value);

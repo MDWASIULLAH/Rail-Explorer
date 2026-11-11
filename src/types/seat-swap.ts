@@ -18,7 +18,8 @@ export interface SwapOffer {
   currentBerthType: 'LB' | 'MB' | 'UB' | 'SL' | 'SU' | 'CB';
   currentCoachClass: string; // e.g. Sleeper Class (SL), AC 3-Tier (3A)
   desiredCoaches?: string[]; // e.g. ["S1", "S2"] or empty for any
-  desiredBerthTypes?: ('LB' | 'MB' | 'UB' | 'SL' | 'SU')[];
+  desiredBerthTypes?: ('LB' | 'MB' | 'UB' | 'SL' | 'SU')[]; // empty/undefined means flexible
+  desiredBerthNumber?: number; // soft preference; not a reservation or guarantee
   reasonCategory: SwapReasonCategory;
   reasonDescription: string;
   passengerName: string;
