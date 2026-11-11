@@ -243,6 +243,7 @@ export const useTrainStore = create<TrainState>()(
             trainName: fallbackTrain.trainName,
             rakeType: fallbackTrain.rakeType,
             totalCoaches: fallbackTrain.coaches.length,
+            meta: { source: fallbackTrain.coaches.length ? 'CURATED_REFERENCE_FALLBACK' : 'UNAVAILABLE', live: false },
             coaches: fallbackTrain.coaches.map((c, i) => ({
               position: i + 1,
               coachId: c.coachId,

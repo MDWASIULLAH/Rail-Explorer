@@ -186,6 +186,8 @@ export default function SeatSwapPage() {
       if (queryTrain) {
         setTrainNumber(queryTrain);
         setTrainName(`Train ${queryTrain}`);
+        // A listing opened from a train page stays scoped to that service.
+        setSelectedTrainFilter(queryTrain);
         setIsSwapModalOpen(true);
       }
       if (queryCoach) setCoachId(queryCoach.toUpperCase());
@@ -628,9 +630,9 @@ export default function SeatSwapPage() {
               onChange={(e) => setSelectedTrainFilter(e.target.value)}
               className="bg-transparent text-white font-mono focus:outline-none text-xs"
             >
-              <option value="ALL">All Trains ({offers.length})</option>
+              <option className="bg-slate-950 text-white" value="ALL">All Trains ({offers.length})</option>
               {uniqueTrains.map(([num, name]) => (
-                <option key={num} value={num}>
+                <option className="bg-slate-950 text-white" key={num} value={num}>
                   {num} {name}
                 </option>
               ))}
@@ -644,9 +646,9 @@ export default function SeatSwapPage() {
               onChange={(e) => setSelectedReasonFilter(e.target.value)}
               className="bg-transparent text-white focus:outline-none text-xs"
             >
-              <option value="ALL">All Reasons</option>
+              <option className="bg-slate-950 text-white" value="ALL">All Reasons</option>
               {Object.entries(REASON_CONFIG).map(([key, cfg]) => (
-                <option key={key} value={key}>{cfg.label}</option>
+                <option className="bg-slate-950 text-white" key={key} value={key}>{cfg.label}</option>
               ))}
             </select>
           </div>

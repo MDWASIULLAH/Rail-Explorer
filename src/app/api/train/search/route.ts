@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { searchTrains } from '@/lib/railway-api';
-import { KNOWN_TRAINS } from '@/data/train-directory';
+import { findKnownTrains, mergeTrainSearchResults } from '@/lib/train-search';
 import { successResponse, errorResponse, handleOptions } from '../../_lib/helpers';
 
 export async function GET(request: NextRequest) {
@@ -9,22 +9,28 @@ export async function GET(request: NextRequest) {
     return errorResponse('Search query must be between 2 and 50 characters.', 400);
   }
 
+  const localResults = findKnownTrains(query);
+  // Exact number lookups and multi-term route searches against the curated
+  // directory should not wait on a slow external provider. The response is
+  // explicitly marked as reference data, so callers can distinguish it from
+  // provider/live data.
+  if (localResults.length > 0 && (/^\d{4,6}$/.test(query) || query.trim().split(/\s+/).length >= 2)) {
+    return successResponse({
+      query,
+      results: localResults,
+      count: localResults.length,
+      meta: { generatedAt: new Date().toISOString(), source: 'LOCAL_DIRECTORY', live: false },
+    });
+  }
+
   try {
     const result = await searchTrains(query);
     if (result.status === 'SUCCESS' && Array.isArray(result.data)) {
-      return successResponse({ query, results: result.data, count: result.data.length, meta: result.meta });
+      const results = mergeTrainSearchResults(result.data, findKnownTrains(query));
+      return successResponse({ query, results, count: results.length, meta: { ...result.meta, localMatchesAdded: results.length > result.data.length } });
     }
 
-    const q = query.toUpperCase();
-    const results = Object.entries(KNOWN_TRAINS)
-      .filter(([number, train]) => number.includes(q) || train.trainName.toUpperCase().includes(q))
-      .map(([, train]) => ({
-        trainNumber: train.trainNumber,
-        trainName: train.trainName,
-        origin: train.origin,
-        destination: train.destination,
-        classes: train.classes,
-      }));
+    const results = localResults;
 
     return successResponse({
       query,
@@ -34,10 +40,7 @@ export async function GET(request: NextRequest) {
     });
   } catch {
     // Return only directory entries when the provider is unreachable. Never invent a train.
-    const q = query.toUpperCase();
-    const results = Object.entries(KNOWN_TRAINS)
-      .filter(([number, train]) => number.includes(q) || train.trainName.toUpperCase().includes(q))
-      .map(([, train]) => ({ trainNumber: train.trainNumber, trainName: train.trainName, origin: train.origin, destination: train.destination, classes: train.classes }));
+    const results = findKnownTrains(query);
     return successResponse({ query, results, count: results.length, meta: { generatedAt: new Date().toISOString(), source: 'LOCAL_DIRECTORY', live: false } });
   }
 }

@@ -36,30 +36,7 @@ const StarredTrainsContext = createContext<StarredTrainsContextType | null>(null
 
 const STORAGE_KEY = 'rail_starred_trains_v1';
 
-// Initial high-interest Indian Railway trains for instant live experience
-const DEFAULT_STARRED: StarredTrain[] = [
-  {
-    trainNumber: '18403',
-    trainName: 'BBS DHN EXPRESS',
-    origin: { code: 'BBS', name: 'Bhubaneswar' },
-    destination: { code: 'DHN', name: 'Dhanbad Jn' },
-    starredAt: new Date().toISOString(),
-  },
-  {
-    trainNumber: '12301',
-    trainName: 'HOWRAH RAJDHANI',
-    origin: { code: 'HWH', name: 'Howrah Jn' },
-    destination: { code: 'NDLS', name: 'New Delhi' },
-    starredAt: new Date().toISOString(),
-  },
-  {
-    trainNumber: '22436',
-    trainName: 'VANDE BHARAT EXP',
-    origin: { code: 'NDLS', name: 'New Delhi' },
-    destination: { code: 'BSB', name: 'Varanasi Jn' },
-    starredAt: new Date().toISOString(),
-  },
-];
+const LEGACY_DEFAULT_TRAIN_NUMBERS = new Set(['18403', '12301', '22436']);
 
 export function StarredTrainsProvider({ children }: { children: React.ReactNode }) {
   const [starredTrains, setStarredTrains] = useState<StarredTrain[]>([]);
@@ -75,8 +52,14 @@ export function StarredTrainsProvider({ children }: { children: React.ReactNode 
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setStarredTrains(parsed);
+        if (Array.isArray(parsed)) {
+          // Older builds pre-populated exactly these three trains. Clear that
+          // untouched starter list once, while preserving any user additions.
+          const legacyDefaultsOnly = parsed.length === LEGACY_DEFAULT_TRAIN_NUMBERS.size
+            && parsed.every((item) => LEGACY_DEFAULT_TRAIN_NUMBERS.has(String(item?.trainNumber)));
+          const saved = legacyDefaultsOnly ? [] : parsed;
+          setStarredTrains(saved);
+          if (legacyDefaultsOnly) localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
           setIsLoaded(true);
           return;
         }
@@ -84,8 +67,8 @@ export function StarredTrainsProvider({ children }: { children: React.ReactNode 
     } catch (e) {
       console.warn('[StarredTrains] Error parsing stored trains, using defaults', e);
     }
-    // Default fallback
-    setStarredTrains(DEFAULT_STARRED);
+    // Starred trains are always chosen by the user; never seed demo trains.
+    setStarredTrains([]);
     setIsLoaded(true);
   }, []);
 

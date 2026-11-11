@@ -214,6 +214,7 @@ test('5. Coach Comparison Engine', async (t) => {
 // 6. Resilient Fallback & Train Directory Tests
 test('6. Train Directory returns only known route and composition data', async (t) => {
   const { KNOWN_TRAINS, getOrSynthesizeTrain } = require('../src/data/train-directory.ts');
+  const { findKnownTrains, mergeTrainSearchResults } = require('../src/lib/train-search.ts');
 
   await t.test('Known Train 18403 (BBS DHN EXPRESS) resolves correctly', () => {
     const train = KNOWN_TRAINS['18403'];
@@ -242,6 +243,18 @@ test('6. Train Directory returns only known route and composition data', async (
     assert.strictEqual(train.coaches.length, 0);
     assert.strictEqual(train.schedule.length, 0);
   });
+
+  await t.test('Train search finds known routes by station names with common spelling mistakes', () => {
+    const results = findKnownTrains('dhanbad bhubheswer');
+    assert.ok(results.some((train) => train.trainNumber === '18403'));
+  });
+
+  await t.test('Provider search keeps its results and adds matching local directory trains', () => {
+    const local = findKnownTrains('18403');
+    const merged = mergeTrainSearchResults([], local);
+    assert.strictEqual(merged.length, 1);
+    assert.strictEqual(merged[0].trainNumber, '18403');
+  });
 });
 
 test('7. OAuth session validation rejects forged cookies and external redirects', () => {
@@ -258,4 +271,44 @@ test('7. OAuth session validation rejects forged cookies and external redirects'
   assert.strictEqual(safeReturnPath('/train/18403?coach=S1'), '/train/18403?coach=S1');
   if (previousSecret === undefined) delete process.env.GITHUB_CLIENT_SECRET;
   else process.env.GITHUB_CLIENT_SECRET = previousSecret;
+});
+
+test('Digital seat-swap slip builds a downloadable PDF with explicit consent disclaimer', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { buildDigitalSlipPdf } = require('../src/lib/seat-swap-slip.ts');
+  const pdf = buildDigitalSlipPdf({
+    trainNumber: '18403',
+    trainName: 'BBS DHN EXPRESS',
+    journeyDate: '2026-11-12',
+    acceptedAt: '2026-11-11T12:00:00.000Z',
+    passenger1Name: 'Owner (A)',
+    passenger1From: 'S4 #71',
+    passenger1To: 'S4 #43',
+    passenger2Name: 'Proposer',
+    passenger2From: 'S4 #43',
+    passenger2To: 'S4 #71',
+  });
+
+  assert.ok(pdf.startsWith('%PDF-1.4'));
+  assert.match(pdf, /xref\n0 6\n/);
+  assert.match(pdf, /18403 - BBS DHN EXPRESS/);
+  assert.match(pdf, /S4 #71 -> S4 #43/);
+  assert.match(pdf, /Not a railway ticket or official railway authorization\./);
+  assert.match(pdf, /startxref\n\d+\n%%EOF$/);
+});
+
+test('Shared swap expiry migration defines the 24-hour cleanup job', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require('node:fs');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require('node:path');
+  const migration = fs.readFileSync(
+    path.join(__dirname, '../supabase/migrations/20261111175051_expire_shared_seat_swap_offers.sql'),
+    'utf8'
+  );
+
+  assert.match(migration, /created_at \+ interval '24 hours'/i);
+  assert.match(migration, /default \(now\(\) \+ interval '24 hours'\)/i);
+  assert.match(migration, /cron\.schedule\([\s\S]*?'\* \* \* \* \*'/i);
+  assert.match(migration, /delete from public\.rail_seat_swap_offers where expires_at <= now\(\)/i);
 });

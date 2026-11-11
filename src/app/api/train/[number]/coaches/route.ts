@@ -31,7 +31,7 @@ export async function GET(
       return successResponse({
         ...result.data,
         trainNumber: number,
-        meta: result.meta,
+        meta: { ...result.meta, live: true },
       });
     }
 
@@ -61,13 +61,14 @@ export async function GET(
       meta: {
         requestId: 'fallback-coaches',
         generatedAt: new Date().toISOString(),
-        source: 'VERIFIED_DIRECTORY_FALLBACK',
+        source: 'CURATED_REFERENCE_FALLBACK',
+        live: false,
       },
     });
   } catch (err) {
     const { number } = await params;
     const train = getOrSynthesizeTrain(number);
-    if (train.coaches.length > 0) return successResponse({ trainNumber: train.trainNumber, trainName: train.trainName, rakeType: train.rakeType, totalCoaches: train.coaches.length, coaches: train.coaches.map((c, i) => ({ position: i + 1, coachId: c.coachId, coachType: c.coachType, coachClass: c.coachType, classCode: c.coachType, category: 'PASSENGER', berthCount: c.berthCount })), meta: { generatedAt: new Date().toISOString(), source: 'LOCAL_DIRECTORY', live: false } });
+    if (train.coaches.length > 0) return successResponse({ trainNumber: train.trainNumber, trainName: train.trainName, rakeType: train.rakeType, totalCoaches: train.coaches.length, coaches: train.coaches.map((c, i) => ({ position: i + 1, coachId: c.coachId, coachType: c.coachType, coachClass: c.coachType, classCode: c.coachType, category: ['EOG', 'SLR'].includes(c.coachType) ? 'POWER_CAR' : c.coachType === 'PC' ? 'PANTRY' : 'PASSENGER', berthCount: c.berthCount })), meta: { generatedAt: new Date().toISOString(), source: 'CURATED_REFERENCE_FALLBACK', live: false } });
     return errorResponse(err instanceof Error ? err.message : 'Coach composition unavailable.', 503);
   }
 }

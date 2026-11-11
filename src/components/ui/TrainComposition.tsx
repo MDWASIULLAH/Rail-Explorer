@@ -18,12 +18,18 @@ interface TrainCompositionProps {
 
 export default function TrainComposition({ coaches, selectedCoachId, onCoachClick, compact = false }: TrainCompositionProps) {
   const coachBlocks = useMemo(() => {
-    return coaches.map((coach) => {
+    return coaches
+      .map((coach, inputIndex) => ({ ...coach, inputIndex }))
+      // Provider rakes can include marker rows. Keep the engine/end markers visual,
+      // but never render them as selectable passenger coaches as well.
+      .filter((coach) => !['LOCO', 'ENGINE', 'END'].includes(coach.coachId.toUpperCase()))
+      .sort((a, b) => (a.position - b.position) || (a.inputIndex - b.inputIndex))
+      .map((coach) => {
       const blueprintId = resolveCoachBlueprint(coach.coachId);
       const category = blueprintId.replace('LHB_', '') as CoachCategory;
       const color = getCoachColor(category);
       return { ...coach, color, category };
-    });
+      });
   }, [coaches]);
 
   return (

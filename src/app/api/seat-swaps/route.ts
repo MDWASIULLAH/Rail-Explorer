@@ -9,11 +9,12 @@ export async function GET(request: Request) {
   if (!db) return NextResponse.json({ success: false, error: 'Shared seat swaps are not configured.' }, { status: 503 });
 
   try {
+    const now = new Date().toISOString();
     const [activeResult, ownedResult] = await Promise.all([
-      db.from('rail_seat_swap_offers').select('id, owner_id, owner_email, status, payload, created_at, accepted_proposal_id, accepted_at')
-        .in('status', ['AVAILABLE', 'REQUEST_PENDING']).order('created_at', { ascending: false }).limit(250),
-      db.from('rail_seat_swap_offers').select('id, owner_id, owner_email, status, payload, created_at, accepted_proposal_id, accepted_at')
-        .eq('owner_id', user.id).order('created_at', { ascending: false }).limit(250),
+      db.from('rail_seat_swap_offers').select('id, owner_id, owner_email, status, payload, created_at, expires_at, accepted_proposal_id, accepted_at')
+        .in('status', ['AVAILABLE', 'REQUEST_PENDING']).gt('expires_at', now).order('created_at', { ascending: false }).limit(250),
+      db.from('rail_seat_swap_offers').select('id, owner_id, owner_email, status, payload, created_at, expires_at, accepted_proposal_id, accepted_at')
+        .eq('owner_id', user.id).gt('expires_at', now).order('created_at', { ascending: false }).limit(250),
     ]);
     if (activeResult.error) throw activeResult.error;
     if (ownedResult.error) throw ownedResult.error;
@@ -46,8 +47,8 @@ export async function GET(request: Request) {
       .filter((id) => !offersById.has(id));
     if (sentOfferIds.length) {
       const sentOffersResult = await db.from('rail_seat_swap_offers')
-        .select('id, owner_id, owner_email, status, payload, created_at, accepted_proposal_id, accepted_at')
-        .in('id', sentOfferIds).limit(250);
+        .select('id, owner_id, owner_email, status, payload, created_at, expires_at, accepted_proposal_id, accepted_at')
+        .in('id', sentOfferIds).gt('expires_at', now).limit(250);
       if (sentOffersResult.error) throw sentOffersResult.error;
       for (const row of sentOffersResult.data || []) offersById.set(row.id, row as unknown as Record<string, unknown>);
     }
@@ -80,6 +81,7 @@ export async function GET(request: Request) {
         isCurrentUser: ownerId === user.id,
         acceptedProposal: proposalsById.get(acceptedProposalId) || payload.acceptedProposal,
         acceptedAt: row.accepted_at || payload.acceptedAt,
+        expiresAt: row.expires_at,
         createdAt: row.created_at,
       };
     });

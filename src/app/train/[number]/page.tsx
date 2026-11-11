@@ -300,6 +300,13 @@ function TrainExplorerContent() {
                 onCoachClick={handleCoachClick}
                 compact
               />
+              {coaches.length > 0 && (
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  {activeTrain.coaches?.meta?.live
+                    ? `Provider composition · ${activeTrain.coaches.totalCoaches || coaches.length} coaches`
+                    : `Reference composition · ${activeTrain.coaches?.totalCoaches || coaches.length} listed coaches; the operating rake may differ`}
+                </p>
+              )}
             </div>
           </div>
 

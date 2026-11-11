@@ -152,6 +152,13 @@ export interface CoachComposition {
   coaches: CoachInfo[];
   totalCoaches: number;
   rakeType: string;
+  /** Describes whether the rake came from the live provider or a curated offline reference. */
+  meta?: {
+    source?: string;
+    live?: boolean;
+    generatedAt?: string;
+    requestId?: string;
+  };
 }
 
 export interface CoachInfo {

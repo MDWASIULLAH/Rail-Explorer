@@ -10,26 +10,46 @@ import {
   X,
   ArrowLeftRight,
   CheckCircle2,
-  Clock,
   Trash2,
   Eye,
   FileCheck,
   ShieldCheck,
   Star,
-  Train,
-  MapPin,
-  AlertCircle,
-  ExternalLink,
-  ChevronRight,
   LogOut,
   Sparkles,
   Gauge,
   Plus,
-  QrCode,
-  ShieldAlert,
   Radio,
-  Printer,
+  Download,
 } from 'lucide-react';
+import type { SwapOffer, SwapProposal } from '@/types/seat-swap';
+import { buildDigitalSlipPdf, type DigitalSlipData } from '@/lib/seat-swap-slip';
+
+function downloadDigitalSlip(data: DigitalSlipData) {
+  const url = URL.createObjectURL(new Blob([buildDigitalSlipPdf(data)], { type: 'application/pdf' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `rail-explorer-swap-${data.trainNumber}-${data.journeyDate || 'journey'}.pdf`;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function makeSlipData(offer: SwapOffer, proposal: SwapProposal, viewerIsOwner: boolean): DigitalSlipData {
+  const ownerBerth = `Coach ${offer.currentCoach} #${offer.currentBerth}`;
+  const proposerBerth = `Coach ${proposal.proposerCoach} #${proposal.proposerBerth}`;
+  return {
+    trainNumber: offer.trainNumber,
+    trainName: offer.trainName,
+    journeyDate: offer.journeyDate,
+    acceptedAt: offer.acceptedAt,
+    passenger1Name: viewerIsOwner ? offer.passengerName : proposal.proposerName,
+    passenger1From: viewerIsOwner ? ownerBerth : proposerBerth,
+    passenger1To: viewerIsOwner ? proposerBerth : ownerBerth,
+    passenger2Name: viewerIsOwner ? proposal.proposerName : offer.passengerName,
+    passenger2From: viewerIsOwner ? proposerBerth : ownerBerth,
+    passenger2To: viewerIsOwner ? ownerBerth : proposerBerth,
+  };
+}
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -39,6 +59,7 @@ interface UserProfileModalProps {
 export default function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const { user, logout } = useAuth();
   const {
+    offers,
     userOffers,
     incomingProposals,
     sentProposals,
@@ -50,17 +71,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
   const { starredTrains, liveStatusMap, removeStar } = useStarredTrains();
 
   const [activeTab, setActiveTab] = useState<'swaps' | 'starred' | 'profile'>('swaps');
-  const [selectedSlipData, setSelectedSlipData] = useState<{
-    trainNumber: string;
-    trainName?: string;
-    journeyDate?: string;
-    passenger1Name: string;
-    passenger1From: string;
-    passenger1To: string;
-    passenger2Name: string;
-    passenger2From: string;
-    passenger2To: string;
-  } | null>(null);
+  const [selectedSlipData, setSelectedSlipData] = useState<DigitalSlipData | null>(null);
 
   if (!isOpen || !user) return null;
 
@@ -272,23 +283,11 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                             Swapped with: <strong className="text-white">{prop?.proposerName || 'Co-Passenger'}</strong>
                           </span>
                           <button
-                            onClick={() =>
-                              setSelectedSlipData({
-                                trainNumber: offer.trainNumber,
-                                trainName: offer.trainName,
-                                journeyDate: offer.journeyDate,
-                                passenger1Name: offer.passengerName,
-                                passenger1From: `Coach ${offer.currentCoach} #${offer.currentBerth}`,
-                                passenger1To: `Coach ${prop?.proposerCoach || 'S1'} #${prop?.proposerBerth || '12'}`,
-                                passenger2Name: prop?.proposerName || 'Co-Passenger',
-                                passenger2From: `Coach ${prop?.proposerCoach || 'S1'} #${prop?.proposerBerth || '12'}`,
-                                passenger2To: `Coach ${offer.currentCoach} #${offer.currentBerth}`,
-                              })
-                            }
+                            onClick={() => prop && setSelectedSlipData(makeSlipData(offer, prop, true))}
                             className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 transition active:scale-95"
                           >
                             <FileCheck className="w-3.5 h-3.5" />
-                            <span>View Digital TTE Slip</span>
+                            <span>Digital Swap Slip</span>
                           </button>
                         </div>
                       </div>
@@ -504,28 +503,47 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                     Proposals I Sent ({sentProposals.length})
                   </span>
                   <div className="space-y-2">
-                    {sentProposals.map((sp) => (
-                      <div
-                        key={`sent-${sp.id}`}
-                        className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs"
-                      >
-                        <div>
-                          <p className="text-white font-semibold">
-                            Offered: Coach {sp.proposerCoach} #{sp.proposerBerth} ({sp.proposerBerthType})
-                          </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5 italic">{sp.message}</p>
-                        </div>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                            sp.status === 'ACCEPTED'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                          }`}
+                    {sentProposals.map((sp) => {
+                      const acceptedOffer = sp.status === 'ACCEPTED'
+                        ? offers.find((offer) => offer.id === sp.offerId)
+                        : undefined;
+                      return (
+                        <div
+                          key={`sent-${sp.id}`}
+                          className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 text-xs"
                         >
-                          {sp.status}
-                        </span>
-                      </div>
-                    ))}
+                          <div className="min-w-0">
+                            <p className="text-white font-semibold">
+                              Offered: Coach {sp.proposerCoach} #{sp.proposerBerth} ({sp.proposerBerthType})
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5 italic">{sp.message}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                                sp.status === 'ACCEPTED'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                  : sp.status === 'DECLINED'
+                                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              }`}
+                            >
+                              {sp.status}
+                            </span>
+                            {acceptedOffer && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedSlipData(makeSlipData(acceptedOffer, sp, false))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 font-bold text-emerald-300 hover:bg-emerald-500/20"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                Slip
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -722,11 +740,11 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
             <div>
               <span className="px-3 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider">
-                Official IRCTC Mutual Exchange Slip
+                Digital exchange summary
               </span>
-              <h3 className="text-xl font-black text-white mt-2">TTE Verification Certificate</h3>
+              <h3 className="text-xl font-black text-white mt-2">Mutual Berth Exchange Record</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Show this digital slip to the Traveling Ticket Examiner (TTE) upon inspection.
+                Download this record for both passengers. It records consent and is not a railway ticket or official authorization.
               </p>
             </div>
 
@@ -757,18 +775,26 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
               <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500">
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Rule 144 Mutual Exchange Consent</span>
+                  <span>Passenger consent record</span>
                 </span>
-                <span className="font-mono text-slate-400">IRCTC-RDSO</span>
+                <span className="font-mono text-slate-400">RAIL EXPLORER</span>
               </div>
             </div>
 
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setSelectedSlipData(null)}
-                className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-emerald-500/25 transition active:scale-95"
+                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
               >
-                Close Verification Slip
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadDigitalSlip(selectedSlipData)}
+                className="flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-emerald-500/25 transition active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
               </button>
             </div>
           </div>

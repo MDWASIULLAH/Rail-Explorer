@@ -11,6 +11,19 @@ body {
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* Native option menus use the browser's default palette unless options are
+   explicitly styled. Keep them readable in the app's dark theme (notably on
+   Windows Edge/Chrome, where the popup otherwise renders white with pale text). */
+select {
+  color-scheme: dark;
+}
+
+select option,
+select optgroup {
+  color: #e2e8f0;
+  background-color: #0b1222;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
