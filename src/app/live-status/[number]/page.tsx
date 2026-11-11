@@ -39,6 +39,7 @@ function LiveStatusContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [journeyData, setJourneyData] = useState<LiveJourneyAnalysis | null>(null);
+  const [statusWarning, setStatusWarning] = useState<string | null>(null);
   const latestRequestId = useRef(0);
 
   // Default to Timeline view on mobile (< 1024px) for Where Is My Train / ConfirmTkt experience
@@ -70,6 +71,11 @@ function LiveStatusContent() {
         statRes.status === 'fulfilled' && statRes.value.success
           ? statRes.value.data
           : null;
+      const warning = statRes.status === 'fulfilled' && !statRes.value.success && typeof statRes.value.error === 'string'
+        ? statRes.value.error
+        : statRes.status === 'rejected'
+          ? 'Live train status is temporarily unavailable.'
+          : null;
 
       const analysis = analyzeLiveJourney(
         trainNumber,
@@ -79,7 +85,10 @@ function LiveStatusContent() {
         selectedDate,
       );
 
-      if (requestId === latestRequestId.current) setJourneyData(analysis);
+      if (requestId === latestRequestId.current) {
+        setJourneyData(analysis);
+        setStatusWarning(warning);
+      }
     } catch {
       // Graceful fallback from local synthesized directory
       const train = getOrSynthesizeTrain(trainNumber);
@@ -91,6 +100,7 @@ function LiveStatusContent() {
         selectedDate,
       );
       if (requestId === latestRequestId.current) setJourneyData(analysis);
+      if (requestId === latestRequestId.current) setStatusWarning('Live train status is temporarily unavailable.');
     } finally {
       if (requestId === latestRequestId.current) {
         setIsLoading(false);
@@ -150,6 +160,11 @@ function LiveStatusContent() {
       />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {statusWarning && (
+          <div role="status" className="rounded-xl border border-amber-700/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+            {statusWarning}
+          </div>
+        )}
         {/* Horizontal Journey Progress Card */}
         <HorizontalRouteProgress journey={journeyData} />
 

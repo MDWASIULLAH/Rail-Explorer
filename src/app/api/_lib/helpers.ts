@@ -100,6 +100,32 @@ export function resolveJourneyDate(
   return { kind: 'invalid' };
 }
 
+/** Guard against a provider keeping yesterday's train run marked live long after its timetable ended. */
+export function isLiveReportBeyondScheduleWindow(
+  journeyDate: string,
+  observedAt: string,
+  delayMinutes: number,
+  stations: Array<{ arrivalTime?: string | null; departureTime?: string | null; day?: number }>,
+  graceMinutes = 360,
+): boolean {
+  const date = journeyDate.slice(0, 10);
+  const finalStation = stations.at(-1);
+  const arrivalTime = finalStation?.arrivalTime || finalStation?.departureTime;
+  const match = arrivalTime?.match(/^(\d{1,2}):(\d{2})$/);
+  const observed = Date.parse(observedAt);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !match || !Number.isFinite(observed)) return false;
+
+  const start = new Date(`${date}T00:00:00+05:30`);
+  if (Number.isNaN(start.getTime())) return false;
+  start.setTime(start.getTime() + (Math.max(1, finalStation?.day || 1) - 1) * 86_400_000);
+  const arrivalDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(start);
+  const expectedArrival = Date.parse(`${arrivalDate}T${match[1].padStart(2, '0')}:${match[2]}:00+05:30`);
+  const allowedDelay = Math.max(graceMinutes, Math.max(0, delayMinutes) + 120);
+  return Number.isFinite(expectedArrival) && observed > expectedArrival + allowedDelay * 60_000;
+}
+
 /** Validate a 10-digit PNR */
 export function isValidPnr(value: string): boolean {
   return /^\d{10}$/.test(value);

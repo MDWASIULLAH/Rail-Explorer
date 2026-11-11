@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { getTrainStatus } from '@/lib/railway-api';
+import { KNOWN_TRAINS } from '@/data/train-directory';
 import {
   successResponse,
   errorResponse,
@@ -7,6 +8,7 @@ import {
   isValidTrainNumber,
   getIndiaDateString,
   resolveJourneyDate,
+  isLiveReportBeyondScheduleWindow,
 } from '../../../_lib/helpers';
 
 /**
@@ -58,6 +60,20 @@ export async function GET(
     }
 
     if ((result.status === 'SUCCESS' || result.status === 'STALE_DATA') && result.data) {
+      const journeyDate = result.data.journeyDate?.slice(0, 10);
+      const knownSchedule = KNOWN_TRAINS[number]?.schedule;
+      const observedAt = result.data.observedAt || result.data.freshness?.observedAt;
+      if (
+        result.data.status === 'RUNNING' &&
+        journeyDate && journeyDate < getIndiaDateString() &&
+        observedAt && knownSchedule &&
+        isLiveReportBeyondScheduleWindow(journeyDate, observedAt, result.data.delayMinutes || 0, knownSchedule)
+      ) {
+        return errorResponse(
+          'The provider reports this train as running beyond its scheduled journey window. Its live position is hidden until the provider publishes a consistent update.',
+          503,
+        );
+      }
       return successResponse({
         ...result.data,
         trainNumber: number,

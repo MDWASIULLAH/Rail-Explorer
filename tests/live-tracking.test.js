@@ -49,6 +49,20 @@ test('Journey date resolution uses India calendar dates and distinguishes auto m
   assert.deepStrictEqual(resolveJourneyDate('nonsense', now), { kind: 'invalid' });
 });
 
+test('Past live runs are hidden after their scheduled journey window', () => {
+  const { isLiveReportBeyondScheduleWindow } = require('../src/app/api/_lib/helpers.ts');
+  const { KNOWN_TRAINS } = require('../src/data/train-directory.ts');
+  const schedule = KNOWN_TRAINS['18403'].schedule;
+  assert.strictEqual(
+    isLiveReportBeyondScheduleWindow('2026-11-10', '2026-11-11T22:03:29+05:30', 0, schedule),
+    true,
+  );
+  assert.strictEqual(
+    isLiveReportBeyondScheduleWindow('2026-11-10', '2026-11-11T08:00:00+05:30', 0, schedule),
+    false,
+  );
+});
+
 test('PNR lookup keeps fresh result after selecting its train', async () => {
   const filename = path.resolve(__dirname, '../src/store/train-store.ts');
   const source = fs.readFileSync(filename, 'utf8');
