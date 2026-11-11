@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { TrainCoach } from '@/components/3d/FullTrainView';
 
 interface PlatformCoachLocatorProps {
@@ -11,6 +11,17 @@ interface PlatformCoachLocatorProps {
   trainNumber?: string;
 }
 
+type Entrance = 'FRONT' | 'CENTER' | 'REAR';
+type PlatformResponse = {
+  success?: boolean;
+  data?: {
+    stations?: Array<{
+      station?: { code?: string; name?: string };
+      assignments?: Array<{ platform?: string; confidence?: string | null }>;
+    }>;
+  };
+};
+
 export default function PlatformCoachLocator({
   coaches,
   selectedCoachId,
@@ -18,254 +29,152 @@ export default function PlatformCoachLocator({
   trainName,
   trainNumber,
 }: PlatformCoachLocatorProps) {
-  const [platformEntrance, setPlatformEntrance] = useState<'FRONT' | 'CENTER' | 'REAR'>('CENTER');
+  const [platformEntrance, setPlatformEntrance] = useState<Entrance>('CENTER');
   const [platformAssignments, setPlatformAssignments] = useState<
     Array<{ code: string; name: string; platform: string; confidence?: string | null }>
   >([]);
 
   useEffect(() => {
     if (!trainNumber) return;
-    fetch(`/api/train/${trainNumber}/platforms`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success && res.data?.stations) {
-          const list = res.data.stations.map((s: any) => ({
-            code: s.station?.code,
-            name: s.station?.name,
-            platform: s.assignments?.[0]?.platform || 'Not reported',
-            confidence: s.assignments?.[0]?.confidence,
-          }));
-          setPlatformAssignments(list);
+    const controller = new AbortController();
+    fetch(`/api/train/${trainNumber}/platforms`, { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() as Promise<PlatformResponse> : null))
+      .then((result: PlatformResponse | null) => {
+        if (result?.success && Array.isArray(result.data?.stations)) {
+          setPlatformAssignments(result.data.stations.map((station) => ({
+            code: station.station?.code || '—',
+            name: station.station?.name || '',
+            platform: station.assignments?.[0]?.platform || 'Not reported',
+            confidence: station.assignments?.[0]?.confidence,
+          })));
+        } else {
+          setPlatformAssignments([]);
         }
       })
-      .catch(() => {});
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setPlatformAssignments([]);
+      });
+    return () => controller.abort();
   }, [trainNumber]);
 
-  const totalCoaches = coaches.length;
-  const coachIndex = selectedCoachId
-    ? coaches.findIndex((c) => c.coachId === selectedCoachId)
-    : -1;
-
-  // Each coach ~24m, Locomotive ~21m
-  const coachLength = 24.0;
-  const locoLength = 21.0;
-  const totalTrainLength = locoLength + totalCoaches * coachLength;
-
-  // Approximate platform location of entrance (in meters from engine front)
-  const entranceOffsetMeters =
-    platformEntrance === 'FRONT'
-      ? 40
-      : platformEntrance === 'CENTER'
-      ? totalTrainLength / 2
-      : totalTrainLength - 50;
-
-  // Distance of selected coach from engine front
-  const userCoachDistance =
-    coachIndex >= 0 ? locoLength + (coachIndex + 0.5) * coachLength : null;
-
-  // Walking distance from chosen entrance to coach
-  const walkDistance =
-    userCoachDistance !== null
-      ? Math.round(Math.abs(userCoachDistance - entranceOffsetMeters))
-      : null;
-
-  const walkTimeMins = walkDistance !== null ? Math.max(1, Math.round(walkDistance / 70)) : null;
+  const coachIndex = selectedCoachId ? coaches.findIndex((coach) => coach.coachId === selectedCoachId) : -1;
+  const locomotiveLength = 21;
+  const averageCoachLength = 24;
+  const totalLength = locomotiveLength + coaches.length * averageCoachLength;
+  const entranceOffset = platformEntrance === 'FRONT'
+    ? 40
+    : platformEntrance === 'CENTER'
+      ? totalLength / 2
+      : totalLength - 50;
+  const coachDistance = coachIndex >= 0 ? locomotiveLength + (coachIndex + 0.5) * averageCoachLength : null;
+  const walkingDistance = coachDistance === null ? null : Math.round(Math.abs(coachDistance - entranceOffset));
+  const walkMinutes = walkingDistance === null ? null : Math.max(1, Math.round(walkingDistance / 70));
+  const direction = coachDistance !== null && coachDistance < entranceOffset ? 'the engine end' : 'the guard end';
 
   return (
-    <div className="bg-slate-800/80 rounded-xl border border-slate-700/80 p-5 shadow-xl backdrop-blur-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div>
-          <h3 className="font-bold text-white text-base flex items-center gap-2">
-            <span>🚉</span>
-            <span>Where Is My Coach On The Platform?</span>
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Identify your coach position relative to Platform Entrances & Foot Overbridges (FOB)
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900 shadow-lg">
+      <header className="flex flex-col gap-4 border-b border-slate-800 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-300">Platform coach locator</p>
+          <h3 className="text-base font-bold text-white sm:text-lg">Find your coach before you board</h3>
+          <p className="mt-1 max-w-2xl text-sm leading-5 text-slate-400">
+            {trainName ? `${trainName} · ` : ''}Choose the entrance you expect to use. The diagram follows the listed coach order.
           </p>
         </div>
-
-        {/* Entrance Selector */}
-        <div className="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-lg border border-slate-700 text-xs">
-          <span className="text-slate-400 px-2">Your Entry Point:</span>
-          <button
-            onClick={() => setPlatformEntrance('FRONT')}
-            className={`px-2.5 py-1 rounded transition ${
-              platformEntrance === 'FRONT'
-                ? 'bg-blue-600 text-white font-semibold'
-                : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            FOB 1 (Engine End)
-          </button>
-          <button
-            onClick={() => setPlatformEntrance('CENTER')}
-            className={`px-2.5 py-1 rounded transition ${
-              platformEntrance === 'CENTER'
-                ? 'bg-blue-600 text-white font-semibold'
-                : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            FOB 2 (Main Center)
-          </button>
-          <button
-            onClick={() => setPlatformEntrance('REAR')}
-            className={`px-2.5 py-1 rounded transition ${
-              platformEntrance === 'REAR'
-                ? 'bg-blue-600 text-white font-semibold'
-                : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            FOB 3 (Guard End)
-          </button>
-        </div>
-      </div>
-
-      {/* Provider platform references */}
-      {platformAssignments.length > 0 && (
-        <div className="mb-4 p-3 bg-slate-900/90 rounded-xl border border-slate-700/80">
-          <div className="flex items-center justify-between text-xs mb-2">
-            <span className="font-bold text-slate-200 flex items-center gap-1.5">
-              <span>🎯</span>
-              <span>Platform references</span>
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">
-              Provider data · confirm at station
-            </span>
+        <fieldset className="min-w-0">
+          <legend className="mb-2 text-xs font-medium text-slate-400">Platform entrance</legend>
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-700 bg-slate-950 p-1 text-xs">
+            {([['FRONT', 'Engine end'], ['CENTER', 'Middle'], ['REAR', 'Guard end']] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={platformEntrance === value}
+                onClick={() => setPlatformEntrance(value)}
+                className={`min-h-10 rounded-lg px-2 font-semibold transition-colors ${platformEntrance === value ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >{label}</button>
+            ))}
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-            {platformAssignments.map((p) => (
-              <div
-                key={p.code}
-                className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 shrink-0 flex items-center gap-1.5"
-              >
-                <span className="font-bold text-white">{p.code}</span>
-                <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-black text-[11px]">
-                  {p.platform === 'Not reported' ? p.platform : `PF ${p.platform}`}
+        </fieldset>
+      </header>
+
+      {platformAssignments.length > 0 && (
+        <div className="border-b border-slate-800 p-4 sm:p-5">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-slate-200">Reported platform stops</span>
+            <span className="rounded-md bg-emerald-950 px-2 py-1 text-[10px] font-medium text-emerald-300">Provider report · verify locally</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {platformAssignments.map((station) => (
+              <div key={`${station.code}-${station.name}`} className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
+                <span className="font-semibold text-white" title={station.name}>{station.code}</span>
+                <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${station.platform === 'Not reported' ? 'bg-slate-800 text-slate-400' : 'bg-amber-950 text-amber-300'}`}>
+                  {station.platform === 'Not reported' ? station.platform : `PF ${station.platform}`}
                 </span>
-                {p.confidence && (
-                  <span className="text-[10px] text-slate-500 font-mono">({p.confidence})</span>
-                )}
+                {station.confidence && <span className="text-[10px] text-slate-500">{station.confidence}</span>}
               </div>
             ))}
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">Platform assignments can change. Confirm the current platform on station displays.</p>
+          <p className="mt-2 text-xs text-slate-500">Platform assignments can change. Follow the station display or announcement before boarding.</p>
         </div>
       )}
 
-      {/* Walking Guidance Card if Coach Selected */}
-      {selectedCoachId && walkDistance !== null && (
-        <div className="mb-5 p-4 bg-gradient-to-r from-blue-950/70 to-slate-900/80 rounded-xl border border-blue-800/40 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-lg font-bold text-blue-300">
-              {selectedCoachId}
-            </div>
-            <div>
-              <div className="text-xs text-blue-300 font-semibold uppercase tracking-wider">
-                Position for Coach {selectedCoachId}
-              </div>
-              <div className="text-sm font-medium text-white mt-0.5">
-                {userCoachDistance! < entranceOffsetMeters
-                  ? `Walk ~${walkDistance}m towards Engine (Front)`
-                  : `Walk ~${walkDistance}m towards Guard Van (Rear)`}
-              </div>
+      {selectedCoachId && walkingDistance !== null && (
+        <div className="grid gap-4 border-b border-slate-800 bg-slate-950/40 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-500/40 bg-blue-950 text-sm font-bold text-blue-200">{selectedCoachId}</div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-wide text-blue-300">Coach position estimate</div>
+              <div className="mt-1 text-sm font-semibold text-white">{walkingDistance === 0 ? 'Near your selected entrance' : `About ${walkingDistance} m towards ${direction}`}</div>
             </div>
           </div>
-
-          <div className="flex items-center gap-4 text-right">
-            <div>
-              <div className="text-xs text-slate-400">Walking Distance</div>
-              <div className="text-xl font-black text-amber-400">{walkDistance} m</div>
-            </div>
-            <div className="border-l border-slate-700 pl-4">
-              <div className="text-xs text-slate-400">Est. Platform Walk</div>
-              <div className="text-xl font-black text-emerald-400">~{walkTimeMins} min</div>
-            </div>
+          <div className="flex items-center gap-5 sm:justify-end">
+            <div><div className="text-xs text-slate-400">Estimated walk</div><div className="mt-1 text-lg font-bold tabular-nums text-amber-300">{walkingDistance} m</div></div>
+            <div className="border-l border-slate-700 pl-5"><div className="text-xs text-slate-400">Easy walking pace</div><div className="mt-1 text-lg font-bold tabular-nums text-emerald-300">~{walkMinutes} min</div></div>
           </div>
         </div>
       )}
 
-      {/* Visual Platform Diagram */}
-      <div className="relative bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto">
-        <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2 font-mono">
-          <span className="flex items-center gap-1 text-emerald-400">
-            <span>◄ ENGINE (FRONT)</span>
-          </span>
-          <span className="text-slate-500">Total Train Length: ~{Math.round(totalTrainLength)}m</span>
-          <span className="flex items-center gap-1 text-amber-400">
-            <span>GUARD (REAR) ►</span>
-          </span>
-        </div>
-
-        {/* Platform Line */}
-        <div className="h-2 w-full bg-slate-800 rounded-full relative mb-3">
-          {/* Active FOB marker */}
-          <div
-            className="absolute -top-3 transform -translate-x-1/2 flex flex-col items-center pointer-events-none transition-all duration-300"
-            style={{
-              left: `${
-                platformEntrance === 'FRONT'
-                  ? '10%'
-                  : platformEntrance === 'CENTER'
-                  ? '50%'
-                  : '90%'
-              }`,
-            }}
-          >
-            <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase shadow-lg">
-              ▼ Your Entry
-            </span>
+      <div className="p-4 sm:p-5">
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 p-3 sm:p-4">
+          <div className="mb-3 flex items-center justify-between gap-2 text-[11px] font-medium text-slate-400">
+            <span className="text-slate-300">Engine</span>
+            <span className="text-center">Reference rake · about {Math.round(totalLength)} m</span>
+            <span className="text-slate-300">Guard van</span>
+          </div>
+          <div className="relative mb-4 h-2 rounded-full bg-slate-800">
+            <span className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-slate-950 bg-amber-400" style={{ left: platformEntrance === 'FRONT' ? '10%' : platformEntrance === 'CENTER' ? '50%' : '90%' }} />
+            <span className="sr-only">Selected platform entrance: {platformEntrance.toLowerCase()}</span>
+          </div>
+          <div className="overflow-x-auto pb-2" aria-label="Scrollable train coach sequence">
+            <div className="flex min-w-[720px] items-stretch gap-1.5 py-2">
+              <div className="flex w-20 shrink-0 flex-col justify-center rounded-lg border border-red-900 bg-red-950/70 px-2 py-3 text-center">
+                <span className="text-xs font-bold text-red-200">LOCO</span><span className="mt-1 text-[10px] text-red-300">WAP-7</span>
+              </div>
+              {coaches.map((coach) => {
+                const isTarget = coach.coachId === selectedCoachId;
+                const isAC = !['SL', 'GS', 'GEN', 'EOG', 'SLR'].includes(coach.coachType);
+                return (
+                  <button
+                    key={coach.coachId}
+                    type="button"
+                    aria-pressed={isTarget}
+                    onClick={() => onSelectCoach(coach.coachId)}
+                    className={`min-w-[46px] flex-1 rounded-lg border px-1 py-3 text-center transition-colors ${isTarget ? 'z-10 border-amber-300 bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300/40' : isAC ? 'border-blue-900 bg-blue-950/70 text-blue-200 hover:bg-blue-900' : 'border-emerald-900 bg-emerald-950/70 text-emerald-200 hover:bg-emerald-900'}`}
+                    title={`Coach ${coach.coachId}, ${coach.coachType}`}
+                  >
+                    <span className="block truncate text-xs font-bold">{coach.coachId}</span><span className="mt-1 block truncate text-[10px] opacity-75">{coach.coachType}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3 text-xs text-slate-400">
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-2"><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-blue-600" /> AC class</span><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" /> Sleeper / general</span></span>
+            <span className="text-slate-500">Select a coach to update its estimate</span>
           </div>
         </div>
-
-        {/* Train Rake Sequence (Interactive Coach Blocks) */}
-        <div className="flex items-stretch gap-1.5 py-2 min-w-[700px]">
-          {/* Loco Block */}
-          <div className="px-3 py-2 bg-red-900/60 border border-red-700/60 rounded text-center shrink-0 flex flex-col justify-center text-xs">
-            <span className="text-[10px] text-red-300 font-bold">LOCO</span>
-            <span className="text-[9px] text-red-400">WAP-7</span>
-          </div>
-
-          {/* Coach Blocks */}
-          {coaches.map((c) => {
-            const isTarget = c.coachId === selectedCoachId;
-            const isAC = !['SL', 'GS', 'GEN', 'EOG', 'SLR'].includes(c.coachType);
-
-            return (
-              <button
-                key={c.coachId}
-                onClick={() => onSelectCoach(c.coachId)}
-                className={`flex-1 min-w-[42px] py-2 px-1 rounded border text-center transition-all ${
-                  isTarget
-                    ? 'bg-amber-500 text-slate-950 border-amber-300 ring-2 ring-amber-400 font-black shadow-lg scale-105 z-10'
-                    : isAC
-                    ? 'bg-blue-900/50 hover:bg-blue-800/70 border-blue-700/60 text-blue-200'
-                    : 'bg-emerald-900/50 hover:bg-emerald-800/70 border-emerald-700/60 text-emerald-200'
-                }`}
-                title={`Coach ${c.coachId} (${c.coachType})`}
-              >
-                <div className="text-xs font-bold truncate">{c.coachId}</div>
-                <div className="text-[9px] opacity-75 truncate">{c.coachType}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Footnote */}
-        <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-900">
-          <span className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" /> AC Class
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-emerald-600 inline-block" /> Sleeper / General
-            </span>
-          </span>
-          <span className="text-[11px] text-slate-500">
-            Click any coach above to locate on the platform
-          </span>
-        </div>
+        <p className="mt-2 text-xs leading-5 text-slate-500">Coach lengths and entrance locations are approximate. Actual rake order and platform access can vary by service and station.</p>
       </div>
-    </div>
+    </section>
   );
 }
-

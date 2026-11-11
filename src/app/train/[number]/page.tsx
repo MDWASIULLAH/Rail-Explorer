@@ -101,7 +101,7 @@ function TrainExplorerContent() {
   const analyzedPosition = analyzedJourney.position;
 
   // 3. Coaches strictly of THIS EXACT train
-  const coaches = activeTrain.coaches?.coaches?.map((c) => ({
+  const coaches = (activeTrain.coaches?.coaches?.map((c) => ({
     coachId: c.coachId,
     coachType: c.coachType || c.coachClass || c.coachId,
     position: c.position,
@@ -109,7 +109,7 @@ function TrainExplorerContent() {
     coachId: c.coachId,
     coachType: c.coachType,
     position: i + 1,
-  }));
+  }))).sort((first, second) => first.position - second.position);
 
   // Trigger store fetch for this train, and reset view to full-train so previous train coach is never stuck
   useEffect(() => {
@@ -363,10 +363,10 @@ function TrainExplorerContent() {
 
       {/* Main content */}
       {activeTab === '3d' && (
-        <div className="flex-1 flex flex-col">
-          <div className="flex-none lg:flex-1 flex flex-col lg:flex-row">
+        <div className="min-w-0 flex-1 flex flex-col">
+          <div className="flex-none min-w-0 lg:flex-1 flex flex-col lg:flex-row">
             {/* 3D Viewport - Responsive Height Optimized for Mobile & Desktop */}
-            <div className="flex-none w-full h-[65svh] min-h-[460px] max-h-[620px] sm:h-[68vh] sm:min-h-[520px] sm:max-h-none lg:flex-1 lg:h-[650px] lg:min-h-[650px] lg:max-h-[650px] relative">
+            <div className="relative min-w-0 w-full flex-none h-[65svh] min-h-[460px] max-h-[620px] sm:h-[68vh] sm:min-h-[520px] sm:max-h-none lg:h-[650px] lg:min-h-[650px] lg:max-h-[650px] lg:flex-1">
               {isLoading && !selectedTrain ? (
                 <div className="w-full h-full flex items-center justify-center bg-slate-900">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -401,7 +401,7 @@ function TrainExplorerContent() {
             </div>
 
             {/* Side Panel */}
-            <div className="w-full lg:w-84 xl:w-96 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-visible lg:overflow-y-auto lg:max-h-[650px]">
+            <aside className="min-w-0 w-full flex-none bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-visible lg:max-h-[650px] lg:w-[min(36vw,28rem)] lg:overflow-y-auto xl:w-96">
               <div className="p-4 space-y-4">
                 {/* Coach Seat Grid & Berth Selection */}
                 {selectedCoach && selectedBlueprint && (
@@ -491,7 +491,7 @@ function TrainExplorerContent() {
                   </div>
                 </div>
               </div>
-            </div>
+            </aside>
           </div>
 
           {/* Platform Coach Locator Section */}

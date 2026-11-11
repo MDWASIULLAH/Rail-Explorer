@@ -7,6 +7,8 @@ import FullTrainView, { type TrainCoach } from './FullTrainView';
 import CoachInterior from './CoachInterior';
 import WalkthroughCamera from './WalkthroughCamera';
 import { COACH_BLUEPRINTS, resolveCoachBlueprint } from '@/data/coach-database';
+import { calculateCoachToCoachDistance } from '@/lib/distance-calculator';
+import type { CoachComposition } from '@/lib/railway-api';
 import { trainAudio } from '@/lib/train-audio';
 import {
   Volume2,
@@ -198,6 +200,28 @@ export default function TrainScene({
   // Local state for 3D distance measurement dropdowns
   const [localFrom, setLocalFrom] = useState<string>(distanceFrom || 'LOCO');
   const [localTo, setLocalTo] = useState<string>(distanceTo || selectedCoachId || 'S1');
+
+  const caliperComposition: CoachComposition = {
+    trainNumber: '',
+    trainName: 'Current rake',
+    rakeType: 'LHB',
+    totalCoaches: coaches.length + 1,
+    coaches: [
+      { position: 0, coachId: 'LOCO', coachType: 'LOCO', coachClass: 'LOCO' },
+      ...coaches.map((coach, index) => ({
+        position: index + 1,
+        coachId: coach.coachId,
+        coachType: coach.coachType,
+        coachClass: coach.coachType,
+      })),
+    ],
+  };
+  const caliperFromIndex = localFrom === 'LOCO' ? 0 : caliperComposition.coaches.findIndex((coach) => coach.coachId === localFrom);
+  const caliperToIndex = caliperComposition.coaches.findIndex((coach) => coach.coachId === localTo);
+  const caliperResult = caliperFromIndex >= 0 && caliperToIndex >= 0
+    ? calculateCoachToCoachDistance(caliperComposition, caliperFromIndex, caliperToIndex)
+    : null;
+  const caliperMeters = caliperResult ? Math.round(caliperResult.distanceMeters) : null;
 
   const isPreviewMotion = !speedIsReported && !isPreviewPaused;
   const sceneIsMoving = speedIsReported ? isMoving && !isPreviewPaused : isPreviewMotion;
@@ -572,8 +596,15 @@ export default function TrainScene({
 
         {/* Mobile Expanded View Drawer Popover */}
         {isMobileControlsOpen && (
-          <div data-view-controls-panel role="dialog" aria-label="3D view controls" className="sm:hidden absolute top-[3.65rem] right-2 z-40 w-[min(320px,calc(100vw-1rem))] max-h-[calc(100%-4.5rem)] overflow-y-auto overscroll-contain bg-slate-950/98 backdrop-blur-xl border border-slate-700 rounded-2xl p-3 shadow-2xl space-y-3 animate-in fade-in slide-in-from-top-1 duration-150 pointer-events-auto">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2">
+          <>
+          <button
+            type="button"
+            aria-label="Close view settings"
+            onClick={() => setIsMobileControlsOpen(false)}
+            className="sm:hidden fixed inset-0 z-[90] bg-slate-950/65 backdrop-blur-[2px]"
+          />
+          <div data-view-controls-panel role="dialog" aria-modal="true" aria-label="3D view controls" className="sm:hidden fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[91] mx-auto w-auto max-w-lg max-h-[min(76svh,calc(100dvh-1.5rem))] overflow-y-auto overscroll-contain bg-slate-950 border border-slate-700 rounded-2xl p-3 shadow-2xl space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-150 pointer-events-auto">
+            <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-950 pb-2">
               <div>
                 <span className="block text-sm font-semibold text-white">View settings</span>
                 <span className="block text-[11px] text-slate-400">Lighting, camera and sound</span>
@@ -664,6 +695,7 @@ export default function TrainScene({
               </button>
             </div>
           </div>
+          </>
         )}
 
         {/* Desktop Full Control Dock (hidden sm:flex) */}
@@ -1101,6 +1133,22 @@ export default function TrainScene({
                   </select>
                 </div>
               </div>
+              {caliperResult && (
+                <div aria-live="polite" className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-700/80 pt-3">
+                  <div className="min-w-0 rounded-lg bg-slate-950/80 px-2 py-2">
+                    <span className="block text-[9px] font-semibold uppercase tracking-wide text-slate-500">Centre distance</span>
+                    <span className="mt-1 block truncate text-sm font-bold tabular-nums text-white">{caliperMeters} m</span>
+                  </div>
+                  <div className="min-w-0 rounded-lg bg-slate-950/80 px-2 py-2">
+                    <span className="block text-[9px] font-semibold uppercase tracking-wide text-slate-500">Apart</span>
+                    <span className="mt-1 block truncate text-sm font-bold text-slate-200">{caliperResult.coachesBetween} coaches</span>
+                  </div>
+                  <div className="min-w-0 rounded-lg bg-slate-950/80 px-2 py-2">
+                    <span className="block text-[9px] font-semibold uppercase tracking-wide text-slate-500">Walk estimate</span>
+                    <span className="mt-1 block truncate text-sm font-bold text-amber-300">{caliperMeters === 0 ? 'Same coach' : `~${Math.max(1, Math.round(caliperResult.distanceMeters / 70))} min`}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -627,30 +627,31 @@ export default function SeatSwapPage() {
         )}
 
         {/* ─── How It Works Bar ─── */}
-        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800">
-          <div className="flex items-center gap-2 mb-3">
-            <Info className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold text-white uppercase tracking-wider">How It Works</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-[11px]">
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
-              <span className="text-slate-300"><strong className="text-white">List your berth</strong> — Enter your coach, berth number, and what you prefer</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
-              <span className="text-slate-300"><strong className="text-white">Browse requests</strong> — Find passengers on your train open to swap</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
-              <span className="text-slate-300"><strong className="text-white">Propose a swap</strong> — Send your berth details to the other passenger</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">4</span>
-              <span className="text-slate-300"><strong className="text-white">Get a digital slip</strong> — Show the TTE to confirm the voluntary exchange</span>
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5" aria-labelledby="swap-steps-heading">
+          <div className="mb-4 flex items-start gap-3">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
+            <div>
+              <h2 id="swap-steps-heading" className="text-sm font-bold uppercase tracking-wide text-white">How a berth exchange works</h2>
+              <p className="mt-1 text-xs text-slate-400">Both passengers must agree. The railway staff confirms any actual berth change.</p>
             </div>
           </div>
-        </div>
+          <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ['List your berth', 'Add your coach, berth number and preferred berth.'],
+              ['Find a match', 'Browse requests for the same train and route.'],
+              ['Send an offer', 'Share the berth you can exchange for theirs.'],
+              ['Confirm with staff', 'Download the exchange summary and show it to the TTE.'],
+            ].map(([title, description], index) => (
+              <li key={title} className="flex min-w-0 gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-xs font-bold tabular-nums text-blue-300">{index + 1}</span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-white">{title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">{description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
 
         {/* ─── Filters & Search Bar ─── */}
         <div className="flex flex-wrap items-center gap-2.5 bg-slate-900 p-3 rounded-2xl border border-slate-800">
