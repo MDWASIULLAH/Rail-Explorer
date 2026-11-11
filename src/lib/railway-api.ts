@@ -21,6 +21,8 @@
  * - GET /v1/coverage                 - Dataset coverage
  */
 
+import { getRailKitPnr, getRailKitTrainInfo, isRailKitConfigured, normalizeRailKitPnr } from './railkit-api.ts';
+
 // ============================================================
 // Types
 // ============================================================
@@ -281,6 +283,48 @@ export function normalizePnrStatus(value: unknown, requestedPnr: string): PnrSta
     bookingFare: typeof raw.bookingFare === 'number' ? raw.bookingFare : null,
     observedAt: typeof raw.observedAt === 'string' ? raw.observedAt : undefined,
     passengers,
+  };
+}
+
+export function normalizeRailKitTrainRoute(value: unknown, requestedTrainNumber: string): TrainRoute | null {
+  const raw = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const trainInfo = raw.trainInfo && typeof raw.trainInfo === 'object'
+    ? raw.trainInfo as Record<string, unknown>
+    : {};
+  const rawRoute = Array.isArray(raw.route) ? raw.route : Array.isArray(raw.stations) ? raw.stations : [];
+  const stations = rawRoute.map((value): RouteStation | null => {
+    if (!value || typeof value !== 'object') return null;
+    const station = value as Record<string, unknown>;
+    const stationCode = String(station.station_code ?? station.stationCode ?? station.code ?? '').trim().toUpperCase();
+    const stationName = String(station.station_name ?? station.stationName ?? station.name ?? '').trim();
+    if (!/^[A-Z0-9]{2,6}$/.test(stationCode) || stationName.length < 2) return null;
+    const distanceValue = Number(station.distance_km ?? station.distanceKm ?? station.distance);
+    const dayValue = Number(station.day ?? station.dayNumber ?? 1);
+    const delayValue = Number(station.delayMinutes ?? station.delay ?? 0);
+    const platform = station.platform;
+    return {
+      stationCode,
+      stationName,
+      scheduledArrival: typeof (station.arrival ?? station.scheduled_arrival ?? station.scheduledArrival) === 'string'
+        ? String(station.arrival ?? station.scheduled_arrival ?? station.scheduledArrival) : null,
+      scheduledDeparture: typeof (station.departure ?? station.scheduled_departure ?? station.scheduledDeparture) === 'string'
+        ? String(station.departure ?? station.scheduled_departure ?? station.scheduledDeparture) : null,
+      actualArrival: typeof station.actual_arrival === 'string' ? station.actual_arrival : null,
+      actualDeparture: typeof station.actual_departure === 'string' ? station.actual_departure : null,
+      delay: Number.isFinite(delayValue) ? delayValue : 0,
+      platform: typeof platform === 'string' || typeof platform === 'number' ? String(platform) : null,
+      distance: Number.isFinite(distanceValue) ? distanceValue : 0,
+      day: Number.isInteger(dayValue) && dayValue > 0 ? dayValue : 1,
+    };
+  }).filter((station): station is RouteStation => station !== null);
+
+  if (stations.length < 2) return null;
+  const trainNumber = String(trainInfo.train_number ?? trainInfo.trainNo ?? raw.trainNumber ?? raw.trainNo ?? requestedTrainNumber);
+  if (trainNumber !== requestedTrainNumber || stations[0].stationCode === stations[stations.length - 1].stationCode) return null;
+  return {
+    trainNumber,
+    trainName: String(trainInfo.train_name ?? trainInfo.trainName ?? raw.trainName ?? ''),
+    stations,
   };
 }
 
@@ -548,6 +592,24 @@ export async function getTrainSchedule(trainNumber: string): Promise<ApiResponse
  * Get station-by-station route with live timing
  */
 export async function getTrainRoute(trainNumber: string): Promise<ApiResponse<TrainRoute>> {
+  if (isRailKitConfigured()) {
+    const cached = cache.get<ApiResponse<TrainRoute>>(`railkit:route:${trainNumber}`);
+    if (cached) return { ...cached, meta: { ...cached.meta, cached: true } };
+    const railKitResult = await getRailKitTrainInfo(trainNumber);
+    const normalized = railKitResult.ok && railKitResult.data
+      ? normalizeRailKitTrainRoute(railKitResult.data, trainNumber)
+      : null;
+    if (normalized) {
+      const result: ApiResponse<TrainRoute> = {
+        status: 'SUCCESS', data: normalized, error: null,
+        meta: {
+          requestId: '', generatedAt: new Date().toISOString(), source: 'RAILKIT',
+        },
+      };
+      cache.set(`railkit:route:${trainNumber}`, result, 3600000);
+      return result;
+    }
+  }
   return apiRequest<TrainRoute>(`/v1/train/${trainNumber}/route`, {
     cacheTtl: 120000, // 2 min
   });
@@ -594,6 +656,20 @@ export async function searchStations(query: string): Promise<ApiResponse<Station
  */
 export async function getPnrStatus(pnr: string): Promise<ApiResponse<PnrStatus>> {
   // PNR data is personal reservation data; do not retain it in the process cache.
+  if (isRailKitConfigured()) {
+    const railKitResult = await getRailKitPnr(pnr);
+    const normalized = railKitResult.ok && railKitResult.data
+      ? normalizeRailKitPnr(railKitResult.data, pnr)
+      : null;
+    if (normalized) {
+      const meta = { requestId: '', generatedAt: new Date().toISOString(), source: 'RAILKIT' };
+      return {
+        status: 'SUCCESS', error: null,
+        data: { ...normalized, providerStatus: 'SUCCESS', meta },
+        meta,
+      };
+    }
+  }
   const result = await apiRequest<Record<string, unknown>>(`/v1/pnr/${pnr}`, {
     cacheTtl: 0,
   });

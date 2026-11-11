@@ -36,6 +36,58 @@ test('PNR provider response maps current Railway Engine fields into the app mode
   });
 });
 
+test('RailKit PNR response maps documented passenger status and berth details', () => {
+  const { normalizeRailKitPnr } = require('../src/lib/railkit-api.ts');
+  const normalized = normalizeRailKitPnr({
+    pnr: '1234567890',
+    train: { number: '18403', name: 'BBS DHN EXPRESS' },
+    journey: {
+      date: '2026-11-12',
+      source: { code: 'BBS', name: 'Bhubaneswar' },
+      destination: { code: 'DHN', name: 'Dhanbad Jn' },
+    },
+    chart: { status: 'Chart Not Prepared' },
+    passengers: [{
+      booking: { status: 'WL', details: 'WL/12' },
+      current: { status: 'CNF', details: 'CNF/S4/43' },
+    }],
+  }, '1234567890');
+  assert.ok(normalized);
+  assert.strictEqual(normalized.trainNumber, '18403');
+  assert.strictEqual(normalized.journeyDate, '2026-11-12');
+  assert.strictEqual(normalized.passengers[0].bookingStatus, 'WL');
+  assert.strictEqual(normalized.passengers[0].currentStatus, 'CNF');
+  assert.strictEqual(normalized.passengers[0].coachId, 'S4');
+  assert.strictEqual(normalized.passengers[0].berthNumber, 43);
+});
+
+test('RailKit PNR normalization rejects mismatched PNRs and unverified train data', () => {
+  const { normalizeRailKitPnr } = require('../src/lib/railkit-api.ts');
+  const base = {
+    pnr: '9999999999',
+    train: { number: '18403', name: 'BBS DHN EXPRESS' },
+    journey: { source: { code: 'BBS', name: 'Bhubaneswar' }, destination: { code: 'DHN', name: 'Dhanbad' } },
+  };
+  assert.strictEqual(normalizeRailKitPnr(base, '1234567890'), null);
+  assert.strictEqual(normalizeRailKitPnr({ ...base, pnr: '1234567890', train: { number: 'x' } }, '1234567890'), null);
+});
+
+test('RailKit train info maps a validated route without fabricated coordinates', () => {
+  const { normalizeRailKitTrainRoute } = require('../src/lib/railway-api.ts');
+  const route = normalizeRailKitTrainRoute({
+    trainInfo: { train_number: '18403', train_name: 'BBS DHN EXPRESS' },
+    route: [
+      { station_code: 'BBS', station_name: 'Bhubaneswar', departure: '21:00', distance_km: 0, day: 1 },
+      { station_code: 'DHN', station_name: 'Dhanbad Jn', arrival: '09:30', distance_km: 650, day: 2 },
+    ],
+  }, '18403');
+  assert.ok(route);
+  assert.strictEqual(route.stations.length, 2);
+  assert.strictEqual(route.stations[1].distance, 650);
+  assert.strictEqual(route.stations[1].latitude, undefined);
+  assert.strictEqual(normalizeRailKitTrainRoute({ route: [{ station_code: 'BBS', station_name: 'Bhubaneswar' }] }, '18403'), null);
+});
+
 test('Journey date resolution uses India calendar dates and distinguishes auto mode', () => {
   const { getIndiaDateString, resolveJourneyDate } = require('../src/app/api/_lib/helpers.ts');
   // This UTC instant is already the next calendar day in India.
