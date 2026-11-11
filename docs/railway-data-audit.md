@@ -44,8 +44,9 @@ Set `RAILKIT_API_KEY` as a server-only Vercel environment variable for Productio
 
 ## Verification
 
-- `npm test`: 54 passing.
+- `npm test`: 55 passing.
 - `npx tsc --noEmit`: passed.
 - Targeted ESLint for `src/lib/railkit-api.ts` and `src/lib/railway-api.ts`: passed.
 - `npm run build`: passed with Next.js 16.4.5.
 - Production endpoints checked without passenger data: provider health, coverage, train search, and routes for 04092 and 18403.
+- Full `npm run lint` still fails on repository-wide existing issues (75 errors and 2,305 warnings), including unsafe `any` types and CommonJS `require()` in the JavaScript test files. The two changed runtime files pass targeted ESLint.
