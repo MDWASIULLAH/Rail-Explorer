@@ -216,6 +216,9 @@ function providerErrorMessage(error: unknown): string {
     const record = error as Record<string, unknown>;
     const message = typeof record.message === 'string' ? record.message : '';
     const code = typeof record.code === 'string' ? record.code : '';
+    if (/RATE_LIMITED|RATE_LIMIT/i.test(code) || /rate limit(?:ed)?/i.test(message)) {
+      return 'The railway data provider is temporarily limiting requests. Please try again later.';
+    }
     if (message && code) return `${message} (${code})`;
     if (message) return message;
     if (code) return code;
