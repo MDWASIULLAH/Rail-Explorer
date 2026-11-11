@@ -65,7 +65,7 @@ function PassingScenery({ paused }: { paused: boolean }) {
   return (
     <group ref={scenery}>
       {[-1, 1].flatMap((side) => trees.map((tree, index) => (
-        <group key={`${side}-${index}`} position={[side * (4.3 + (index % 2) * 0.45), 0, tree.z]}>
+        <group key={`${side}-${index}`} position={[side * (12.5 + (index % 2) * 0.45), 0, tree.z]}>
           <mesh position={[0, tree.height * 0.42, 0]}>
             <cylinderGeometry args={[0.055, 0.09, tree.height * 0.84, 6]} />
             <meshStandardMaterial color="#594b3d" roughness={1} />
@@ -89,7 +89,7 @@ function CoachInterior({ paused }: { paused: boolean }) {
   useFrame(({ clock }) => {
     if (cameraRig.current) {
       const t = clock.getElapsedTime() % 26;
-      cameraRig.current.visible = paused || t < 7.2 || t > 25.2;
+      cameraRig.current.visible = !paused && (t < 7.2 || t > 25.2);
       if (paused) return;
       cameraRig.current.position.x = Math.sin(t * 0.35) * 0.025;
       cameraRig.current.position.y = Math.sin(t * 0.7) * 0.018;
@@ -98,7 +98,7 @@ function CoachInterior({ paused }: { paused: boolean }) {
   });
 
   return (
-    <group ref={cameraRig}>
+    <group ref={cameraRig} visible={!paused}>
       <ambientLight intensity={1.15} color="#c5ddff" />
       <directionalLight position={[0, 4, 1]} intensity={1.25} color="#e7f2ff" />
       <pointLight position={[0, 2.8, -6]} intensity={4} distance={16} color="#55b8ff" />
@@ -195,18 +195,19 @@ function MovingRake({ paused }: { paused: boolean }) {
           <group key={index} position={[0, 0, z]}>
             <mesh position={[0, 1.45, 0]}>
               <boxGeometry args={isEngine ? [2.3, 2.55, 4.1] : [2.2, 2.3, 4]} />
-              <meshStandardMaterial color={isEngine ? '#123c66' : '#183454'} metalness={0.52} roughness={0.34} />
+              <meshStandardMaterial color={isEngine ? '#123c66' : '#b8c9d7'} metalness={0.32} roughness={0.48} />
             </mesh>
             <mesh position={[0, 2.77, 0]}>
               <boxGeometry args={isEngine ? [2.12, 0.14, 3.8] : [2.06, 0.13, 3.78]} />
-              <meshStandardMaterial color="#6da5c8" metalness={0.65} roughness={0.3} />
+              <meshStandardMaterial color={isEngine ? '#6da5c8' : '#71889b'} metalness={0.48} roughness={0.38} />
             </mesh>
+            {!isEngine && <mesh position={[1.115, 0.72, 0]}><boxGeometry args={[0.035, 0.16, 3.78]} /><meshStandardMaterial color="#1977ad" metalness={0.2} roughness={0.5} /></mesh>}
             {Array.from({ length: isEngine ? 2 : 5 }, (_, windowIndex) => {
               const zOffset = isEngine ? (windowIndex === 0 ? -0.55 : 0.55) : -1.4 + windowIndex * 0.7;
               return (
                 <mesh key={windowIndex} position={[1.115, isEngine ? 1.7 : 1.72, zOffset]}>
                   <boxGeometry args={[0.035, 0.75, isEngine ? 0.46 : 0.5]} />
-                  <meshBasicMaterial color="#6fd8ff" transparent opacity={0.8} />
+                  <meshBasicMaterial color="#082d49" transparent opacity={0.98} />
                 </mesh>
               );
             })}
@@ -243,16 +244,16 @@ function MovingRake({ paused }: { paused: boolean }) {
         </mesh>
       ))}
       {/* Generic Indian station platform and canopy, kept deliberately unlabelled. */}
-      <mesh position={[8.7, -0.2, -10]}>
+      <mesh position={[-4, -0.2, -10]}>
         <boxGeometry args={[2.5, 0.32, 74]} />
         <meshStandardMaterial color="#4b5563" roughness={0.9} />
       </mesh>
-      <mesh position={[9.6, 4.65, -10]}>
+      <mesh position={[-4.9, 4.65, -10]}>
         <boxGeometry args={[5.2, 0.18, 44]} />
         <meshStandardMaterial color="#26374b" metalness={0.22} roughness={0.72} />
       </mesh>
       {[-29, -20, -11, -2, 7].map((z) => (
-        <group key={`platform-lamp-${z}`} position={[9.45, 0, z]}>
+        <group key={`platform-lamp-${z}`} position={[-4.8, 0, z]}>
           <mesh position={[0, 2.25, 0]}><boxGeometry args={[0.12, 4.5, 0.12]} /><meshStandardMaterial color="#64748b" metalness={0.5} /></mesh>
           <mesh position={[0, 4.4, 0]}><boxGeometry args={[1.05, 0.08, 0.24]} /><meshBasicMaterial color="#c5e7ff" /></mesh>
           <pointLight position={[-0.25, 4.15, 0]} intensity={0.65} distance={10} color="#dceeff" />
@@ -264,16 +265,20 @@ function MovingRake({ paused }: { paused: boolean }) {
 
 function CameraJourney({ reducedMotion }: { reducedMotion: boolean }) {
   useFrame(({ camera, clock, size }) => {
-    if (reducedMotion) return;
+    if (reducedMotion) {
+      camera.position.set(9.5, 2.7, -2);
+      camera.lookAt(0, -1.2, -10);
+      return;
+    }
     const t = clock.getElapsedTime() % 26;
     const mix = (start: number, end: number, value: number) => THREE.MathUtils.smoothstep(value, start, end);
     const insideStart = new THREE.Vector3(0, 1.62, 4.25);
     const windowExit = new THREE.Vector3(2.65, 2.2, -1.4);
-    const outsideWide = new THREE.Vector3(6.2, 3.8, 2.4);
-    const outsideTrack = new THREE.Vector3(7.2, 3.7, -9);
+    const outsideWide = new THREE.Vector3(9.5, 2.7, -2);
+    const outsideTrack = new THREE.Vector3(12, 3, -8);
     const lookInside = new THREE.Vector3(0, 1.35, -12);
     const lookWindow = new THREE.Vector3(0, 1.65, -1.4);
-    const lookRake = new THREE.Vector3(0, 1.2, -15);
+    const lookRake = new THREE.Vector3(0, -1.2, -18);
     const phaseTwo = mix(7.2, 10.2, t);
     const phaseThree = mix(10.2, 18, t);
     const phaseReturn = mix(20, 25.5, t);
@@ -294,7 +299,7 @@ function CameraJourney({ reducedMotion }: { reducedMotion: boolean }) {
       cameraLook.copy(lookInside).lerp(lookRake, outsideBlend);
     }
     const outsideAmount = THREE.MathUtils.smoothstep(t, 7.2, 10.2) * (1 - THREE.MathUtils.smoothstep(t, 20, 25.5));
-    const portraitDistance = size.width / Math.max(size.height, 1) < 0.8 ? 1.45 : 1;
+    const portraitDistance = size.width / Math.max(size.height, 1) < 0.8 ? 1.15 : 1;
     cameraPosition.x *= THREE.MathUtils.lerp(1, portraitDistance, outsideAmount);
     cameraPosition.z *= THREE.MathUtils.lerp(1, portraitDistance, outsideAmount);
     camera.position.copy(cameraPosition);
@@ -319,8 +324,11 @@ export default function HeroTrainBackground() {
       <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" />
       <Canvas
         className="absolute inset-0 !h-full !w-full"
-        camera={{ position: [0, 1.62, 4.25], fov: 62, near: 0.1, far: 60 }}
-        onCreated={({ camera }) => camera.lookAt(0, 1.35, -12)}
+        camera={{ position: reducedMotion ? [9.5, 2.7, -2] : [0, 1.62, 4.25], fov: 62, near: 0.1, far: 60 }}
+        onCreated={({ camera }) => {
+          if (reducedMotion) camera.lookAt(0, -1.2, -10);
+          else camera.lookAt(0, 1.35, -12);
+        }}
         dpr={[1, 1.25]}
         gl={{ alpha: true, antialias: false, powerPreference: 'low-power' }}
         frameloop={reducedMotion ? 'never' : 'always'}
@@ -332,7 +340,7 @@ export default function HeroTrainBackground() {
         <CoachInterior paused={reducedMotion} />
         <MovingRake paused={reducedMotion} />
       </Canvas>
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/65 to-slate-950/95" />
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/38 to-slate-950/88" />
       <div
         className="absolute inset-0 opacity-[0.035]"
         style={{
