@@ -191,8 +191,17 @@ test('4. Berth Finder & Neighbor Analysis', async (t) => {
     assert.strictEqual(info.bayNumber, 1);
     assert.strictEqual(info.type, 'LB');
     assert.strictEqual(info.position, 'LEFT');
+    assert.strictEqual(info.deck, 0);
     assert.ok(info.distanceToNearestDoor > 0);
     assert.strictEqual(info.neighbors.length, 7); // 7 neighbors in the bay
+  });
+
+  await t.test('Formats the sleeper centre middle berth as the middle deck', () => {
+    const info = formatBerthInfo(sleeperBp, 2);
+    assert.ok(info);
+    assert.strictEqual(info.type, 'MB');
+    assert.strictEqual(info.position, 'LEFT');
+    assert.strictEqual(info.deck, 1);
   });
 });
 
@@ -279,8 +288,13 @@ test('Digital seat-swap slip builds a downloadable PDF with explicit consent dis
   const pdf = buildDigitalSlipPdf({
     trainNumber: '18403',
     trainName: 'BBS DHN EXPRESS',
+    offerId: 'swap-example-18403',
+    fromStation: 'Bhubaneswar (BBS)',
+    toStation: 'Dhanbad Jn (DHN)',
     journeyDate: '2026-11-12',
     acceptedAt: '2026-11-11T12:00:00.000Z',
+    expiresAt: '2026-11-12T12:00:00.000Z',
+    reason: 'Family split in coaches',
     passenger1Name: 'Owner (A)',
     passenger1From: 'S4 #71',
     passenger1To: 'S4 #43',
@@ -291,9 +305,14 @@ test('Digital seat-swap slip builds a downloadable PDF with explicit consent dis
 
   assert.ok(pdf.startsWith('%PDF-1.4'));
   assert.match(pdf, /xref\n0 6\n/);
-  assert.match(pdf, /18403 - BBS DHN EXPRESS/);
-  assert.match(pdf, /S4 #71 -> S4 #43/);
-  assert.match(pdf, /Not a railway ticket or official railway authorization\./);
+  assert.match(pdf, /18403  BBS DHN EXPRESS/);
+  assert.match(pdf, /S4 #71/);
+  assert.match(pdf, /S4 #43/);
+  assert.match(pdf, /Listing expires:/);
+  assert.match(pdf, /Route: Bhubaneswar/);
+  assert.match(pdf, /Dhanbad Jn/);
+  assert.match(pdf, /NOT A RAILWAY TICKET/);
+  assert.match(pdf, /PLEASE CONFIRM WITH THE ONBOARD TTE/);
   assert.match(pdf, /startxref\n\d+\n%%EOF$/);
 });
 

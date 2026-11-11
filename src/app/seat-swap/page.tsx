@@ -103,13 +103,44 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function SwapExpiryBadge({ expiresAt }: { expiresAt: string }) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+  useEffect(() => {
+    const update = () => setRemaining(Math.max(0, new Date(expiresAt).getTime() - Date.now()));
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [expiresAt]);
+
+  const totalSeconds = Math.floor((remaining || 0) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const label = remaining === null
+    ? 'Checking…'
+    : remaining > 0
+    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    : 'Expired';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono font-semibold ${remaining === null || remaining > 0 ? 'border-amber-500/25 bg-amber-500/10 text-amber-300' : 'border-rose-500/30 bg-rose-500/10 text-rose-300'}`}
+      title={`This listing is automatically removed at ${new Date(expiresAt).toLocaleString()}`}
+      aria-label={remaining === null ? 'Checking listing expiry' : remaining > 0 ? `Listing expires in ${hours} hours, ${minutes} minutes, ${seconds} seconds` : 'Listing expired'}
+    >
+      <Clock className="h-3 w-3" />
+      {remaining !== null && remaining > 0 ? `Expires ${label}` : label}
+    </span>
+  );
+}
+
 function getBerthClass(type: string): string {
   switch (type) {
     case 'LB': return 'text-emerald-400';
-    case 'MB': return 'text-amber-400';
-    case 'UB': return 'text-rose-400';
-    case 'SL': return 'text-blue-400';
-    case 'SU': return 'text-purple-400';
+    case 'MB': return 'text-blue-400';
+    case 'UB': return 'text-purple-400';
+    case 'SL': return 'text-amber-400';
+    case 'SU': return 'text-orange-400';
     default: return 'text-slate-300';
   }
 }
@@ -745,6 +776,7 @@ export default function SeatSwapPage() {
                           {offer.status === 'AVAILABLE' && <Clock className="w-2.5 h-2.5 inline mr-0.5" />}
                           {offer.status === 'SWAP_ACCEPTED' ? '✓ Matched' : offer.status === 'REQUEST_PENDING' ? '⏳ Pending' : timeAgo(offer.createdAt)}
                         </span>
+                        {offer.expiresAt && <SwapExpiryBadge expiresAt={offer.expiresAt} />}
                       </div>
                     </div>
 

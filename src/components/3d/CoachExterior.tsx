@@ -216,6 +216,25 @@ export default function CoachExterior({
             <planeGeometry args={[0.95, 1.95]} />
             <meshStandardMaterial color="#334155" roughness={0.4} metalness={0.5} />
           </mesh>
+          {[-1, 1].map((side) => (
+            <group key={`door-accessories-${side}`} position={[dx, 0, side * (coachWidth / 2 + 0.08)]}>
+              {/* Grab rail beside the vestibule door and two exterior foot steps. */}
+              <mesh position={[0.39, -0.1, 0]}>
+                <cylinderGeometry args={[0.025, 0.025, 1.35, 10]} />
+                <meshStandardMaterial color="#dbeafe" metalness={0.82} roughness={0.24} />
+              </mesh>
+              {[-1.05, -0.82].map((stepY, stepIndex) => (
+                <mesh key={`step-${stepIndex}`} position={[0, stepY, side * 0.12]} castShadow>
+                  <boxGeometry args={[0.78, 0.07, 0.28]} />
+                  <meshStandardMaterial color="#475569" metalness={0.75} roughness={0.42} />
+                </mesh>
+              ))}
+              <mesh position={[0, -0.58, side * 0.12]}>
+                <boxGeometry args={[0.8, 0.035, 0.025]} />
+                <meshStandardMaterial color="#fbbf24" metalness={0.45} roughness={0.4} />
+              </mesh>
+            </group>
+          ))}
         </group>
       ))}
 
@@ -409,6 +428,27 @@ export default function CoachExterior({
         anchorX="center"
         anchorY="middle"
         fontWeight="bold"
+      >
+        {coachType}
+      </Text>
+      <Text
+        position={[0, -0.78, coachWidth / 2 + 0.055]}
+        fontSize={0.19}
+        color="#e2e8f0"
+        anchorX="center"
+        anchorY="middle"
+        fontWeight="bold"
+      >
+        {`${coachId}  |  ${category}`}
+      </Text>
+      <Text
+        position={[0, 0.85, -coachWidth / 2 - 0.05]}
+        fontSize={0.42}
+        color="#f8fafc"
+        anchorX="center"
+        anchorY="middle"
+        fontWeight="bold"
+        rotation={[0, Math.PI, 0]}
       >
         {coachType}
       </Text>

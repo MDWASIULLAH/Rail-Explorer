@@ -27,6 +27,7 @@ export interface SwapOffer {
   passengerGender?: 'M' | 'F' | 'O';
   status: 'AVAILABLE' | 'REQUEST_PENDING' | 'SWAP_ACCEPTED';
   createdAt: string;
+  expiresAt?: string;
   contactMasked?: string;
   isCurrentUser?: boolean;
   userEmail?: string;

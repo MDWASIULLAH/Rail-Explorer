@@ -8,10 +8,11 @@ import type { BerthDimensions, BerthPosition, BerthType } from '@/data/coach-dat
 
 const BERTH_COLORS: Record<BerthType, string> = {
   LB: '#22c55e',
-  MB: '#eab308',
-  UB: '#f97316',
-  SL: '#3b82f6',
-  SU: '#06b6d4',
+  // Keep central middle berths visually distinct from the side berths.
+  MB: '#3b82f6',
+  UB: '#a855f7',
+  SL: '#f59e0b',
+  SU: '#f97316',
   SEAT: '#0f766e',
   CABIN_LB: '#22c55e',
   CABIN_UB: '#f97316',

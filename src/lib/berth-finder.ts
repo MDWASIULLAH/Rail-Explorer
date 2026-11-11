@@ -71,10 +71,10 @@ export function getBayBerths(
 export function getBerthColor(berthType: BerthType): string {
   const colors: Record<BerthType, string> = {
     LB: '#22c55e',
-    MB: '#eab308',
-    UB: '#f97316',
-    SL: '#3b82f6',
-    SU: '#06b6d4',
+    MB: '#3b82f6',
+    UB: '#a855f7',
+    SL: '#f59e0b',
+    SU: '#f97316',
     SEAT: '#8b5cf6',
     CABIN_LB: '#22c55e',
     CABIN_UB: '#f97316',
@@ -96,6 +96,7 @@ export function formatBerthInfo(
   label: string;
   description: string;
   position: string;
+  deck: number;
   side: string;
   bayNumber: number;
   neighbors: Array<{ number: number; type: string; description: string }>;
@@ -120,22 +121,13 @@ export function formatBerthInfo(
     if (dist < nearestDoorDist) nearestDoorDist = dist;
   }
 
-  const sideLabel =
-    berth.side === 'LEFT'
-      ? 'Left side'
-      : berth.side === 'RIGHT'
-        ? 'Right side'
-        : 'Side section';
-
-  const deckLabel =
-    berth.deck === 0 ? 'Ground level' : berth.deck === 1 ? 'Mid level' : 'Top level';
-
   return {
     berthNumber: berth.berthNumber,
     type: berth.berthType,
     label: `Berth ${berthNumber}`,
     description: getBerthDescription(berth.berthType),
     position: berth.side,
+    deck: berth.deck,
     side: berth.side,
     bayNumber: berth.bayNumber,
     neighbors,

@@ -13,13 +13,14 @@ import LiveStatusFeed from '@/components/live-status/LiveStatusFeed';
 import { COACH_BLUEPRINTS, resolveCoachBlueprint } from '@/data/coach-database';
 import { getOrSynthesizeTrain } from '@/data/train-directory';
 import { formatBerthInfo } from '@/lib/berth-finder';
+import type { BerthType } from '@/data/coach-database';
 import { analyzeLiveJourney } from '@/lib/live-tracking-engine';
 import StarTrainButton from '@/components/ui/StarTrainButton';
 import HornButton from '@/components/ui/HornButton';
 import { useAuth } from '@/context/AuthContext';
 import {
   Train, Loader2, AlertCircle, MapPin, ArrowRight, Clock, Eye,
-  Maximize2, ChevronRight, Navigation, Ruler, Activity, CheckCircle2,
+  Navigation,
 } from 'lucide-react';
 
 // Dynamic import of 3D scene (no SSR)
@@ -34,25 +35,6 @@ const TrainScene = dynamic(() => import('@/components/3d/TrainScene'), {
     </div>
   ),
 });
-
-// Default composition when API doesn't provide one
-const DEFAULT_COMPOSITION = [
-  { coachId: 'EOG', coachType: 'EOG', position: 1 },
-  { coachId: 'GS1', coachType: 'GS', position: 2 },
-  { coachId: 'S1', coachType: 'SL', position: 3 },
-  { coachId: 'S2', coachType: 'SL', position: 4 },
-  { coachId: 'S3', coachType: 'SL', position: 5 },
-  { coachId: 'S4', coachType: 'SL', position: 6 },
-  { coachId: 'B1', coachType: '3A', position: 7 },
-  { coachId: 'B2', coachType: '3A', position: 8 },
-  { coachId: 'A1', coachType: '2A', position: 9 },
-  { coachId: 'PC', coachType: 'PC', position: 10 },
-  { coachId: 'S5', coachType: 'SL', position: 11 },
-  { coachId: 'S6', coachType: 'SL', position: 12 },
-  { coachId: 'SLR', coachType: 'SLR', position: 13 },
-];
-
-interface PageProps {}
 
 function TrainExplorerContent() {
   const params = useParams();
@@ -110,7 +92,7 @@ function TrainExplorerContent() {
     () => analyzeLiveJourney(
       trainNumber,
       activeTrain.trainName,
-      (activeTrain.schedule || verifiedFallback) as any,
+      activeTrain.schedule || verifiedFallback,
       trainStatus,
       trainStatus?.journeyDate,
     ),
@@ -435,11 +417,11 @@ function TrainExplorerContent() {
                 {berthInfo && selectedBerth && (
                   <BerthInfoPanel
                     berthNumber={selectedBerth.berthNumber}
-                    berthType={selectedBerth.berthType as any}
+                    berthType={selectedBerth.berthType as BerthType}
                     coachId={selectedBerth.coachId}
                     bayNumber={berthInfo.bayNumber}
                     side={berthInfo.position}
-                    deck={0}
+                    deck={berthInfo.deck}
                     distanceToDoor={berthInfo.distanceToNearestDoor}
                     neighbors={berthInfo.neighbors}
                     onClose={() => setViewMode('coach-interior')}

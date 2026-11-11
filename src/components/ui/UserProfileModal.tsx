@@ -40,8 +40,13 @@ function makeSlipData(offer: SwapOffer, proposal: SwapProposal, viewerIsOwner: b
   return {
     trainNumber: offer.trainNumber,
     trainName: offer.trainName,
+    offerId: offer.id,
+    fromStation: offer.fromStation,
+    toStation: offer.toStation,
     journeyDate: offer.journeyDate,
     acceptedAt: offer.acceptedAt,
+    expiresAt: offer.expiresAt,
+    reason: offer.reasonDescription,
     passenger1Name: viewerIsOwner ? offer.passengerName : proposal.proposerName,
     passenger1From: viewerIsOwner ? ownerBerth : proposerBerth,
     passenger1To: viewerIsOwner ? proposerBerth : ownerBerth,
@@ -757,6 +762,10 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
               <div className="flex justify-between border-b border-slate-800 pb-2">
                 <span className="text-slate-400">Journey Date</span>
                 <span className="text-amber-300">{selectedSlipData.journeyDate || 'Today'}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-800 pb-2">
+                <span className="text-slate-400">Listing expires</span>
+                <span className="text-amber-300">{selectedSlipData.expiresAt ? new Date(selectedSlipData.expiresAt).toLocaleString('en-IN') : '24 hours after listing'}</span>
               </div>
               <div className="space-y-1.5 pt-1">
                 <div className="flex justify-between items-center">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { CoachBlueprint, BerthType } from '@/data/coach-database';
+import type { CoachBlueprint } from '@/data/coach-database';
 
 interface CoachSeatGridProps {
   blueprint: CoachBlueprint;
@@ -111,6 +111,9 @@ export default function CoachSeatGrid({
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-sm bg-amber-500 inline-block" /> Side Lower (SL)
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-sm bg-orange-500 inline-block" /> Side Upper (SU)
         </span>
       </div>
     </div>
