@@ -6,7 +6,7 @@
  * ConfirmTkt, Where Is My Train, and RailRadar.
  */
 
-import { getStationCoordinates } from '../data/station-coordinates.ts';
+import { getKnownStationCoordinates, getStationCoordinates } from '../data/station-coordinates.ts';
 import type { TrainSchedule, TrainStatus, ScheduleStation } from './railway-api';
 
 export type StationState = 'COMPLETED' | 'CURRENT' | 'UPCOMING';
@@ -268,7 +268,11 @@ export function analyzeLiveJourney(
     : -1;
   let currentStationOnReportedStretch = reportedCurrentIndex === currentIndex || reportedCurrentIndex === currentIndex + 1;
   if (reportedCurrentIndex < 0 && status?.currentStation?.code) {
-    const currentCoords = getStationCoordinates(status.currentStation.code);
+    const currentCoords = getKnownStationCoordinates(status.currentStation.code);
+    // Unknown station codes get synthetic map coordinates for visualization. Those coordinates
+    // must never be used to validate live telemetry because they can place a station on any route.
+    currentStationOnReportedStretch = false;
+    if (currentCoords) {
     let closestGap = Number.POSITIVE_INFINITY;
     let projectedDistance = 0;
     for (let i = 0; i < stations.length - 1; i += 1) {
@@ -289,8 +293,11 @@ export function analyzeLiveJourney(
     }
     const projectedPercent = totalDistanceKm > 0 ? (projectedDistance / totalDistanceKm) * 100 : 0;
     const reportedPercent = status?.routeProgress?.percent;
-    currentStationOnReportedStretch = closestGap < 0.45 &&
-      (typeof reportedPercent !== 'number' || Math.abs(projectedPercent - reportedPercent) < 20);
+      const lowerBound = Math.max(0, prevStation.distance - 20);
+      const upperBound = Math.min(totalDistanceKm, nextStation.distance + 20);
+      currentStationOnReportedStretch = closestGap < 0.45 && projectedDistance >= lowerBound && projectedDistance <= upperBound &&
+        (typeof reportedPercent !== 'number' || Math.abs(projectedPercent - reportedPercent) < 20);
+    }
   }
   const alignedCurrentStation = currentStationOnReportedStretch ? status?.currentStation : undefined;
 

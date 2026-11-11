@@ -185,3 +185,9 @@ export function getStationCoordinates(stationCode: string): [number, number] {
   return [parseFloat(lat.toFixed(4)), parseFloat(lng.toFixed(4))];
 }
 
+/** Return verified coordinates only; never use synthetic map coordinates for live-position validation. */
+export function getKnownStationCoordinates(stationCode: string): [number, number] | null {
+  const station = STATION_COORDINATES[stationCode.toUpperCase().trim()];
+  return station ? [station.lat, station.lng] : null;
+}
+

@@ -136,6 +136,26 @@ test('Live Tracking Engine: Status & Timeline Calculations', async (t) => {
     assert.strictEqual(result.position.currentStationCode, null);
   });
 
+  await t.test('Rejects unverified current station coordinates even when no progress is reported', () => {
+    const schedule = {
+      stations: [
+        { stationCode: 'HWH', stationName: 'Howrah Jn', arrivalTime: null, departureTime: '16:50', haltMinutes: 0, distance: 0, day: 1 },
+        { stationCode: 'CNB', stationName: 'Kanpur Central', arrivalTime: '04:40', departureTime: '04:45', haltMinutes: 5, distance: 1011, day: 2 },
+        { stationCode: 'NDLS', stationName: 'New Delhi', arrivalTime: '10:05', departureTime: null, haltMinutes: 0, distance: 1451, day: 2 },
+      ],
+    };
+    const inconsistent = {
+      status: 'RUNNING', previousStation: { code: 'CNB', name: 'Kanpur Central' },
+      nextStation: { code: 'NDLS', name: 'New Delhi' }, currentStation: { code: 'ANVR', name: 'Anand Vihar' },
+      speedKmph: null,
+    };
+    const result = analyzeLiveJourney('12301', 'New Delhi Rajdhani Express', schedule, inconsistent, 'Today');
+    assert.strictEqual(result.position.previousStationCode, 'CNB');
+    assert.strictEqual(result.position.nextStationCode, 'NDLS');
+    assert.strictEqual(result.position.currentStationCode, null);
+    assert.ok(!result.position.currentLocationText.includes('Anand Vihar'));
+  });
+
   await t.test('Unknown trains produce no estimated route or movement', () => {
     const result = analyzeLiveJourney('15001', 'Train 15001', { stations: [] }, null, 'Today');
     assert.strictEqual(result.totalStops, 0);
