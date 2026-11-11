@@ -26,7 +26,7 @@ export async function getNtesTrainBundle(
     const response = await fetch(endpoint, {
       headers: { Accept: 'application/json' },
       cache: 'no-store',
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return null;
     const body = await response.json() as { success?: boolean; data?: NtesBundle };

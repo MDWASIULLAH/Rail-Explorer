@@ -13,9 +13,11 @@ from ntes import NTESClient
 
 
 _cache = {}
+_failure_cache = {}
 _requests = {}
 _lock = threading.Lock()
 _CACHE_SECONDS = 30
+_FAILURE_CACHE_SECONDS = 15
 _RATE_WINDOW_SECONDS = 60
 _RATE_LIMIT = 24
 
@@ -263,9 +265,12 @@ class handler(BaseHTTPRequestHandler):
         if cached and now - cached[0] < _CACHE_SECONDS:
             _json(self, 200, {"success": True, "data": cached[1]}, _CACHE_SECONDS)
             return
+        if now - _failure_cache.get(cache_key, 0) < _FAILURE_CACHE_SECONDS:
+            _json(self, 503, {"success": False, "error": "NTES is temporarily unavailable."})
+            return
 
         try:
-            payload = NTESClient(timeout=8, retries=0).live_status(train_number, journey_date.strftime("%d-%b-%Y"))
+            payload = NTESClient(timeout=2.5, retries=0).live_status(train_number, journey_date.strftime("%d-%b-%Y"))
             checked_at = datetime.now(timezone.utc).isoformat()
             normalized = normalize_ntes_response(payload, train_number, journey_date, checked_at)
             if not normalized:
@@ -274,6 +279,7 @@ class handler(BaseHTTPRequestHandler):
             _cache[cache_key] = (clock.time(), normalized)
             _json(self, 200, {"success": True, "data": normalized}, _CACHE_SECONDS)
         except Exception:
+            _failure_cache[cache_key] = clock.time()
             _json(self, 503, {"success": False, "error": "NTES is temporarily unavailable."})
 
     def log_message(self, _format, *args):
