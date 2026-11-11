@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { applyOAuthStateCookie, createOAuthState } from '@/lib/auth-session';
 
 export async function GET(request: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -16,9 +17,7 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${baseOrigin}/api/auth/callback/google`;
 
   // Encode state with returnTo
-  const statePayload = Buffer.from(
-    JSON.stringify({ returnTo, ts: Date.now() })
-  ).toString('base64url');
+  const oauthState = createOAuthState(returnTo);
 
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', clientId);
@@ -27,7 +26,9 @@ export async function GET(request: NextRequest) {
   googleAuthUrl.searchParams.set('scope', 'openid email profile');
   googleAuthUrl.searchParams.set('access_type', 'offline');
   googleAuthUrl.searchParams.set('prompt', 'select_account');
-  googleAuthUrl.searchParams.set('state', statePayload);
+  googleAuthUrl.searchParams.set('state', oauthState.state);
 
-  return NextResponse.redirect(googleAuthUrl.toString());
+  const response = NextResponse.redirect(googleAuthUrl.toString());
+  applyOAuthStateCookie(response, 'google', oauthState.cookieValue);
+  return response;
 }

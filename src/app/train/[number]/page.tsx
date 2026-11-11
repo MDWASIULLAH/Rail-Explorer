@@ -398,13 +398,13 @@ function TrainExplorerContent() {
                     setDistanceFrom(from);
                     setDistanceTo(to);
                   }}
-                  initialIsMoving={true}
-                  initialSpeedKmph={analyzedPosition.speedKmph && analyzedPosition.speedKmph > 0 ? analyzedPosition.speedKmph : 88}
-                  trainStatusText={analyzedJourney.statusConfidence === 'ESTIMATED' ? 'TIMETABLE ESTIMATE' : trainStatus?.status || 'RUNNING ON TIME'}
+                  initialIsMoving={analyzedPosition.isMoving}
+                  initialSpeedKmph={analyzedPosition.speedKmph && analyzedPosition.speedKmph > 0 ? analyzedPosition.speedKmph : 0}
+                  trainStatusText={analyzedJourney.statusConfidence === 'ESTIMATED' ? 'TIMETABLE ESTIMATE' : trainStatus?.status || 'LIVE DATA UNAVAILABLE'}
                   stationName={analyzedPosition.currentStationName || analyzedPosition.previousStationName || trainStatus?.origin?.name || activeTrain.origin.name}
                   nextStationName={analyzedPosition.nextStationName || activeTrain.destination.name}
-                  distanceToNextKm={analyzedPosition.distanceToNextKm || 10}
-                  isAtStation={false}
+                  distanceToNextKm={analyzedPosition.distanceToNextKm}
+                  isAtStation={analyzedPosition.isAtStation}
                   showStationEnvironment={false}
                   speedIsReported={analyzedJourney.statusConfidence !== 'ESTIMATED' && trainStatus?.speedKmph != null}
                 />

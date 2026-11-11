@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clearOAuthStateCookie, consumeOAuthState, signProviderSession } from '@/lib/auth-session';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -6,17 +7,9 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const state = searchParams.get('state');
 
-  let returnTo = '/';
-  if (state) {
-    try {
-      const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-      if (parsed.returnTo && typeof parsed.returnTo === 'string' && parsed.returnTo.startsWith('/')) {
-        returnTo = parsed.returnTo;
-      }
-    } catch {
-      // ignore
-    }
-  }
+  const verifiedReturnTo = consumeOAuthState(request, 'github', state);
+  if (!verifiedReturnTo) return NextResponse.redirect(new URL('/login?error=invalid_oauth_state', request.url));
+  const returnTo = verifiedReturnTo;
 
   const host = request.headers.get('host') || 'railexplorer.vercel.app';
   const proto = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
@@ -120,13 +113,14 @@ export async function GET(request: NextRequest) {
 
     // 3. Set cookie and redirect
     const response = NextResponse.redirect(`${baseOrigin}${returnTo}`);
-    response.cookies.set('rail_session', JSON.stringify(userSession), {
-      httpOnly: false,
+    response.cookies.set('rail_session', signProviderSession(userSession), {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
+    clearOAuthStateCookie(response, 'github');
 
     return response;
   } catch (err: any) {

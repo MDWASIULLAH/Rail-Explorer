@@ -1,19 +1,9 @@
 /**
- * Comprehensive Indian Railways Train Directory & Resilient Synthesizer
+ * Curated Indian Railways train directory
  *
- * Provides instant, verified offline data for Indian trains and procedural
- * generation for any 5-digit train number when upstream APIs are rate-limited
- * or offline.
+ * Offline entries are a limited reference set. Unknown train numbers are not guessed.
  */
 
-import type {
-  TrainSearchResult,
-  TrainSchedule,
-  CoachComposition,
-  TrainStatus,
-  CoachInfo,
-} from '@/lib/railway-api';
-import { getStationCoordinates } from './station-coordinates.ts';
 
 export interface KnownTrain {
   trainNumber: string;
@@ -22,7 +12,7 @@ export interface KnownTrain {
   origin: { code: string; name: string };
   destination: { code: string; name: string };
   classes: string[];
-  rakeType: 'LHB' | 'ICF' | 'VANDE_BHARAT';
+  rakeType: 'LHB' | 'ICF' | 'VANDE_BHARAT' | 'UNKNOWN';
   coaches: Array<{ coachId: string; coachType: string; berthCount: number }>;
   schedule: Array<{
     stationCode: string;
@@ -300,158 +290,19 @@ export const KNOWN_TRAINS: Record<string, KnownTrain> = {
   },
 };
 
-/**
- * Procedurally synthesize complete, verified Indian Railways train data for ANY 5-digit number
- */
+/** Return verified directory data when present; unknown numbers remain explicitly unknown. */
 export function getOrSynthesizeTrain(trainNumber: string): KnownTrain {
   const cleanNumber = trainNumber.replace(/\D/g, '').padStart(5, '0').slice(-5);
-
-  if (KNOWN_TRAINS[cleanNumber]) {
-    return KNOWN_TRAINS[cleanNumber];
-  }
-
-  // Derive train characteristics from Indian Railway 5-digit numbering conventions
-  const firstDigit = cleanNumber[0];
-  const secondDigit = cleanNumber[1];
-
-  let trainName = `Express ${cleanNumber}`;
-  let type = 'Superfast Express';
-  let origin = { code: 'NDLS', name: 'New Delhi' };
-  let destination = { code: 'HWH', name: 'Howrah Jn' };
-  let classes = ['SL', '3A', '2A', '1A'];
-
-  if (cleanNumber.startsWith('12') || cleanNumber.startsWith('22')) {
-    type = 'Superfast Express';
-    trainName = `Superfast Express ${cleanNumber}`;
-  } else if (cleanNumber.startsWith('18') || cleanNumber.startsWith('13')) {
-    type = 'Mail / Express';
-    trainName = `Express ${cleanNumber}`;
-  } else if (cleanNumber.startsWith('0')) {
-    type = 'Special Fare Express';
-    trainName = `Festival Special ${cleanNumber}`;
-  }
-
-  // Generate realistic 18-coach LHB rake
-  const coaches = [
-    { coachId: 'EOG1', coachType: 'EOG', berthCount: 0 },
-    { coachId: 'GS1', coachType: 'GS', berthCount: 90 },
-    { coachId: 'GS2', coachType: 'GS', berthCount: 90 },
-    { coachId: 'S1', coachType: 'SL', berthCount: 80 },
-    { coachId: 'S2', coachType: 'SL', berthCount: 80 },
-    { coachId: 'S3', coachType: 'SL', berthCount: 80 },
-    { coachId: 'S4', coachType: 'SL', berthCount: 80 },
-    { coachId: 'S5', coachType: 'SL', berthCount: 80 },
-    { coachId: 'S6', coachType: 'SL', berthCount: 80 },
-    { coachId: 'PC', coachType: 'PC', berthCount: 0 },
-    { coachId: 'B1', coachType: '3A', berthCount: 72 },
-    { coachId: 'B2', coachType: '3A', berthCount: 72 },
-    { coachId: 'B3', coachType: '3A', berthCount: 72 },
-    { coachId: 'B4', coachType: '3A', berthCount: 72 },
-    { coachId: 'A1', coachType: '2A', berthCount: 52 },
-    { coachId: 'A2', coachType: '2A', berthCount: 52 },
-    { coachId: 'H1', coachType: '1A', berthCount: 24 },
-    { coachId: 'EOG2', coachType: 'EOG', berthCount: 0 },
-  ];
-
-  const schedule = [
-    { stationCode: origin.code, stationName: origin.name, arrivalTime: null, departureTime: '07:30', haltMinutes: 0, distance: 0, day: 1 },
-    { stationCode: 'GZB', stationName: 'Ghaziabad Jn', arrivalTime: '08:15', departureTime: '08:17', haltMinutes: 2, distance: 25, day: 1 },
-    { stationCode: 'ALJN', stationName: 'Aligarh Jn', arrivalTime: '09:25', departureTime: '09:27', haltMinutes: 2, distance: 131, day: 1 },
-    { stationCode: 'TDL', stationName: 'Tundla Jn', arrivalTime: '10:30', departureTime: '10:32', haltMinutes: 2, distance: 209, day: 1 },
-    { stationCode: 'CNB', stationName: 'Kanpur Central', arrivalTime: '13:00', departureTime: '13:10', haltMinutes: 10, distance: 440, day: 1 },
-    { stationCode: 'FTP', stationName: 'Fatehpur', arrivalTime: '14:05', departureTime: '14:07', haltMinutes: 2, distance: 518, day: 1 },
-    { stationCode: 'PRYJ', stationName: 'Prayagraj Jn', arrivalTime: '15:40', departureTime: '15:45', haltMinutes: 5, distance: 635, day: 1 },
-    { stationCode: 'DDU', stationName: 'Pt Deen Dayal Upadhyaya Jn', arrivalTime: '18:10', departureTime: '18:20', haltMinutes: 10, distance: 788, day: 1 },
-    { stationCode: 'PNBE', stationName: 'Patna Jn', arrivalTime: '21:15', departureTime: '21:25', haltMinutes: 10, distance: 999, day: 1 },
-    { stationCode: destination.code, stationName: destination.name, arrivalTime: '06:45', departureTime: null, haltMinutes: 0, distance: 1445, day: 2 },
-  ];
-
-  return {
+  return KNOWN_TRAINS[cleanNumber] ?? {
     trainNumber: cleanNumber,
-    trainName,
-    type,
-    origin,
-    destination,
-    classes,
-    rakeType: 'LHB',
-    coaches,
-    schedule,
-  };
-}
-
-/**
- * Generate simulated live status for any train
- */
-export function getSimulatedStatus(trainNumber: string): TrainStatus {
-  const train = getOrSynthesizeTrain(trainNumber);
-  const totalStops = train.schedule.length;
-  const completedStops = Math.min(totalStops - 1, Math.max(1, Math.floor(totalStops * 0.45)));
-
-  const currentStn = train.schedule[completedStops];
-  const prevStn = train.schedule[completedStops - 1] || train.schedule[0];
-  const nextStn = train.schedule[Math.min(totalStops - 1, completedStops + 1)];
-
-  const prevCoords = getStationCoordinates(prevStn.stationCode);
-  const nextCoords = getStationCoordinates(nextStn.stationCode);
-  // Interpolate 60% between previous station and next station
-  const interpLat = parseFloat((prevCoords[0] + (nextCoords[0] - prevCoords[0]) * 0.6).toFixed(4));
-  const interpLng = parseFloat((prevCoords[1] + (nextCoords[1] - prevCoords[1]) * 0.6).toFixed(4));
-
-  // Determine realistic live speed based on train type
-  const isSuperfast = trainNumber.startsWith('12') || trainNumber.startsWith('22') || trainNumber.startsWith('20');
-  const baseSpeed = isSuperfast ? 112 : 78;
-  const currentSpeed = Math.round(baseSpeed + ((Date.now() / 30000) % 5) * 2 - 4);
-
-  return {
-    trainNumber: train.trainNumber,
-    trainName: train.trainName,
-    journeyDate: new Date().toISOString().split('T')[0],
-    status: 'RUNNING',
-    origin: train.origin,
-    destination: train.destination,
-    currentStation: { code: currentStn.stationCode, name: currentStn.stationName },
-    previousStation: { code: prevStn.stationCode, name: prevStn.stationName },
-    nextStation: { code: nextStn.stationCode, name: nextStn.stationName },
-    position: {
-      source: 'GPS_TRACKING',
-      stationCode: currentStn.stationCode,
-      latitude: interpLat,
-      longitude: interpLng,
-      observedAt: new Date().toISOString(),
-    },
-    speedKmph: currentSpeed,
-    delayMinutes: 6,
-    delay: {
-      minutes: 6,
-      source: 'NTES_FEED',
-      reference: 'ON_TIME_TOLERANCE',
-      stationCode: currentStn.stationCode,
-    },
-    eta: {
-      source: 'AI_ESTIMATOR',
-      stationCode: nextStn.stationCode,
-      value: nextStn.arrivalTime || '15:40',
-    },
-    routeProgress: {
-      completedStops,
-      remainingStops: totalStops - completedStops,
-      totalStops,
-      previousStop: { code: prevStn.stationCode, name: prevStn.stationName },
-      nextStop: { code: nextStn.stationCode, name: nextStn.stationName },
-      percent: Math.round((completedStops / totalStops) * 100),
-      basis: 'STATION_HALT',
-    },
-    exceptions: [],
-    freshness: {
-      observedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ageSeconds: 15,
-      state: 'LIVE',
-      provider: 'NTES_SATELLITE',
-    },
-    source: 'RAILWAY_ENGINE_FALLBACK',
-    confidence: 'HIGH',
-    observedAt: new Date().toISOString(),
+    trainName: `Train ${cleanNumber}`,
+    type: 'Unknown',
+    origin: { code: '—', name: 'Route unavailable' },
+    destination: { code: '—', name: 'Route unavailable' },
+    classes: [],
+    rakeType: 'UNKNOWN',
+    coaches: [],
+    schedule: [],
   };
 }
 

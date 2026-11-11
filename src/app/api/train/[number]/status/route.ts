@@ -63,17 +63,8 @@ export async function GET(
     }
 
     if (result.status === 'SUCCESS' && result.data) {
-      const trainNumInt = parseInt(number.replace(/\D/g, '') || '18403', 10);
-      const isSuperfastOrRajdhani = number.startsWith('12') || number.startsWith('22');
-      const defaultRunningSpeed = isSuperfastOrRajdhani ? 95 + (trainNumInt % 15) : 85 + (trainNumInt % 9);
-
-      const computedSpeed = result.data.status === 'RUNNING'
-        ? (typeof result.data.speedKmph === 'number' && result.data.speedKmph > 0 ? result.data.speedKmph : defaultRunningSpeed)
-        : 0;
-
       return successResponse({
         ...result.data,
-        speedKmph: computedSpeed,
         trainNumber: number,
         meta: result.meta,
       });

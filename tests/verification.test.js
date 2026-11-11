@@ -136,6 +136,21 @@ test('4. Berth Finder & Neighbor Analysis', async (t) => {
   const { formatBerthInfo, getBayBerths } = require('../src/lib/berth-finder.ts');
 
   const sleeperBp = COACH_BLUEPRINTS['LHB_SL'];
+  const generalBp = COACH_BLUEPRINTS['LHB_GS'];
+
+  await t.test('Sleeper has only side lower and side upper berths', () => {
+    assert.strictEqual(sleeperBp.berths.length, 80);
+    assert.strictEqual(sleeperBp.berths.filter((berth) => berth.side === 'SIDE' && berth.berthType === 'SL').length, 10);
+    const sideUppers = sleeperBp.berths.filter((berth) => berth.side === 'SIDE' && berth.berthType === 'SU');
+    assert.strictEqual(sideUppers.length, 10);
+    assert.ok(sideUppers.every((berth) => berth.deck === 2 && berth.y >= 1.3));
+  });
+
+  await t.test('General coach seats stay on side benches with a clear centre aisle', () => {
+    assert.strictEqual(generalBp.berths.length, 100);
+    assert.ok(generalBp.berths.every((seat) => Math.abs(seat.z) > 0.8));
+    assert.ok(generalBp.berths.every((seat) => seat.side === 'LEFT' || seat.side === 'RIGHT'));
+  });
 
   await t.test('Retrieves all 8 berths in Bay 1 for Berth #3', () => {
     const bayBerths = getBayBerths(sleeperBp, 1);
@@ -171,8 +186,8 @@ test('5. Coach Comparison Engine', async (t) => {
 });
 
 // 6. Resilient Fallback & Train Directory Tests
-test('6. Train Directory & Resilient Fallback', async (t) => {
-  const { KNOWN_TRAINS, getOrSynthesizeTrain, getSimulatedStatus } = require('../src/data/train-directory.ts');
+test('6. Train Directory returns only known route and composition data', async (t) => {
+  const { KNOWN_TRAINS, getOrSynthesizeTrain } = require('../src/data/train-directory.ts');
 
   await t.test('Known Train 18403 (BBS DHN EXPRESS) resolves correctly', () => {
     const train = KNOWN_TRAINS['18403'];
@@ -192,20 +207,27 @@ test('6. Train Directory & Resilient Fallback', async (t) => {
     assert.ok(train.coaches.some(c => c.coachId === 'PC'));
   });
 
-  await t.test('Procedural synthesis generates complete rake for unknown train 15001', () => {
+  await t.test('Unknown train numbers do not receive invented routes or coaches', () => {
     const train = getOrSynthesizeTrain('15001');
     assert.ok(train);
     assert.strictEqual(train.trainNumber, '15001');
-    assert.ok(train.coaches.length >= 16);
-    assert.ok(train.schedule.length >= 8);
+    assert.strictEqual(train.origin.name, 'Route unavailable');
+    assert.strictEqual(train.destination.name, 'Route unavailable');
+    assert.strictEqual(train.coaches.length, 0);
+    assert.strictEqual(train.schedule.length, 0);
   });
+});
 
-  await t.test('Simulated live status returns realistic satellite tracking', () => {
-    const status = getSimulatedStatus('18403');
-    assert.ok(status);
-    assert.strictEqual(status.status, 'RUNNING');
-    assert.ok(status.speedKmph > 0);
-    assert.ok(status.routeProgress.totalStops > 0);
-    assert.ok(status.routeProgress.percent >= 0 && status.routeProgress.percent <= 100);
-  });
+test('7. OAuth session validation rejects forged cookies and external redirects', () => {
+  const { safeReturnPath, signProviderSession, verifyProviderSession } = require('../src/lib/auth-session.ts');
+  const previousSecret = process.env.GITHUB_CLIENT_SECRET;
+  process.env.GITHUB_CLIENT_SECRET = 'test-only-session-signing-key';
+  const profile = { id: 'account-1', email: 'user@example.test', name: 'Test User', provider: 'github', createdAt: new Date().toISOString() };
+  const signed = signProviderSession(profile);
+  assert.deepStrictEqual(verifyProviderSession(signed), profile);
+  assert.strictEqual(verifyProviderSession(`${signed.slice(0, -1)}x`), null);
+  assert.strictEqual(safeReturnPath('//attacker.example/path'), '/');
+  assert.strictEqual(safeReturnPath('/train/18403?coach=S1'), '/train/18403?coach=S1');
+  if (previousSecret === undefined) delete process.env.GITHUB_CLIENT_SECRET;
+  else process.env.GITHUB_CLIENT_SECRET = previousSecret;
 });

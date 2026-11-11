@@ -141,22 +141,21 @@ export default function TrainScene({
   distanceFrom,
   distanceTo,
   onSelectDistanceCoaches,
-  initialIsMoving = true,
-  initialSpeedKmph = 88,
-  trainStatusText = 'RUNNING ON TIME',
-  stationName = 'Indian Railways Station',
-  nextStationName = 'Upcoming Junction',
-  distanceToNextKm = 10,
+  initialIsMoving = false,
+  initialSpeedKmph = 0,
+  trainStatusText = 'LIVE DATA UNAVAILABLE',
+  stationName = 'Route unavailable',
+  nextStationName = 'Route unavailable',
+  distanceToNextKm = 0,
   isAtStation,
   speedIsReported = false,
   showStationEnvironment = false,
 }: TrainSceneProps) {
   const controlsRef = useRef<any>(null);
   const [isWalkthrough, setIsWalkthrough] = useState(false);
-  // Default to active running motion at 88 km/h cruising speed
-  const [isMoving, setIsMoving] = useState(true);
-  const [speedKmph, setSpeedKmph] = useState(initialSpeedKmph > 0 ? initialSpeedKmph : 88);
-  const [isAtStationState, setIsAtStationState] = useState<boolean>(false);
+  const [isMoving, setIsMoving] = useState(initialIsMoving);
+  const [speedKmph, setSpeedKmph] = useState(Math.max(0, initialSpeedKmph));
+  const [isAtStationState, setIsAtStationState] = useState<boolean>(Boolean(isAtStation));
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
   const [showCouplerGaps, setShowCouplerGaps] = useState(true);
   const [isHornActive, setIsHornActive] = useState(false);
@@ -189,9 +188,12 @@ export default function TrainScene({
 
   // Sync speed if live status provides a reported positive speed
   useEffect(() => {
-    if (initialSpeedKmph && initialSpeedKmph > 0) {
-      setSpeedKmph(initialSpeedKmph);
-    }
+    setIsMoving(initialIsMoving);
+    setIsAtStationState(Boolean(isAtStation));
+  }, [initialIsMoving, isAtStation]);
+
+  useEffect(() => {
+    setSpeedKmph(Math.max(0, initialSpeedKmph));
   }, [initialSpeedKmph]);
 
   // Sync external distance props
@@ -476,14 +478,14 @@ export default function TrainScene({
                 }`}
               />
               <span className="font-mono font-black text-amber-400 text-xs sm:text-sm shrink-0">
-                {isMoving ? speedKmph : 0}{' '}
+                {isMoving ? (speedIsReported ? speedKmph : '—') : 0}{' '}
                 <span className="text-[10px] text-slate-400 font-normal">km/h</span>
               </span>
               <span className="hidden xs:inline text-slate-600">·</span>
               <span className="hidden xs:inline text-[11px] text-slate-200 font-medium truncate">
                 {isMoving
-                  ? `Approaching ${nextStationName || 'Station'} (${distanceToNextKm || 10} km)`
-                  : `Halted at ${stationName || 'Station'} (PF 2)`}
+                  ? (distanceToNextKm > 0 ? `Approaching ${nextStationName || 'Station'} (${distanceToNextKm} km)` : 'Position estimate unavailable')
+                  : `Halted at ${stationName || 'Station'} (platform not reported)`}
               </span>
             </div>
           )}
@@ -497,7 +499,7 @@ export default function TrainScene({
                 const nextMoving = !isMoving;
                 setIsMoving(nextMoving);
                 setIsAtStationState(!nextMoving);
-                if (nextMoving && speedKmph === 0) setSpeedKmph(88);
+                if (nextMoving && speedKmph === 0) setSpeedKmph(80);
               }}
               className={`px-2 py-1 rounded-xl font-black text-[10px] transition border flex items-center gap-1 shadow-md ${
                 isMoving
@@ -757,7 +759,7 @@ export default function TrainScene({
               <span className="text-xs">{isMoving ? '⏸' : '▶'}</span>
               <span>{isMoving ? 'Running' : 'Halted'}</span>
               <span className="hidden sm:inline text-[9px] font-mono opacity-90">
-                {isMoving ? `(${speedKmph} km/h)` : '(PF 2)'}
+                {isMoving ? `(${speedKmph} km/h)` : '(platform not reported)'}
               </span>
             </button>
           )}

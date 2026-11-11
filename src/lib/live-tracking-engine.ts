@@ -7,8 +7,7 @@
  */
 
 import { getStationCoordinates } from '../data/station-coordinates.ts';
-import { enrichWithPassingHalts } from '../data/intermediate-stations.ts';
-import type { TrainSchedule, TrainStatus, TrainRoute } from './railway-api';
+import type { TrainSchedule, TrainStatus, ScheduleStation } from './railway-api';
 
 export type StationState = 'COMPLETED' | 'CURRENT' | 'UPCOMING';
 export type StatusConfidence =
@@ -25,7 +24,7 @@ export interface TimelineStation {
   stationName: string;
   distance: number;
   day: number;
-  platform: string;
+  platform: string | null;
   scheduledArrival: string | null;
   scheduledDeparture: string | null;
   actualArrival: string | null;
@@ -108,7 +107,7 @@ export function formatDelay(minutes: number): { text: string; isDelayed: boolean
 }
 
 function getTimetableEstimate(
-  stations: ReturnType<typeof enrichWithPassingHalts>,
+  stations: ScheduleStation[],
   journeyDate: string | undefined,
 ): { index: number; progress: number; isAtStation: boolean; speedKmph: number | null } | null {
   const now = new Date();
@@ -190,9 +189,28 @@ export function analyzeLiveJourney(
   journeyDate: string = 'Today',
 ): LiveJourneyAnalysis {
   const rawStations = schedule.stations || (schedule as any).schedule || [];
-  const stations = enrichWithPassingHalts(trainNumber, rawStations);
+  const stations = rawStations as ScheduleStation[];
   const totalStops = stations.length;
-  const totalDistanceKm = stations[totalStops - 1]?.distance || 1450;
+  if (totalStops === 0) {
+    const position: LiveTrainPosition = {
+      isMoving: false, isAtStation: false, currentStationCode: null, currentStationName: null,
+      previousStationCode: '', previousStationName: 'Route unavailable', nextStationCode: '', nextStationName: 'Route unavailable',
+      distanceToNextKm: 0, distanceCoveredFromPrevKm: 0, stretchTotalKm: 0, progressPercentInStretch: 0,
+      overallProgressPercent: 0, speedKmph: null, delayMinutes: 0, delayText: 'Live data unavailable',
+      isDelayed: false, nextStationEta: '--:--', lastUpdatedSecondsAgo: status?.freshness?.ageSeconds ?? null,
+      confidence: 'SCHEDULE_BASED', coordinates: [20.5937, 78.9629], passedStationText: 'Route data unavailable',
+      approachingStationText: 'Route data unavailable', currentLocationText: 'Route data unavailable',
+      liveStatusSummary: 'Route data unavailable for this train.',
+    };
+    return {
+      trainNumber, trainName: status?.trainName || trainName, journeyDate: status?.journeyDate || journeyDate,
+      origin: { code: status?.origin?.code || '—', name: status?.origin?.name || 'Route unavailable' },
+      destination: { code: status?.destination?.code || '—', name: status?.destination?.name || 'Route unavailable' },
+      totalDistanceKm: 0, coveredDistanceKm: 0, remainingDistanceKm: 0, completedStops: 0, totalStops: 0,
+      remainingStops: 0, position, timeline: [], statusConfidence: 'SCHEDULE_BASED',
+    };
+  }
+  const totalDistanceKm = stations[totalStops - 1]?.distance || 0;
 
   // Determine current active delay
   const currentDelay = status?.delayMinutes ?? 0;
@@ -245,6 +263,36 @@ export function analyzeLiveJourney(
 
   const prevStation = stations[currentIndex] || stations[0];
   const nextStation = stations[Math.min(totalStops - 1, currentIndex + 1)] || prevStation;
+  const reportedCurrentIndex = status?.currentStation?.code
+    ? stations.findIndex((station) => station.stationCode.toUpperCase() === status.currentStation?.code.toUpperCase())
+    : -1;
+  let currentStationOnReportedStretch = reportedCurrentIndex === currentIndex || reportedCurrentIndex === currentIndex + 1;
+  if (reportedCurrentIndex < 0 && status?.currentStation?.code) {
+    const currentCoords = getStationCoordinates(status.currentStation.code);
+    let closestGap = Number.POSITIVE_INFINITY;
+    let projectedDistance = 0;
+    for (let i = 0; i < stations.length - 1; i += 1) {
+      const from = getStationCoordinates(stations[i].stationCode);
+      const to = getStationCoordinates(stations[i + 1].stationCode);
+      const lngScale = Math.cos((from[0] * Math.PI) / 180);
+      const dx = (to[1] - from[1]) * lngScale;
+      const dy = to[0] - from[0];
+      const px = (currentCoords[1] - from[1]) * lngScale;
+      const py = currentCoords[0] - from[0];
+      const lengthSquared = dx * dx + dy * dy;
+      const fraction = lengthSquared > 0 ? Math.min(1, Math.max(0, (px * dx + py * dy) / lengthSquared)) : 0;
+      const gap = Math.hypot(px - dx * fraction, py - dy * fraction);
+      if (gap < closestGap) {
+        closestGap = gap;
+        projectedDistance = stations[i].distance + (stations[i + 1].distance - stations[i].distance) * fraction;
+      }
+    }
+    const projectedPercent = totalDistanceKm > 0 ? (projectedDistance / totalDistanceKm) * 100 : 0;
+    const reportedPercent = status?.routeProgress?.percent;
+    currentStationOnReportedStretch = closestGap < 0.45 &&
+      (typeof reportedPercent !== 'number' || Math.abs(projectedPercent - reportedPercent) < 20);
+  }
+  const alignedCurrentStation = currentStationOnReportedStretch ? status?.currentStation : undefined;
 
   // Stretch distances
   const prevDist = prevStation.distance || 0;
@@ -256,11 +304,11 @@ export function analyzeLiveJourney(
   if (!isAtStation) {
     if (timetableEstimate?.progress !== undefined && timetableEstimate.progress !== null) {
       stretchProgressFactor = Math.min(0.95, Math.max(0.05, timetableEstimate.progress));
-    } else if (status?.currentStation?.code && status.currentStation.code !== prevStation.stationCode) {
+    } else if (alignedCurrentStation?.code && alignedCurrentStation.code !== prevStation.stationCode) {
       // Current intermediate station reported by live feed (e.g. BEH Bagdihi between JSG and ROU)
       const prevCoords = getStationCoordinates(prevStation.stationCode);
       const nextCoords = getStationCoordinates(nextStation.stationCode);
-      const currCoords = getStationCoordinates(status.currentStation.code);
+      const currCoords = getStationCoordinates(alignedCurrentStation.code);
 
       const dLatTotal = nextCoords[0] - prevCoords[0];
       const dLngTotal = nextCoords[1] - prevCoords[1];
@@ -325,9 +373,9 @@ export function analyzeLiveJourney(
   } else if (timetableEstimate) {
     trainLat = prevCoords[0] + (nextCoords[0] - prevCoords[0]) * stretchProgressFactor;
     trainLng = prevCoords[1] + (nextCoords[1] - prevCoords[1]) * stretchProgressFactor;
-  } else if (status?.currentStation?.code && status.currentStation.code !== prevStation.stationCode) {
+  } else if (alignedCurrentStation?.code && alignedCurrentStation.code !== prevStation.stationCode) {
     // Current intermediate passing station reported by provider (e.g. JUJA, HATB, BEH)
-    const midCoords = getStationCoordinates(status.currentStation.code);
+    const midCoords = getStationCoordinates(alignedCurrentStation.code);
     trainLat = midCoords[0];
     trainLng = midCoords[1];
   } else if (status?.status === 'RUNNING' && !isAtStation) {
@@ -353,9 +401,8 @@ export function analyzeLiveJourney(
     const scheduledArr = stn.arrivalTime;
     const scheduledDep = stn.departureTime;
 
-    // Platform calculation: deterministic realistic platform number
-    const platformNum = ((stn.stationCode.charCodeAt(0) + idx) % 5) + 1;
-    const platform = `PF ${platformNum}`;
+    // Platform assignments are live operational data and cannot be derived from station codes.
+    const platform = typeof (stn as any).platform === 'string' ? (stn as any).platform : null;
 
     // Actual times with delay
     const stationDelay = idx <= currentIndex ? Math.max(0, currentDelay - (currentIndex - idx) * 2) : currentDelay;
@@ -400,9 +447,6 @@ export function analyzeLiveJourney(
   const nextEta = addMinutesToTime(nextStation.arrivalTime, currentDelay) || '--:--';
 
   // Compute realistic dynamic live speed
-  const trainNumInt = parseInt(trainNumber.replace(/\D/g, '') || '18403', 10);
-  const isSuperfast = trainNumber.startsWith('12') || trainNumber.startsWith('22');
-  const baselineRunningSpeed = isSuperfast ? 95 + (trainNumInt % 15) : 85 + (trainNumInt % 9);
   const timetableSpeed = timetableEstimate?.speedKmph ?? null;
   const calculatedSpeed = isAtStation
     ? 0
@@ -410,9 +454,7 @@ export function analyzeLiveJourney(
     ? Math.round(status.speedKmph)
     : timetableEstimate?.speedKmph && timetableEstimate.speedKmph > 0
     ? timetableEstimate.speedKmph
-    : status?.status === 'RUNNING'
-    ? baselineRunningSpeed
-    : timetableSpeed ?? 0;
+    : timetableSpeed;
 
   // Clear descriptive location and passing status text
   const passedStationText = isAtStation
@@ -423,8 +465,8 @@ export function analyzeLiveJourney(
 
   const currentLocationText = isAtStation
     ? `At ${prevStation.stationName} (${prevStation.stationCode})`
-    : status?.currentStation?.name && status.currentStation.name !== prevStation.stationName
-    ? `Near ${status.currentStation.name} (${status.currentStation.code})`
+    : alignedCurrentStation?.name && alignedCurrentStation.name !== prevStation.stationName
+    ? `Near ${alignedCurrentStation.name} (${alignedCurrentStation.code})`
     : `Between ${prevStation.stationCode} & ${nextStation.stationCode}`;
 
   const liveStatusSummary = isAtStation
@@ -434,8 +476,8 @@ export function analyzeLiveJourney(
   const position: LiveTrainPosition = {
     isMoving: (status?.status === 'RUNNING' || Boolean(timetableEstimate)) && !isAtStation,
     isAtStation,
-    currentStationCode: isAtStation ? prevStation.stationCode : (status?.currentStation?.code || null),
-    currentStationName: isAtStation ? prevStation.stationName : (status?.currentStation?.name || null),
+    currentStationCode: isAtStation ? prevStation.stationCode : (alignedCurrentStation?.code || null),
+    currentStationName: isAtStation ? prevStation.stationName : (alignedCurrentStation?.name || null),
     previousStationCode: prevStation.stationCode,
     previousStationName: prevStation.stationName,
     nextStationCode: nextStation.stationCode,

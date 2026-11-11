@@ -247,6 +247,7 @@ interface CacheEntry<T> {
 
 class ApiCache {
   private cache = new Map<string, CacheEntry<unknown>>();
+  private readonly maxEntries = 500;
   
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
@@ -255,10 +256,25 @@ class ApiCache {
       this.cache.delete(key);
       return null;
     }
+    // Refresh insertion order so the bounded cache behaves as a small LRU.
+    this.cache.delete(key);
+    this.cache.set(key, entry);
     return entry.data as T;
   }
   
   set<T>(key: string, data: T, ttlMs: number = 60000): void {
+    if (ttlMs <= 0) return;
+    if (this.cache.size >= this.maxEntries && !this.cache.has(key)) {
+      const now = Date.now();
+      for (const [entryKey, entry] of this.cache) {
+        if (now - entry.timestamp > entry.ttl) this.cache.delete(entryKey);
+      }
+      while (this.cache.size >= this.maxEntries) {
+        const oldestKey = this.cache.keys().next().value;
+        if (oldestKey === undefined) break;
+        this.cache.delete(oldestKey);
+      }
+    }
     this.cache.set(key, { data, timestamp: Date.now(), ttl: ttlMs });
   }
   
@@ -277,15 +293,11 @@ class RateLimiter {
     this.windowMs = windowMs;
   }
   
-  async waitForSlot(): Promise<void> {
+  waitForSlot(): void {
     const now = Date.now();
     this.requests = this.requests.filter(t => now - t < this.windowMs);
     
-    if (this.requests.length >= this.maxRequests) {
-      const oldestInWindow = this.requests[0];
-      const waitTime = this.windowMs - (now - oldestInWindow) + 100;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-    }
+    if (this.requests.length >= this.maxRequests) throw new Error('Railway data provider request limit reached. Retry shortly.');
     
     this.requests.push(Date.now());
   }
@@ -327,7 +339,7 @@ async function apiRequest<T>(
   const key = cacheKey || endpoint;
   
   // Check cache
-  const cached = cache.get<ApiResponse<T>>(key);
+  const cached = cacheTtl > 0 ? cache.get<ApiResponse<T>>(key) : null;
   if (cached) {
     return { ...cached, meta: { ...cached.meta, cached: true } };
   }
@@ -471,9 +483,9 @@ export async function searchStations(query: string): Promise<ApiResponse<Station
  * Get PNR status
  */
 export async function getPnrStatus(pnr: string): Promise<ApiResponse<PnrStatus>> {
-  // PNR data is sensitive - shorter cache
+  // PNR data is personal reservation data; do not retain it in the process cache.
   return apiRequest<PnrStatus>(`/v1/pnr/${pnr}`, {
-    cacheTtl: 30000, // 30 seconds
+    cacheTtl: 0,
   });
 }
 

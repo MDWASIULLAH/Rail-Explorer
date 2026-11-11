@@ -41,37 +41,7 @@ export async function GET(
       });
     }
 
-    // Graceful procedural fare estimate fallback when upstream fare provider is rate-limited
-    const distanceEst = 750; // typical stretch
-    const baseRatePerKm: Record<string, number> = {
-      '1A': 2.9,
-      '2A': 1.8,
-      '3A': 1.25,
-      '3E': 1.15,
-      'CC': 1.1,
-      'SL': 0.45,
-      '2S': 0.25,
-      'GEN': 0.22,
-    };
-    const rate = baseRatePerKm[coachClass] || 0.45;
-    const estimatedBase = Math.round(distanceEst * rate);
-    const reservationFee: Record<string, number> = { '1A': 60, '2A': 50, '3A': 40, 'SL': 20 };
-    const resFee = reservationFee[coachClass] || 20;
-    const superfastCharge = 45;
-    const totalEst = estimatedBase + resFee + superfastCharge;
-
-    return successResponse({
-      trainNumber: number,
-      source,
-      destination,
-      class: coachClass,
-      baseFare: estimatedBase,
-      reservationCharge: resFee,
-      superfastCharge,
-      totalFare: totalEst,
-      isEstimate: true,
-      providerNote: result.error || 'Estimated from Indian Railways telescopic distance slabs',
-    });
+    return errorResponse(result.error || 'Fare data is unavailable for this train and journey.', 503);
   } catch (err) {
     return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }

@@ -18,10 +18,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       if (profile) {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
-        document.cookie = `rail_session=${encodeURIComponent(JSON.stringify(profile))}; path=/; max-age=2592000; SameSite=Lax`;
+        // OAuth session cookies are issued and signed by the server. Never mint one from browser state.
       } else {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
-        document.cookie = `rail_session=; path=/; max-age=0; SameSite=Lax`;
       }
     }
   }, []);
@@ -32,22 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initAuth() {
       try {
-        // 1. Check localStorage first
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              if (parsed?.email && mounted) {
-                setUser(parsed);
-              }
-            } catch {
-              localStorage.removeItem(LOCAL_STORAGE_KEY);
-            }
-          }
-        }
-
-        // 2. Check Supabase session
+        // Check the authoritative Supabase session first; browser storage is only a display cache.
         if (supabase) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user && mounted) {
@@ -110,13 +94,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
 
-        // 3. Fallback to /api/auth/me
+        // Fall back to the signed, HttpOnly OAuth session cookie.
         const res = await fetch('/api/auth/me');
         if (res.ok) {
           const data = await res.json();
           if (data?.user && mounted) {
             persistSession(data.user);
+          } else if (mounted) {
+            persistSession(null);
           }
+        } else if (mounted) {
+          persistSession(null);
         }
       } catch (err) {
         console.error('[Auth Init Error]', err);

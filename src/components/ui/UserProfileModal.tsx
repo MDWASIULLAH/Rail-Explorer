@@ -134,50 +134,50 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
           {/* Quick Metrics Bar in Header */}
           <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/80 text-xs font-mono">
-            <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center gap-2 min-w-0">
               <div className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-400 shrink-0">
                 <ArrowLeftRight className="w-3.5 h-3.5" />
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">My Swaps</span>
-                <span className="font-bold text-white text-xs leading-none">{userOffers.length} Active</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">Swaps</span>
+                <span className="font-bold text-white text-xs leading-none">{userOffers.length} <span className="hidden sm:inline">Active</span></span>
               </div>
             </div>
 
-            <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center gap-2 min-w-0">
               <div className="w-6 h-6 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 shrink-0">
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">Interests</span>
-                <span className="font-bold text-emerald-400 text-xs leading-none">{incomingProposals.length} Received</span>
+                <span className="font-bold text-emerald-400 text-xs leading-none">{incomingProposals.length} <span className="hidden sm:inline">Received</span></span>
               </div>
             </div>
 
-            <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center gap-2 min-w-0">
               <div className="w-6 h-6 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 shrink-0">
                 <Star className="w-3.5 h-3.5 fill-current" />
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">Starred</span>
-                <span className="font-bold text-blue-300 text-xs leading-none">{starredTrains.length} Trains</span>
+                <span className="font-bold text-blue-300 text-xs leading-none">{starredTrains.length} <span className="hidden sm:inline">Trains</span></span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Segmented iOS/Linear Style Pill Tabs */}
-        <div className="p-2.5 sm:px-5 bg-slate-950/70 border-b border-slate-800 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="p-2.5 sm:px-5 bg-slate-950/70 border-b border-slate-800 grid grid-cols-3 gap-1.5">
           <button
             onClick={() => setActiveTab('swaps')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all min-w-0 ${
               activeTab === 'swaps'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <ArrowLeftRight className="w-3.5 h-3.5" />
-            <span>Seat Swaps & Handshakes</span>
+            <span className="truncate"> <span className="sm:hidden">Swaps</span><span className="hidden sm:inline">Seat Swaps & Handshakes</span></span>
             {pendingIncoming.length > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${activeTab === 'swaps' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500 text-slate-950 animate-pulse'}`}>
                 {pendingIncoming.length}
@@ -187,26 +187,26 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
           <button
             onClick={() => setActiveTab('starred')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all min-w-0 ${
               activeTab === 'starred'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Star className="w-3.5 h-3.5 fill-current" />
-            <span>Starred Trains ({starredTrains.length})</span>
+            <span className="truncate"><span className="sm:hidden">Starred ({starredTrains.length})</span><span className="hidden sm:inline">Starred Trains ({starredTrains.length})</span></span>
           </button>
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all min-w-0 ${
               activeTab === 'profile'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Account Details</span>
+            <span><span className="sm:hidden">Account</span><span className="hidden sm:inline">Account Details</span></span>
           </button>
         </div>
 

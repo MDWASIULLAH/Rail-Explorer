@@ -122,9 +122,22 @@ function LiveStatusContent() {
         <div className="text-center space-y-3">
           <Loader2 className="w-10 h-10 animate-spin text-emerald-400 mx-auto" />
           <h2 className="text-lg font-bold text-white">Tracking Train {trainNumber}...</h2>
-          <p className="text-xs text-slate-400">Connecting to Railway Engine satellite telemetry feed</p>
+          <p className="text-xs text-slate-400">Checking the train status provider</p>
         </div>
       </div>
+    );
+  }
+
+  if (journeyData.totalStops === 0) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white grid place-items-center px-5">
+        <section className="max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center shadow-xl">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-amber-400" />
+          <h1 className="text-lg font-bold">Route data unavailable</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-400">A verified schedule for train {trainNumber} is not available right now. Check the number or try again later.</p>
+          <button onClick={fetchLiveStatus} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Try again</button>
+        </section>
+      </main>
     );
   }
 

@@ -7,10 +7,16 @@ const assert = require('node:assert');
 
 test('Live Tracking Engine: Status & Timeline Calculations', async (t) => {
   const { analyzeLiveJourney, formatDelay } = require('../src/lib/live-tracking-engine.ts');
-  const { KNOWN_TRAINS, getSimulatedStatus } = require('../src/data/train-directory.ts');
+  const { KNOWN_TRAINS } = require('../src/data/train-directory.ts');
 
   const sampleTrain = KNOWN_TRAINS['18403']; // 10 stations
-  const sampleStatus = getSimulatedStatus('18403');
+  const sampleStatus = {
+    trainNumber: '18403', trainName: sampleTrain.trainName, journeyDate: '2026-11-09', status: 'RUNNING',
+    previousStation: { code: sampleTrain.schedule[3].stationCode, name: sampleTrain.schedule[3].stationName },
+    nextStation: { code: sampleTrain.schedule[4].stationCode, name: sampleTrain.schedule[4].stationName },
+    speedKmph: 85, delayMinutes: 0,
+    routeProgress: { completedStops: 4, remainingStops: sampleTrain.schedule.length - 4, totalStops: sampleTrain.schedule.length },
+  };
 
   await t.test('Computes journey analysis with all stations in sequence', () => {
     const analysis = analyzeLiveJourney('18403', sampleTrain.trainName, sampleTrain, sampleStatus, 'Today');
@@ -109,6 +115,33 @@ test('Live Tracking Engine: Status & Timeline Calculations', async (t) => {
       assert.ok(stn.coordinates[0] >= 8 && stn.coordinates[0] <= 37); // India Lat range
       assert.ok(stn.coordinates[1] >= 68 && stn.coordinates[1] <= 98); // India Lng range
     }
+  });
+
+  await t.test('Rejects a reported current station that conflicts with the schedule corridor and progress', () => {
+    const schedule = {
+      stations: [
+        { stationCode: 'BBS', stationName: 'Bhubaneswar', arrivalTime: null, departureTime: '08:00', haltMinutes: 0, distance: 0, day: 1 },
+        { stationCode: 'CTC', stationName: 'Cuttack', arrivalTime: '08:35', departureTime: '08:37', haltMinutes: 2, distance: 28, day: 1 },
+        { stationCode: 'DHN', stationName: 'Dhanbad Jn', arrivalTime: '18:00', departureTime: null, haltMinutes: 0, distance: 650, day: 1 },
+      ],
+    };
+    const inconsistent = {
+      status: 'RUNNING', previousStation: { code: 'BBS', name: 'Bhubaneswar' },
+      nextStation: { code: 'CTC', name: 'Cuttack' }, currentStation: { code: 'NDLS', name: 'New Delhi' },
+      routeProgress: { percent: 4 }, speedKmph: 80,
+    };
+    const result = analyzeLiveJourney('18403', 'BBS DHN EXPRESS', schedule, inconsistent, 'Today');
+    assert.strictEqual(result.position.previousStationCode, 'BBS');
+    assert.strictEqual(result.position.nextStationCode, 'CTC');
+    assert.strictEqual(result.position.currentStationCode, null);
+  });
+
+  await t.test('Unknown trains produce no estimated route or movement', () => {
+    const result = analyzeLiveJourney('15001', 'Train 15001', { stations: [] }, null, 'Today');
+    assert.strictEqual(result.totalStops, 0);
+    assert.strictEqual(result.totalDistanceKm, 0);
+    assert.strictEqual(result.position.isMoving, false);
+    assert.strictEqual(result.position.speedKmph, null);
   });
 });
 

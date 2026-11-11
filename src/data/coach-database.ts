@@ -232,8 +232,8 @@ function generateSleeperBerths(): BerthPosition[] {
       side: 'LEFT',
       deck: 0,
       x: bayStartX,
-      y: 0.05,
-      z: 0.95,
+      y: 0.28,
+      z: 0.74,
     });
     berths.push({
       berthNumber: berthBase + 2,
@@ -242,8 +242,8 @@ function generateSleeperBerths(): BerthPosition[] {
       side: 'LEFT',
       deck: 1,
       x: bayStartX,
-      y: 0.72,
-      z: 0.95,
+      y: 0.95,
+      z: 0.74,
     });
     berths.push({
       berthNumber: berthBase + 3,
@@ -252,8 +252,8 @@ function generateSleeperBerths(): BerthPosition[] {
       side: 'LEFT',
       deck: 2,
       x: bayStartX,
-      y: 1.35,
-      z: 0.95,
+      y: 1.62,
+      z: 0.74,
     });
     
     // Right side berths
@@ -264,8 +264,8 @@ function generateSleeperBerths(): BerthPosition[] {
       side: 'RIGHT',
       deck: 0,
       x: bayStartX,
-      y: 0.05,
-      z: -0.95,
+      y: 0.28,
+      z: -0.74,
     });
     berths.push({
       berthNumber: berthBase + 5,
@@ -274,8 +274,8 @@ function generateSleeperBerths(): BerthPosition[] {
       side: 'RIGHT',
       deck: 1,
       x: bayStartX,
-      y: 0.72,
-      z: -0.95,
+      y: 0.95,
+      z: -0.74,
     });
     berths.push({
       berthNumber: berthBase + 6,
@@ -284,8 +284,8 @@ function generateSleeperBerths(): BerthPosition[] {
       side: 'RIGHT',
       deck: 2,
       x: bayStartX,
-      y: 1.35,
-      z: -0.95,
+      y: 1.62,
+      z: -0.74,
     });
     
     // Side berths (along the aisle wall, opposite side)
@@ -295,19 +295,19 @@ function generateSleeperBerths(): BerthPosition[] {
       bayNumber: bay + 1,
       side: 'SIDE',
       deck: 0,
-      x: bayStartX + 0.5,
-      y: 0.05,
-      z: -1.35,
+      x: bayStartX,
+      y: 0.28,
+      z: -1.34,
     });
     berths.push({
       berthNumber: berthBase + 8,
       berthType: 'SU',
       bayNumber: bay + 1,
       side: 'SIDE',
-      deck: 1,
-      x: bayStartX + 0.5,
-      y: 0.72,
-      z: -1.35,
+      deck: 2,
+      x: bayStartX,
+      y: 1.62,
+      z: -1.34,
     });
   }
   
@@ -331,18 +331,18 @@ function generateAC3Berths(): BerthPosition[] {
     const berthBase = bay * 8;
     
     // Left side
-    berths.push({ berthNumber: berthBase + 1, berthType: 'LB', bayNumber: bay + 1, side: 'LEFT', deck: 0, x: bayStartX, y: 0.05, z: 0.92 });
-    berths.push({ berthNumber: berthBase + 2, berthType: 'MB', bayNumber: bay + 1, side: 'LEFT', deck: 1, x: bayStartX, y: 0.75, z: 0.92 });
-    berths.push({ berthNumber: berthBase + 3, berthType: 'UB', bayNumber: bay + 1, side: 'LEFT', deck: 2, x: bayStartX, y: 1.40, z: 0.92 });
+    berths.push({ berthNumber: berthBase + 1, berthType: 'LB', bayNumber: bay + 1, side: 'LEFT', deck: 0, x: bayStartX, y: 0.05, z: 0.74 });
+    berths.push({ berthNumber: berthBase + 2, berthType: 'MB', bayNumber: bay + 1, side: 'LEFT', deck: 1, x: bayStartX, y: 0.75, z: 0.74 });
+    berths.push({ berthNumber: berthBase + 3, berthType: 'UB', bayNumber: bay + 1, side: 'LEFT', deck: 2, x: bayStartX, y: 1.40, z: 0.74 });
     
     // Right side
-    berths.push({ berthNumber: berthBase + 4, berthType: 'LB', bayNumber: bay + 1, side: 'RIGHT', deck: 0, x: bayStartX, y: 0.05, z: -0.92 });
-    berths.push({ berthNumber: berthBase + 5, berthType: 'MB', bayNumber: bay + 1, side: 'RIGHT', deck: 1, x: bayStartX, y: 0.75, z: -0.92 });
-    berths.push({ berthNumber: berthBase + 6, berthType: 'UB', bayNumber: bay + 1, side: 'RIGHT', deck: 2, x: bayStartX, y: 1.40, z: -0.92 });
+    berths.push({ berthNumber: berthBase + 4, berthType: 'LB', bayNumber: bay + 1, side: 'RIGHT', deck: 0, x: bayStartX, y: 0.05, z: -0.74 });
+    berths.push({ berthNumber: berthBase + 5, berthType: 'MB', bayNumber: bay + 1, side: 'RIGHT', deck: 1, x: bayStartX, y: 0.75, z: -0.74 });
+    berths.push({ berthNumber: berthBase + 6, berthType: 'UB', bayNumber: bay + 1, side: 'RIGHT', deck: 2, x: bayStartX, y: 1.40, z: -0.74 });
     
     // Side berths
-    berths.push({ berthNumber: berthBase + 7, berthType: 'SL', bayNumber: bay + 1, side: 'SIDE', deck: 0, x: bayStartX + 0.5, y: 0.05, z: -1.32 });
-    berths.push({ berthNumber: berthBase + 8, berthType: 'SU', bayNumber: bay + 1, side: 'SIDE', deck: 1, x: bayStartX + 0.5, y: 0.75, z: -1.32 });
+    berths.push({ berthNumber: berthBase + 7, berthType: 'SL', bayNumber: bay + 1, side: 'SIDE', deck: 0, x: bayStartX, y: 0.05, z: -1.34 });
+    berths.push({ berthNumber: berthBase + 8, berthType: 'SU', bayNumber: bay + 1, side: 'SIDE', deck: 2, x: bayStartX, y: 1.40, z: -1.34 });
   }
   
   return berths;
@@ -356,7 +356,6 @@ function generateAC3Berths(): BerthPosition[] {
  */
 function generateAC3EconomyBerths(): BerthPosition[] {
   const berths: BerthPosition[] = [];
-  const totalBays = 11; // More bays due to removed cabin/toilet
   const bayLength = 1.90;
   const startX = 1.8;
   
@@ -365,20 +364,20 @@ function generateAC3EconomyBerths(): BerthPosition[] {
     const bayStartX = startX + bay * bayLength;
     const berthBase = bay * 8;
     
-    berths.push({ berthNumber: berthBase + 1, berthType: 'LB', bayNumber: bay + 1, side: 'LEFT', deck: 0, x: bayStartX, y: 0.05, z: 0.92 });
-    berths.push({ berthNumber: berthBase + 2, berthType: 'MB', bayNumber: bay + 1, side: 'LEFT', deck: 1, x: bayStartX, y: 0.75, z: 0.92 });
-    berths.push({ berthNumber: berthBase + 3, berthType: 'UB', bayNumber: bay + 1, side: 'LEFT', deck: 2, x: bayStartX, y: 1.40, z: 0.92 });
-    berths.push({ berthNumber: berthBase + 4, berthType: 'LB', bayNumber: bay + 1, side: 'RIGHT', deck: 0, x: bayStartX, y: 0.05, z: -0.92 });
-    berths.push({ berthNumber: berthBase + 5, berthType: 'MB', bayNumber: bay + 1, side: 'RIGHT', deck: 1, x: bayStartX, y: 0.75, z: -0.92 });
-    berths.push({ berthNumber: berthBase + 6, berthType: 'UB', bayNumber: bay + 1, side: 'RIGHT', deck: 2, x: bayStartX, y: 1.40, z: -0.92 });
-    berths.push({ berthNumber: berthBase + 7, berthType: 'SL', bayNumber: bay + 1, side: 'SIDE', deck: 0, x: bayStartX + 0.5, y: 0.05, z: -1.32 });
-    berths.push({ berthNumber: berthBase + 8, berthType: 'SU', bayNumber: bay + 1, side: 'SIDE', deck: 1, x: bayStartX + 0.5, y: 0.75, z: -1.32 });
+    berths.push({ berthNumber: berthBase + 1, berthType: 'LB', bayNumber: bay + 1, side: 'LEFT', deck: 0, x: bayStartX, y: 0.05, z: 0.74 });
+    berths.push({ berthNumber: berthBase + 2, berthType: 'MB', bayNumber: bay + 1, side: 'LEFT', deck: 1, x: bayStartX, y: 0.75, z: 0.74 });
+    berths.push({ berthNumber: berthBase + 3, berthType: 'UB', bayNumber: bay + 1, side: 'LEFT', deck: 2, x: bayStartX, y: 1.40, z: 0.74 });
+    berths.push({ berthNumber: berthBase + 4, berthType: 'LB', bayNumber: bay + 1, side: 'RIGHT', deck: 0, x: bayStartX, y: 0.05, z: -0.74 });
+    berths.push({ berthNumber: berthBase + 5, berthType: 'MB', bayNumber: bay + 1, side: 'RIGHT', deck: 1, x: bayStartX, y: 0.75, z: -0.74 });
+    berths.push({ berthNumber: berthBase + 6, berthType: 'UB', bayNumber: bay + 1, side: 'RIGHT', deck: 2, x: bayStartX, y: 1.40, z: -0.74 });
+    berths.push({ berthNumber: berthBase + 7, berthType: 'SL', bayNumber: bay + 1, side: 'SIDE', deck: 0, x: bayStartX, y: 0.05, z: -1.34 });
+    berths.push({ berthNumber: berthBase + 8, berthType: 'SU', bayNumber: bay + 1, side: 'SIDE', deck: 2, x: bayStartX, y: 1.40, z: -1.34 });
   }
   
   // Bay 11: 3 extra side berths
   const extraStartX = startX + 10 * bayLength;
   berths.push({ berthNumber: 81, berthType: 'SL', bayNumber: 11, side: 'SIDE', deck: 0, x: extraStartX, y: 0.05, z: -1.32 });
-  berths.push({ berthNumber: 82, berthType: 'SU', bayNumber: 11, side: 'SIDE', deck: 1, x: extraStartX, y: 0.75, z: -1.32 });
+  berths.push({ berthNumber: 82, berthType: 'SU', bayNumber: 11, side: 'SIDE', deck: 2, x: extraStartX, y: 1.40, z: -1.34 });
   berths.push({ berthNumber: 83, berthType: 'LB', bayNumber: 11, side: 'LEFT', deck: 0, x: extraStartX, y: 0.05, z: 0.92 });
   
   return berths;
@@ -506,16 +505,19 @@ function generateGeneralSeats(): BerthPosition[] {
   for (let row = 0; row < totalRows; row++) {
     const rowX = startX + row * rowPitch;
     
-    // 5 seats per row (3+2 or 2+3)
+    // 3+2 seats on side benches. Keep the centre aisle completely clear.
     for (let col = 0; col < 5; col++) {
-      const z = 1.10 - col * 0.55;
+      const leftBank = col < 3;
+      const seatInBank = leftBank ? col : col - 3;
+      const z = leftBank ? 1.05 : -1.05;
       seats.push({
         berthNumber: seatNum++,
         berthType: 'SEAT',
         bayNumber: row + 1,
-        side: col < 2 ? 'LEFT' : 'RIGHT',
+        side: leftBank ? 'LEFT' : 'RIGHT',
         deck: 0,
-        x: rowX,
+        // Stagger individual cushions along the length of each continuous bench.
+        x: rowX + (seatInBank - (leftBank ? 1 : 0.5)) * 0.28,
         y: 0.45,
         z: z,
       });

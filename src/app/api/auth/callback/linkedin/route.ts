@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { safeReturnPath, signProviderSession } from '@/lib/auth-session';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -10,9 +11,7 @@ export async function GET(request: NextRequest) {
   if (state) {
     try {
       const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-      if (parsed.returnTo && typeof parsed.returnTo === 'string' && parsed.returnTo.startsWith('/')) {
-        returnTo = parsed.returnTo;
-      }
+      returnTo = safeReturnPath(parsed.returnTo);
     } catch {
       // ignore
     }
@@ -87,8 +86,8 @@ export async function GET(request: NextRequest) {
 
     // 3. Set cookie and redirect
     const response = NextResponse.redirect(`${baseOrigin}${returnTo}`);
-    response.cookies.set('rail_session', JSON.stringify(userSession), {
-      httpOnly: false,
+    response.cookies.set('rail_session', signProviderSession(userSession), {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',

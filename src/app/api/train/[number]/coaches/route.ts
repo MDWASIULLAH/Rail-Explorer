@@ -37,6 +37,7 @@ export async function GET(
 
     // Fallback from verified train directory
     const train = getOrSynthesizeTrain(number);
+    if (train.coaches.length === 0) return errorResponse('Coach composition is unavailable for this train.', 503);
     const coaches = train.coaches.map((c, i) => ({
       position: i + 1,
       coachId: c.coachId,
@@ -64,29 +65,10 @@ export async function GET(
       },
     });
   } catch (err) {
-    // Ultimate fallback so the user's 3D rake never fails
     const { number } = await params;
-    const train = getOrSynthesizeTrain(number || '18403');
-    return successResponse({
-      trainNumber: train.trainNumber,
-      trainName: train.trainName,
-      rakeType: train.rakeType,
-      totalCoaches: train.coaches.length,
-      coaches: train.coaches.map((c, i) => ({
-        position: i + 1,
-        coachId: c.coachId,
-        coachType: c.coachType,
-        coachClass: c.coachType,
-        classCode: c.coachType,
-        category: 'PASSENGER',
-        berthCount: c.berthCount,
-      })),
-      meta: {
-        requestId: 'fallback-error',
-        generatedAt: new Date().toISOString(),
-        source: 'EMERGENCY_RAKE_FALLBACK',
-      },
-    });
+    const train = getOrSynthesizeTrain(number);
+    if (train.coaches.length > 0) return successResponse({ trainNumber: train.trainNumber, trainName: train.trainName, rakeType: train.rakeType, totalCoaches: train.coaches.length, coaches: train.coaches.map((c, i) => ({ position: i + 1, coachId: c.coachId, coachType: c.coachType, coachClass: c.coachType, classCode: c.coachType, category: 'PASSENGER', berthCount: c.berthCount })), meta: { generatedAt: new Date().toISOString(), source: 'LOCAL_DIRECTORY', live: false } });
+    return errorResponse(err instanceof Error ? err.message : 'Coach composition unavailable.', 503);
   }
 }
 

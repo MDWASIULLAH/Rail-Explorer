@@ -104,28 +104,27 @@ export default function LiveStatusFeed({
     timeline,
     statusConfidence,
   } = analyzedJourney;
+  const hasProviderPosition = statusConfidence === 'LIVE_REPORTED' || statusConfidence === 'GPS_REPORTED';
 
   const isAtStation = position.isAtStation;
   const isNotStarted =
     trainStatus?.status === 'NOT_STARTED' ||
-    statusConfidence === 'NOT_STARTED' ||
-    (completedStops === 0 && !position.isMoving);
+    statusConfidence === 'NOT_STARTED';
 
-  // Speed resolution: strictly ensure a valid number, never empty or null
-  let displaySpeed = 0;
-  let speedStatusLabel = 'Halted';
+  let displaySpeed: number | null = null;
+  let speedStatusLabel = 'Speed not reported';
   if (isNotStarted) {
     displaySpeed = 0;
     speedStatusLabel = 'Halted at Origin Station';
-  } else if (isAtStation) {
+  } else if (isAtStation && trainStatus?.status) {
     displaySpeed = 0;
     speedStatusLabel = 'Stationed at Platform';
   } else if (position.isMoving) {
-    displaySpeed = position.speedKmph || trainStatus?.speedKmph || 88;
-    speedStatusLabel = 'Cruising Speed';
+    displaySpeed = trainStatus?.speedKmph ?? position.speedKmph;
+    speedStatusLabel = displaySpeed === null ? 'Speed not reported' : 'Provider reported speed';
   } else {
-    displaySpeed = trainStatus?.speedKmph ?? position.speedKmph ?? 0;
-    speedStatusLabel = displaySpeed > 0 ? 'Reported Speed' : 'Halted';
+    displaySpeed = trainStatus?.speedKmph ?? position.speedKmph;
+    speedStatusLabel = displaySpeed === null ? 'Speed not reported' : 'Provider reported speed';
   }
 
   // Origin check to prevent duplicate station display
@@ -144,8 +143,8 @@ export default function LiveStatusFeed({
   const stn1Label = isAtOrigin ? 'ORIGIN STATION' : 'PREVIOUS HALT';
   const stn1Name = isAtOrigin ? origin.name : position.previousStationName || origin.name;
   const stn1Code = isAtOrigin ? origin.code : position.previousStationCode || origin.code;
-  const stn1Pf = platformMap[stn1Code?.toUpperCase()] || firstHalt?.platform || 'PF 2';
-  const stn1Time = firstHalt?.scheduledDeparture || '21:00';
+  const stn1Pf = platformMap[stn1Code?.toUpperCase()] || firstHalt?.platform || 'Not reported';
+  const stn1Time = firstHalt?.scheduledDeparture || '--:--';
   const stn1Tag = isAtOrigin ? 'Journey Begins Here' : `Departed (${position.distanceCoveredFromPrevKm} km passed)`;
 
   // Station 2: Current Location
@@ -174,16 +173,24 @@ export default function LiveStatusFeed({
   const stn3Code = isAtOrigin
     ? secondHalt?.stationCode || position.nextStationCode
     : position.nextStationCode || destination.code;
-  const stn3Pf = platformMap[stn3Code?.toUpperCase()] || (isAtOrigin ? secondHalt?.platform || 'PF 1' : nextHalt?.platform || 'PF 1');
+  const stn3Pf = platformMap[stn3Code?.toUpperCase()] || (isAtOrigin ? secondHalt?.platform : nextHalt?.platform) || 'Not reported';
   const stn3Dist = isAtOrigin
-    ? secondHalt?.distance || position.distanceToNextKm || 7
+    ? secondHalt?.distance ?? position.distanceToNextKm
     : position.distanceToNextKm;
   const stn3Eta = isAtOrigin
-    ? secondHalt?.scheduledArrival || position.nextStationEta || '21:07'
+    ? secondHalt?.scheduledArrival || position.nextStationEta || '--:--'
     : position.nextStationEta;
 
   // Status Badge Configuration
   const statusBadge = (() => {
+    if (!trainStatus && statusConfidence === 'SCHEDULE_BASED') {
+      return {
+        pill: 'Status unavailable',
+        tagBg: 'bg-slate-500/20 border-slate-500/40 text-slate-300',
+        dot: 'bg-slate-400',
+        headline: 'The timetable is available, but a live running update could not be verified.',
+      };
+    }
     if (isNotStarted) {
       return {
         pill: '● Awaiting Departure',
@@ -205,14 +212,14 @@ export default function LiveStatusFeed({
         pill: `● Delayed by ${position.delayMinutes}m`,
         tagBg: 'bg-rose-500/20 border-rose-500/40 text-rose-300',
         dot: 'bg-rose-400 animate-pulse',
-        headline: `Running late by ${position.delayMinutes} min · Cruising at ${displaySpeed} km/h · Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationName}`,
+        headline: `Running late by ${position.delayMinutes} min · ${displaySpeed === null ? 'Speed not reported' : `Cruising at ${displaySpeed} km/h`} · Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationName}`,
       };
     }
     return {
       pill: '● Running On Time',
       tagBg: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
       dot: 'bg-emerald-400 animate-pulse',
-      headline: `Cruising at ${displaySpeed} km/h · Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationName} (${position.distanceToNextKm} km to ${position.nextStationName})`,
+      headline: `${displaySpeed === null ? 'Speed not reported' : `Cruising at ${displaySpeed} km/h`} · Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationName} (${position.distanceToNextKm} km to ${position.nextStationName})`,
     };
   })();
 
@@ -227,12 +234,12 @@ export default function LiveStatusFeed({
       {/* Top Header / Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-          <span className="text-xs uppercase font-extrabold text-emerald-400 tracking-wider">
-            Live Running Status Feed
+          <span className={`w-2.5 h-2.5 rounded-full ${hasProviderPosition ? 'bg-emerald-400 animate-ping' : 'bg-blue-400'}`} />
+          <span className={`text-xs uppercase font-extrabold tracking-wider ${hasProviderPosition ? 'text-emerald-400' : 'text-blue-300'}`}>
+            {hasProviderPosition ? 'Live Running Status Feed' : 'Published Timetable'}
           </span>
           <span className="text-xs text-slate-500 font-mono hidden sm:inline">
-            · WGS84 Satellite & Timetable
+            · Provider status and schedule
           </span>
         </div>
 
@@ -302,7 +309,7 @@ export default function LiveStatusFeed({
             </div>
             <div className="text-lg sm:text-xl font-black text-white mt-0.5 flex items-center gap-1.5 justify-end">
               <Gauge className="w-4 h-4 text-emerald-400" />
-              <span>{displaySpeed} km/h</span>
+              <span>{displaySpeed === null ? '—' : `${displaySpeed} km/h`}</span>
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
               {speedStatusLabel}
@@ -319,7 +326,7 @@ export default function LiveStatusFeed({
               <span>Speed</span>
             </div>
             <div className="text-lg sm:text-xl font-black text-white mt-1">
-              {displaySpeed} <span className="text-xs font-normal text-slate-400">km/h</span>
+              {displaySpeed ?? '—'} <span className="text-xs font-normal text-slate-400">{displaySpeed === null ? '' : 'km/h'}</span>
             </div>
             <div className="text-[11px] text-slate-400 truncate mt-0.5">
               {isMoving(displaySpeed, isNotStarted) ? 'Cruising on mainline' : 'Halted at Origin'}
@@ -336,7 +343,7 @@ export default function LiveStatusFeed({
               {stn3Name}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              in {stn3Dist} km · ETA {stn3Eta}
+              {stn3Dist > 0 ? `in ${stn3Dist} km` : 'Distance not reported'} · ETA {stn3Eta}
             </div>
           </div>
 
@@ -427,7 +434,7 @@ export default function LiveStatusFeed({
               <span>ETA: {stn3Eta}</span>
             </div>
             <div className="mt-2 text-[11px] text-slate-400 font-medium">
-              Distance: {stn3Dist} km
+              Distance: {stn3Dist > 0 ? `${stn3Dist} km` : 'Not reported'}
             </div>
           </div>
         </div>
@@ -555,7 +562,7 @@ export default function LiveStatusFeed({
                     {/* Platform */}
                     <td className="px-3 py-3 text-center font-mono">
                       <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px] font-bold">
-                        {platformMap[stn.stationCode.toUpperCase()] || stn.platform}
+                        {platformMap[stn.stationCode.toUpperCase()] || stn.platform || 'Not reported'}
                       </span>
                     </td>
 
@@ -627,7 +634,7 @@ export default function LiveStatusFeed({
   );
 }
 
-function isMoving(speed: number, isNotStarted: boolean): boolean {
-  return speed > 0 && !isNotStarted;
+function isMoving(speed: number | null, isNotStarted: boolean): boolean {
+  return typeof speed === 'number' && speed > 0 && !isNotStarted;
 }
 

@@ -246,7 +246,7 @@ export default function VerticalRailwayTimeline({
 
                     {!isPassingHalt && (
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 flex-wrap">
-                        <span className="text-[11px] font-semibold text-sky-400">{station.platform}</span>
+                        <span className="text-[11px] font-semibold text-sky-400">{station.platform || 'Platform not reported'}</span>
                         {station.haltMinutes > 0 && (
                           <span className="text-[10px] text-slate-500">· Halt: {station.haltMinutes}m</span>
                         )}

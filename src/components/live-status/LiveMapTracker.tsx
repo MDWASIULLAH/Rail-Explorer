@@ -306,7 +306,7 @@ export default function LiveMapTracker({
               : ''
           }
           <div class="grid grid-cols-2 gap-1 text-[11px] mb-1">
-            <div><span class="text-slate-500">Platform:</span> <strong class="text-slate-900">${stn.platform}</strong></div>
+            <div><span class="text-slate-500">Platform:</span> <strong class="text-slate-900">${stn.platform || 'Not reported'}</strong></div>
             <div><span class="text-slate-500">Distance:</span> <strong class="text-slate-900">${stn.distance} km</strong></div>
             <div><span class="text-slate-500">Sched Arr:</span> ${stn.scheduledArrival || '--'}</div>
             <div><span class="text-slate-500">Sched Dep:</span> ${stn.scheduledDeparture || '--'}</div>

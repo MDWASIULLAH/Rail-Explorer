@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clearOAuthStateCookie, consumeOAuthState, signProviderSession } from '@/lib/auth-session';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -7,17 +8,8 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state');
 
   // Parse state to retrieve return destination
-  let returnTo = '/';
-  if (state) {
-    try {
-      const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-      if (parsed.returnTo && typeof parsed.returnTo === 'string' && parsed.returnTo.startsWith('/')) {
-        returnTo = parsed.returnTo;
-      }
-    } catch {
-      // ignore parse errors and fallback to '/'
-    }
-  }
+  const returnTo = consumeOAuthState(request, 'google', state);
+  if (!returnTo) return NextResponse.redirect(new URL('/login?error=invalid_oauth_state', request.url));
 
   const host = request.headers.get('host') || 'railexplorer.vercel.app';
   const proto = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
@@ -87,13 +79,14 @@ export async function GET(request: NextRequest) {
 
     // 3. Create redirect response and set secure session cookie
     const response = NextResponse.redirect(`${baseOrigin}${returnTo}`);
-    response.cookies.set('rail_session', JSON.stringify(userSession), {
-      httpOnly: false, // Accessible to client context for immediate hydration
+    response.cookies.set('rail_session', signProviderSession(userSession), {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
+    clearOAuthStateCookie(response, 'google');
 
     return response;
   } catch (err: any) {

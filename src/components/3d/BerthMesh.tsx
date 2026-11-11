@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
-import type { BerthPosition, BerthType } from '@/data/coach-database';
+import type { BerthDimensions, BerthPosition, BerthType } from '@/data/coach-database';
 
 const BERTH_COLORS: Record<BerthType, string> = {
   LB: '#22c55e',
@@ -12,7 +12,7 @@ const BERTH_COLORS: Record<BerthType, string> = {
   UB: '#f97316',
   SL: '#3b82f6',
   SU: '#06b6d4',
-  SEAT: '#8b5cf6',
+  SEAT: '#0f766e',
   CABIN_LB: '#22c55e',
   CABIN_UB: '#f97316',
   COUPE_LB: '#10b981',
@@ -23,18 +23,21 @@ interface BerthMeshProps {
   berth: BerthPosition;
   isSelected: boolean;
   isHighlighted: boolean;
+  dimensions?: BerthDimensions;
+  isGeneralSeat?: boolean;
   onClick: (berthNumber: number) => void;
 }
 
-export default function BerthMesh({ berth, isSelected, isHighlighted, onClick }: BerthMeshProps) {
+export default function BerthMesh({ berth, isSelected, isHighlighted, onClick, dimensions, isGeneralSeat = false }: BerthMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
   const baseColor = BERTH_COLORS[berth.berthType] || '#666666';
 
-  const berthWidth = berth.berthType === 'SEAT' ? 0.4 : 0.6;
-  const berthLength = berth.berthType === 'SEAT' ? 0.4 : 1.8;
+  const berthWidth = Math.max(0.4, (dimensions?.width || 600) / 1000);
+  const berthLength = Math.max(0.4, (dimensions?.length || 1800) / 1000);
   const berthHeight = 0.08;
+  const isSeat = berth.berthType === 'SEAT';
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
@@ -50,6 +53,18 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick }:
 
   return (
     <group position={[berth.x, berth.y, berth.z]}>
+      {isGeneralSeat && (
+        <>
+          <mesh position={[0, -0.06, 0]}>
+            <boxGeometry args={[berthLength, 0.12, berthWidth]} />
+            <meshStandardMaterial color="#334155" roughness={0.82} />
+          </mesh>
+          <mesh position={[0, 0.22, berth.z > 0 ? 0.20 : -0.20]}>
+            <boxGeometry args={[berthLength, 0.46, 0.08]} />
+            <meshStandardMaterial color="#475569" roughness={0.78} />
+          </mesh>
+        </>
+      )}
       <mesh
         ref={meshRef}
         onClick={(e) => { e.stopPropagation(); onClick(berth.berthNumber); }}
@@ -58,7 +73,7 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick }:
         castShadow
         receiveShadow
       >
-        <boxGeometry args={[berthLength, berthHeight, berthWidth]} />
+        <boxGeometry args={[berthLength, isGeneralSeat ? 0.12 : berthHeight, berthWidth]} />
         <meshStandardMaterial
           color={baseColor}
           emissive={baseColor}
@@ -68,7 +83,7 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick }:
         />
       </mesh>
       {/* Pillow/cushion accent */}
-      {berth.berthType !== 'SEAT' && (
+      {!isSeat && (
         <mesh position={[berthLength * 0.38, berthHeight * 0.8, 0]}>
           <boxGeometry args={[0.3, 0.06, berthWidth * 0.8]} />
           <meshStandardMaterial color="#e2e8f0" roughness={0.8} />
@@ -76,7 +91,7 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick }:
       )}
       {/* Berth number label */}
       <Text
-        position={[0, berthHeight + 0.15, 0]}
+        position={[0, (isGeneralSeat ? 0.32 : berthHeight) + 0.15, 0]}
         fontSize={0.12}
         color={isSelected ? '#fbbf24' : '#ffffff'}
         anchorX="center"

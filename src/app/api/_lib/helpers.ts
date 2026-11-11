@@ -2,11 +2,8 @@
  * Shared helpers for API route handlers
  */
 
-/** Standard CORS headers applied to every API response */
+/** Same-origin API responses; do not grant arbitrary cross-origin access. */
 export const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'X-Content-Type-Options': 'nosniff',
 };
 
@@ -38,9 +35,22 @@ export function errorResponse(error: string, status: number = 500): Response {
   return jsonResponse({ success: false, data: null, error }, status);
 }
 
+export function privateErrorResponse(error: string, status: number): Response {
+  return Response.json({ success: false, data: null, error }, {
+    status,
+    headers: { ...corsHeaders, 'Cache-Control': 'no-store, max-age=0' },
+  });
+}
+
+export function privateSuccessResponse<T>(data: T): Response {
+  return Response.json({ success: true, data, error: null }, {
+    headers: { ...corsHeaders, 'Cache-Control': 'no-store, max-age=0' },
+  });
+}
+
 /** Preflight OPTIONS handler — reuse across all routes */
 export function handleOptions(): Response {
-  return new Response(null, { status: 204, headers: corsHeaders });
+  return new Response(null, { status: 204, headers: { Allow: 'GET, OPTIONS' } });
 }
 
 /** Validate that a string is a plausible Indian train number (1-5 digits) */

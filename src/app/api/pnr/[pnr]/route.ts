@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server';
 import { getPnrStatus } from '@/lib/railway-api';
 import {
-  successResponse,
-  errorResponse,
+  privateSuccessResponse,
+  privateErrorResponse,
   handleOptions,
   isValidPnr,
 } from '../../_lib/helpers';
@@ -20,7 +20,7 @@ export async function GET(
     const { pnr } = await params;
 
     if (!isValidPnr(pnr)) {
-      return errorResponse(
+      return privateErrorResponse(
         'Invalid PNR number. Must be exactly 10 digits.',
         400,
       );
@@ -29,19 +29,19 @@ export async function GET(
     const result = await getPnrStatus(pnr);
 
     if (result.status === 'ERROR') {
-      return errorResponse(
+      return privateErrorResponse(
         result.error ?? 'Failed to fetch PNR status',
         502,
       );
     }
 
-    return successResponse({
+    return privateSuccessResponse({
       pnr,
       ...result.data,
       meta: result.meta,
     });
   } catch (err) {
-    return errorResponse(
+    return privateErrorResponse(
       err instanceof Error ? err.message : 'Internal server error',
       500,
     );

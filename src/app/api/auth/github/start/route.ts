@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { applyOAuthStateCookie, createOAuthState } from '@/lib/auth-session';
 
 export async function GET(request: NextRequest) {
   const clientId =
@@ -19,16 +20,16 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${baseOrigin}/api/auth/callback/github`;
 
   // Encode state with returnTo
-  const statePayload = Buffer.from(
-    JSON.stringify({ returnTo, ts: Date.now() })
-  ).toString('base64url');
+  const oauthState = createOAuthState(returnTo);
 
   const githubAuthUrl = new URL('https://github.com/login/oauth/authorize');
   githubAuthUrl.searchParams.set('client_id', clientId);
   githubAuthUrl.searchParams.set('redirect_uri', redirectUri);
   githubAuthUrl.searchParams.set('scope', 'read:user user:email');
-  githubAuthUrl.searchParams.set('state', statePayload);
+  githubAuthUrl.searchParams.set('state', oauthState.state);
 
-  return NextResponse.redirect(githubAuthUrl.toString());
+  const response = NextResponse.redirect(githubAuthUrl.toString());
+  applyOAuthStateCookie(response, 'github', oauthState.cookieValue);
+  return response;
 }
 

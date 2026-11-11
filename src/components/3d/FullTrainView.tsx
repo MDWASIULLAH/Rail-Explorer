@@ -150,7 +150,7 @@ function AtStationEnvironment({
                 <meshStandardMaterial color="#1d4ed8" roughness={0.3} />
               </mesh>
               <Text position={[0, 0.08, 0.05]} fontSize={0.24} color="#ffffff" anchorX="center" anchorY="middle" fontWeight="bold">
-                PF 2
+                PLATFORM
               </Text>
               <Text position={[0, -0.16, 0.05]} fontSize={0.12} color="#93c5fd" anchorX="center" anchorY="middle">
                 प्लेटफार्म 2

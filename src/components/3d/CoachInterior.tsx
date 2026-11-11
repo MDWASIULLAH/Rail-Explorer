@@ -253,6 +253,8 @@ export default function CoachInterior({
           berth={berth}
           isSelected={selectedBerth === berth.berthNumber}
           isHighlighted={highlightedBerths.includes(berth.berthNumber)}
+          dimensions={blueprint.berthDimensions[berth.berthType]}
+          isGeneralSeat={blueprint.category === 'GS'}
           onClick={onBerthClick}
         />
       ))}
