@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSeatSwapAdminClient, getSeatSwapErrorMessage, getSeatSwapUser } from '@/lib/seat-swap-server';
 
 export async function GET(request: Request) {
-  const user = getSeatSwapUser(request);
+  const user = await getSeatSwapUser(request);
   if (!user) return NextResponse.json({ success: false, error: 'Sign in to view shared seat swaps.' }, { status: 401 });
 
   const db = getSeatSwapAdminClient();
@@ -115,7 +115,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = getSeatSwapUser(request);
+  const user = await getSeatSwapUser(request);
   if (!user) return NextResponse.json({ success: false, error: 'Sign in to list a berth.' }, { status: 401 });
   const db = getSeatSwapAdminClient();
   if (!db) return NextResponse.json({ success: false, error: 'Shared seat swaps are not configured.' }, { status: 503 });

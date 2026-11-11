@@ -1,5 +1,4 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { verifyProviderSession } from '@/lib/auth-session';
 
 export interface SwapServerUser {
   id: string;
@@ -9,6 +8,7 @@ export interface SwapServerUser {
 }
 
 let adminClient: SupabaseClient | null | undefined;
+let authClient: SupabaseClient | null | undefined;
 
 export function getSeatSwapAdminClient(): SupabaseClient | null {
   if (adminClient !== undefined) return adminClient;
@@ -22,12 +22,31 @@ export function getSeatSwapAdminClient(): SupabaseClient | null {
   return adminClient;
 }
 
-export function getSeatSwapUser(request: Request): SwapServerUser | null {
-  const cookie = request.headers.get('cookie') || '';
-  const session = cookie.match(/(?:^|;\s*)rail_session=([^;]+)/)?.[1];
-  if (!session) return null;
+export async function getSeatSwapUser(request: Request): Promise<SwapServerUser | null> {
+  const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return null;
   try {
-    return verifyProviderSession(decodeURIComponent(session));
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anonKey) return null;
+    if (authClient === undefined) {
+      authClient = createClient(url, anonKey, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+    }
+    if (!authClient) return null;
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data.user?.id || !data.user.email) return null;
+    const profile = data.user;
+    const email = profile.email;
+    if (!email) return null;
+    const rawProvider = String(profile.app_metadata?.provider || 'supabase');
+    return {
+      id: profile.id,
+      email,
+      name: String(profile.user_metadata?.full_name || profile.user_metadata?.name || profile.user_metadata?.user_name || email.split('@')[0] || 'Passenger'),
+      provider: rawProvider,
+    };
   } catch {
     return null;
   }

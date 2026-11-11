@@ -243,16 +243,16 @@ function MovingRake({ paused }: { paused: boolean }) {
         </mesh>
       ))}
       {/* Generic Indian station platform and canopy, kept deliberately unlabelled. */}
-      <mesh position={[3.65, -0.2, -10]}>
+      <mesh position={[8.7, -0.2, -10]}>
         <boxGeometry args={[2.5, 0.32, 74]} />
         <meshStandardMaterial color="#4b5563" roughness={0.9} />
       </mesh>
-      <mesh position={[4.55, 4.65, -10]}>
+      <mesh position={[9.6, 4.65, -10]}>
         <boxGeometry args={[5.2, 0.18, 44]} />
         <meshStandardMaterial color="#26374b" metalness={0.22} roughness={0.72} />
       </mesh>
       {[-29, -20, -11, -2, 7].map((z) => (
-        <group key={`platform-lamp-${z}`} position={[4.45, 0, z]}>
+        <group key={`platform-lamp-${z}`} position={[9.45, 0, z]}>
           <mesh position={[0, 2.25, 0]}><boxGeometry args={[0.12, 4.5, 0.12]} /><meshStandardMaterial color="#64748b" metalness={0.5} /></mesh>
           <mesh position={[0, 4.4, 0]}><boxGeometry args={[1.05, 0.08, 0.24]} /><meshBasicMaterial color="#c5e7ff" /></mesh>
           <pointLight position={[-0.25, 4.15, 0]} intensity={0.65} distance={10} color="#dceeff" />
@@ -269,8 +269,8 @@ function CameraJourney({ reducedMotion }: { reducedMotion: boolean }) {
     const mix = (start: number, end: number, value: number) => THREE.MathUtils.smoothstep(value, start, end);
     const insideStart = new THREE.Vector3(0, 1.62, 4.25);
     const windowExit = new THREE.Vector3(2.65, 2.2, -1.4);
-    const outsideWide = new THREE.Vector3(10.5, 4.1, 1.5);
-    const outsideTrack = new THREE.Vector3(15.5, 4.7, -12);
+    const outsideWide = new THREE.Vector3(6.2, 3.8, 2.4);
+    const outsideTrack = new THREE.Vector3(7.2, 3.7, -9);
     const lookInside = new THREE.Vector3(0, 1.35, -12);
     const lookWindow = new THREE.Vector3(0, 1.65, -1.4);
     const lookRake = new THREE.Vector3(0, 1.2, -15);
@@ -327,6 +327,8 @@ export default function HeroTrainBackground() {
         fallback={<div className="absolute inset-0 bg-slate-950" />}
       >
         <CameraJourney reducedMotion={reducedMotion} />
+        <ambientLight intensity={1.3} color="#c5ddff" />
+        <directionalLight position={[4, 7, 5]} intensity={1.6} color="#e7f2ff" />
         <CoachInterior paused={reducedMotion} />
         <MovingRake paused={reducedMotion} />
       </Canvas>

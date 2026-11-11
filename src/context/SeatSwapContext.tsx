@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { SwapOffer, SwapProposal } from '@/types/seat-swap';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export interface SwapNotification {
   id: string;
@@ -45,6 +46,14 @@ const SWAP_STORAGE_KEY = 'rail_seat_swaps_v3';
 const PROPOSAL_STORAGE_KEY = 'rail_seat_proposals_v3';
 const NOTIFICATION_STORAGE_KEY = 'rail_seat_swap_notifications_v1';
 
+async function seatSwapAuthHeaders(contentType?: string) {
+  const headers = new Headers();
+  if (contentType) headers.set('Content-Type', contentType);
+  const { data } = await supabase?.auth.getSession() || { data: { session: null } };
+  if (data.session?.access_token) headers.set('Authorization', `Bearer ${data.session.access_token}`);
+  return headers;
+}
+
 export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [offers, setOffers] = useState<SwapOffer[]>([]);
@@ -65,7 +74,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
 
   const refreshShared = useCallback(async () => {
     try {
-      const response = await fetch('/api/seat-swaps', { cache: 'no-store' });
+      const response = await fetch('/api/seat-swaps', { cache: 'no-store', headers: await seatSwapAuthHeaders() });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || 'Shared swap service is unavailable.');
       const data = result.data as { offers?: SwapOffer[]; proposals?: SwapProposal[]; notifications?: SwapNotification[] };
@@ -98,7 +107,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       if (legacyOffers.length) {
         try {
           await fetch('/api/seat-swaps/sync', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: await seatSwapAuthHeaders('application/json'),
             body: JSON.stringify({ offers: legacyOffers }),
           });
         } catch { /* refresh below reports backend availability */ }
@@ -199,7 +208,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       updateOffers((prev) => [newOffer, ...prev]);
       try {
         const response = await fetch('/api/seat-swaps', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newOffer),
+          method: 'POST', headers: await seatSwapAuthHeaders('application/json'), body: JSON.stringify(newOffer),
         });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.error || 'Could not share this listing.');
@@ -228,7 +237,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       };
       try {
         const response = await fetch('/api/seat-swaps/actions', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: await seatSwapAuthHeaders('application/json'),
           body: JSON.stringify({ action: 'propose', offerId: newProposal.offerId, proposalId: newProposal.id, payload: newProposal }),
         });
         const result = await response.json();
@@ -254,7 +263,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
     if (!currentUserOwnsOffer) return;
 
     try {
-      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'accept', proposalId }) });
+      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: await seatSwapAuthHeaders('application/json'), body: JSON.stringify({ action: 'accept', proposalId }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || 'Could not accept this proposal.');
       await refreshShared();
@@ -267,7 +276,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
     const targetOffer = offersRef.current.find((offer) => offer.id === targetProposal.offerId);
     if (targetOffer?.status === 'SWAP_ACCEPTED') return;
     try {
-      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'decline', proposalId }) });
+      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: await seatSwapAuthHeaders('application/json'), body: JSON.stringify({ action: 'decline', proposalId }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || 'Could not decline this proposal.');
       await refreshShared();
@@ -276,7 +285,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
 
   const deleteOffer = useCallback(async (offerId: string) => {
     try {
-      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', offerId }) });
+      const response = await fetch('/api/seat-swaps/actions', { method: 'POST', headers: await seatSwapAuthHeaders('application/json'), body: JSON.stringify({ action: 'delete', offerId }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || 'Could not remove this listing.');
       await refreshShared();
