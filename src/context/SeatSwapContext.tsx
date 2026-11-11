@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { SwapOffer, SwapProposal } from '@/types/seat-swap';
-import { INITIAL_SWAP_OFFERS } from '@/data/mock-seat-swaps';
 
 interface SeatSwapContextType {
   offers: SwapOffer[];
@@ -23,8 +22,8 @@ interface SeatSwapContextType {
 
 const SeatSwapContext = createContext<SeatSwapContextType | null>(null);
 
-const SWAP_STORAGE_KEY = 'rail_seat_swaps_v1';
-const PROPOSAL_STORAGE_KEY = 'rail_seat_proposals_v1';
+const SWAP_STORAGE_KEY = 'rail_seat_swaps_v2';
+const PROPOSAL_STORAGE_KEY = 'rail_seat_proposals_v2';
 
 export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   const [offers, setOffers] = useState<SwapOffer[]>([]);
@@ -37,19 +36,15 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   const [prefilledBerth, setPrefilledBerth] = useState<number | null>(null);
   const [prefilledTrain, setPrefilledTrain] = useState<string | null>(null);
 
-  // 1. Load from storage
+  // Load from storage — no mock data; only real user-created offers persist
   useEffect(() => {
     try {
       const storedOffers = localStorage.getItem(SWAP_STORAGE_KEY);
       if (storedOffers) {
         const parsed = JSON.parse(storedOffers);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setOffers(parsed);
-        } else {
-          setOffers(INITIAL_SWAP_OFFERS);
         }
-      } else {
-        setOffers(INITIAL_SWAP_OFFERS);
       }
 
       const storedProps = localStorage.getItem(PROPOSAL_STORAGE_KEY);
@@ -58,12 +53,11 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e) {
       console.warn('Error loading seat swaps:', e);
-      setOffers(INITIAL_SWAP_OFFERS);
     }
     setIsLoaded(true);
   }, []);
 
-  // 2. Persist
+  // Persist
   useEffect(() => {
     if (!isLoaded) return;
     try {
@@ -80,7 +74,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
     (newOfferData: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => {
       const newOffer: SwapOffer = {
         ...newOfferData,
-        id: `swap-${Date.now()}`,
+        id: `swap-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         status: 'AVAILABLE',
         isCurrentUser: true,
         createdAt: new Date().toISOString(),
@@ -95,7 +89,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
     (proposalData: Omit<SwapProposal, 'id' | 'createdAt' | 'status'>) => {
       const newProposal: SwapProposal = {
         ...proposalData,
-        id: `prop-${Date.now()}`,
+        id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         status: 'PENDING',
         createdAt: new Date().toISOString(),
       };
@@ -137,6 +131,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       return offers.filter((candidate) => {
         if (candidate.id === targetOffer.id) return false;
         if (candidate.trainNumber !== targetOffer.trainNumber) return false;
+        if (candidate.status !== 'AVAILABLE') return false;
 
         // Check if candidate coach matches target desire
         const candidateCoachOk =

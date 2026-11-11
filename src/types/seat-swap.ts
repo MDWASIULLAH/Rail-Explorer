@@ -42,3 +42,4 @@ export interface SwapProposal {
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
   createdAt: string;
 }
+
