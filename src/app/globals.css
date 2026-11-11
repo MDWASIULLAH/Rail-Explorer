@@ -74,9 +74,13 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 43%, rgb(16 25 35 / 94%) 0%, rgb(16 25 35 / 84%) 34%, rgb(16 25 35 / 18%) 76%),
-    linear-gradient(180deg, rgb(16 25 35 / 42%) 0%, transparent 55%, rgb(16 25 35 / 76%) 100%);
+    linear-gradient(180deg, rgb(16 25 35 / 78%) 0%, rgb(16 25 35 / 66%) 43%, rgb(16 25 35 / 88%) 100%),
+    radial-gradient(ellipse at 50% 42%, rgb(16 25 35 / 56%) 0%, rgb(16 25 35 / 34%) 52%, transparent 82%);
   pointer-events: none;
+}
+
+.home-hero-canvas {
+  opacity: 0.48;
 }
 
 .home-feature-icon {
@@ -177,5 +181,15 @@ html {
   .home-hero-title {
     font-size: clamp(2.15rem, 8.4vw, 3.1rem);
     line-height: 1.07;
+  }
+
+  .home-hero-canvas {
+    opacity: 0.28;
+  }
+
+  .home-scene-wash {
+    background:
+      linear-gradient(180deg, rgb(16 25 35 / 84%) 0%, rgb(16 25 35 / 78%) 50%, rgb(16 25 35 / 93%) 100%),
+      radial-gradient(ellipse at 50% 42%, rgb(16 25 35 / 52%) 0%, transparent 76%);
   }
 }

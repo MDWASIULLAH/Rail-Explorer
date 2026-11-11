@@ -84,6 +84,8 @@ export default function NavigationHeader() {
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLElement>(null);
+  const mobileToggleRef = useRef<HTMLButtonElement>(null);
 
   const handleHorn = () => {
     setHornBlasting(true);
@@ -100,10 +102,28 @@ export default function NavigationHeader() {
       if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
         setMoreMenuOpen(false);
       }
+      if (
+        mobileOpen &&
+        !mobileMenuRef.current?.contains(event.target as Node) &&
+        !mobileToggleRef.current?.contains(event.target as Node)
+      ) {
+        setMobileOpen(false);
+      }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setMobileOpen(false);
+        setUserMenuOpen(false);
+        setMoreMenuOpen(false);
+      }
+    }
+    document.addEventListener('pointerdown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [mobileOpen]);
 
   const pendingSwapsCount = incomingProposals.filter((p) => p.status === 'PENDING').length;
 
@@ -361,9 +381,11 @@ export default function NavigationHeader() {
 
               {/* Mobile Menu Toggle Button */}
               <button
-                className="lg:hidden p-2 text-slate-300 hover:text-white"
+                ref={mobileToggleRef}
+                className="lg:hidden min-h-11 min-w-11 p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
                 onClick={() => setMobileOpen(!mobileOpen)}
                 aria-label="Toggle Navigation"
+                aria-expanded={mobileOpen}
               >
                 {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -373,7 +395,7 @@ export default function NavigationHeader() {
 
         {/* Mobile Navigation Drawer */}
         {mobileOpen && (
-          <nav className="lg:hidden bg-slate-900 border-t border-slate-700/50 pb-4 max-h-[85vh] overflow-y-auto">
+          <nav ref={mobileMenuRef} className="lg:hidden bg-slate-900 border-t border-slate-700/50 pb-4 max-h-[85vh] overflow-y-auto">
             {user ? (
               <div className="px-5 py-3 border-b border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
@@ -478,7 +500,7 @@ export default function NavigationHeader() {
                   key={href}
                   href={href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-between px-6 py-2.5 text-slate-300 hover:text-white hover:bg-slate-800 transition text-sm"
+                  className="flex min-h-11 items-center justify-between px-6 py-2.5 text-slate-300 hover:text-white hover:bg-slate-800 transition text-sm"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-4 h-4 text-slate-400" />
@@ -501,7 +523,7 @@ export default function NavigationHeader() {
                   key={href}
                   href={href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-6 py-2 text-slate-400 hover:text-white hover:bg-slate-800 transition text-xs"
+                  className="flex min-h-11 items-center gap-3 px-6 py-2 text-slate-400 hover:text-white hover:bg-slate-800 transition text-xs"
                 >
                   <Icon className="w-3.5 h-3.5 text-slate-500" />
                   <span>{label}</span>

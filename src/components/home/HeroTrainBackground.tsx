@@ -323,7 +323,7 @@ export default function HeroTrainBackground() {
     <div className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0" aria-hidden="true">
       <div className="absolute inset-0 bg-[#101923]" />
       <Canvas
-        className="absolute inset-0 !h-full !w-full opacity-75"
+        className="home-hero-canvas absolute inset-0 !h-full !w-full"
         camera={{ position: reducedMotion ? [9.5, 2.7, -2] : [0, 1.62, 4.25], fov: 62, near: 0.1, far: 60 }}
         onCreated={({ camera }) => {
           if (reducedMotion) camera.lookAt(0, -1.2, -10);

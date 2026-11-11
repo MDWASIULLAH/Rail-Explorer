@@ -31,6 +31,7 @@ import {
   Settings2,
   MousePointer2,
   Moon,
+  X,
 } from 'lucide-react';
 
 interface TrainSceneProps {
@@ -829,7 +830,7 @@ export default function TrainScene({
                   setTargetBayX(bay.x);
                 }
               }}
-              className="min-w-24 appearance-none rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-100 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+              className="min-h-10 min-w-24 appearance-none rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-100 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
             >
               {bayPositions.map((bay) => <option key={bay.bayNumber} value={bay.bayNumber}>Bay {bay.bayNumber}</option>)}
             </select>
@@ -860,7 +861,7 @@ export default function TrainScene({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setWalkSpeedMult((prev) => (prev === 1.0 ? 2.0 : 1.0))}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition ${
+                    className={`min-h-9 px-2 rounded text-[10px] font-bold border transition ${
                       walkSpeedMult > 1.0
                         ? 'bg-amber-500 text-slate-950 border-amber-400'
                         : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -872,27 +873,30 @@ export default function TrainScene({
                   </button>
                   <button
                     onClick={() => setIsDpadOpen(false)}
-                    className="sm:hidden p-1 text-slate-400 hover:text-white rounded"
+                    className="sm:hidden h-9 w-9 text-slate-400 hover:text-white rounded-lg flex items-center justify-center"
                     title="Hide Walkpad"
+                    aria-label="Close walk controls"
                   >
-                    ✕
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
 
               {/* D-Pad Buttons */}
-              <div className="grid grid-cols-3 gap-1 w-28 sm:w-36 mx-auto">
+              <div className="grid grid-cols-3 gap-1 w-36 mx-auto">
               <div />
               {/* Forward Button */}
               <button
                 onMouseDown={() => setVirtualMove((v) => ({ ...v, forward: true }))}
                 onMouseUp={() => setVirtualMove((v) => ({ ...v, forward: false }))}
+                onMouseLeave={() => setVirtualMove((v) => ({ ...v, forward: false }))}
                 onTouchStart={() => setVirtualMove((v) => ({ ...v, forward: true }))}
                 onTouchEnd={() => setVirtualMove((v) => ({ ...v, forward: false }))}
+                onTouchCancel={() => setVirtualMove((v) => ({ ...v, forward: false }))}
                 onClick={() => {
                   setTargetBayX((prev) => (prev === null ? 3.5 : Math.min(prev + 2.0, 21.0)));
                 }}
-                className="h-8 sm:h-10 bg-blue-600 hover:bg-blue-500 active:bg-blue-400 text-white rounded-xl flex items-center justify-center font-bold shadow-lg border border-blue-400/40 active:scale-95"
+                className="h-11 sm:h-10 bg-blue-600 hover:bg-blue-500 active:bg-blue-400 text-white rounded-xl flex items-center justify-center font-bold shadow-lg border border-blue-400/40 active:scale-95 touch-manipulation"
                 title="Walk Forward (Hold or Click / W / Up Arrow / Scroll Up)"
               >
                 <ChevronUp className="w-5 h-5" />
@@ -903,9 +907,11 @@ export default function TrainScene({
               <button
                 onMouseDown={() => setVirtualMove((v) => ({ ...v, left: true }))}
                 onMouseUp={() => setVirtualMove((v) => ({ ...v, left: false }))}
+                onMouseLeave={() => setVirtualMove((v) => ({ ...v, left: false }))}
                 onTouchStart={() => setVirtualMove((v) => ({ ...v, left: true }))}
                 onTouchEnd={() => setVirtualMove((v) => ({ ...v, left: false }))}
-                className="h-8 sm:h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95"
+                onTouchCancel={() => setVirtualMove((v) => ({ ...v, left: false }))}
+                className="h-11 sm:h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95 touch-manipulation"
                 title="Step Left"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -915,12 +921,14 @@ export default function TrainScene({
               <button
                 onMouseDown={() => setVirtualMove((v) => ({ ...v, backward: true }))}
                 onMouseUp={() => setVirtualMove((v) => ({ ...v, backward: false }))}
+                onMouseLeave={() => setVirtualMove((v) => ({ ...v, backward: false }))}
                 onTouchStart={() => setVirtualMove((v) => ({ ...v, backward: true }))}
                 onTouchEnd={() => setVirtualMove((v) => ({ ...v, backward: false }))}
+                onTouchCancel={() => setVirtualMove((v) => ({ ...v, backward: false }))}
                 onClick={() => {
                   setTargetBayX((prev) => (prev === null ? 2.5 : Math.max(prev - 2.0, 2.0)));
                 }}
-                className="h-8 sm:h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95"
+                className="h-11 sm:h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95 touch-manipulation"
                 title="Walk Backward (Hold or Click / S / Down Arrow / Scroll Down)"
               >
                 <ChevronDown className="w-4 h-4" />
@@ -930,9 +938,11 @@ export default function TrainScene({
               <button
                 onMouseDown={() => setVirtualMove((v) => ({ ...v, right: true }))}
                 onMouseUp={() => setVirtualMove((v) => ({ ...v, right: false }))}
+                onMouseLeave={() => setVirtualMove((v) => ({ ...v, right: false }))}
                 onTouchStart={() => setVirtualMove((v) => ({ ...v, right: true }))}
                 onTouchEnd={() => setVirtualMove((v) => ({ ...v, right: false }))}
-                className="h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95"
+                onTouchCancel={() => setVirtualMove((v) => ({ ...v, right: false }))}
+                className="h-11 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95 touch-manipulation"
                 title="Step Right"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -942,9 +952,11 @@ export default function TrainScene({
               <button
                 onMouseDown={() => setVirtualMove((v) => ({ ...v, turnLeft: true }))}
                 onMouseUp={() => setVirtualMove((v) => ({ ...v, turnLeft: false }))}
+                onMouseLeave={() => setVirtualMove((v) => ({ ...v, turnLeft: false }))}
                 onTouchStart={() => setVirtualMove((v) => ({ ...v, turnLeft: true }))}
                 onTouchEnd={() => setVirtualMove((v) => ({ ...v, turnLeft: false }))}
-                className="h-8 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg flex items-center justify-center border border-slate-800 active:scale-95"
+                onTouchCancel={() => setVirtualMove((v) => ({ ...v, turnLeft: false }))}
+                className="h-11 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg flex items-center justify-center border border-slate-800 active:scale-95 touch-manipulation"
                 title="Turn Camera Left (Q)"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -953,7 +965,7 @@ export default function TrainScene({
               {/* Auto Tour Button */}
               <button
                 onClick={() => setAutoTour((prev) => !prev)}
-                className={`h-8 rounded-lg text-[10px] font-black uppercase tracking-tight flex items-center justify-center border transition shadow ${
+                className={`h-11 rounded-lg text-[10px] font-black uppercase tracking-tight flex items-center justify-center border transition shadow touch-manipulation ${
                   autoTour
                     ? 'bg-emerald-500 text-slate-950 border-emerald-400 animate-pulse'
                     : 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border-slate-700'
@@ -967,9 +979,11 @@ export default function TrainScene({
               <button
                 onMouseDown={() => setVirtualMove((v) => ({ ...v, turnRight: true }))}
                 onMouseUp={() => setVirtualMove((v) => ({ ...v, turnRight: false }))}
+                onMouseLeave={() => setVirtualMove((v) => ({ ...v, turnRight: false }))}
                 onTouchStart={() => setVirtualMove((v) => ({ ...v, turnRight: true }))}
                 onTouchEnd={() => setVirtualMove((v) => ({ ...v, turnRight: false }))}
-                className="h-8 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg flex items-center justify-center border border-slate-800 active:scale-95"
+                onTouchCancel={() => setVirtualMove((v) => ({ ...v, turnRight: false }))}
+                className="h-11 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg flex items-center justify-center border border-slate-800 active:scale-95 touch-manipulation"
                 title="Turn Camera Right (E)"
               >
                 <RotateCw className="w-3.5 h-3.5" />
