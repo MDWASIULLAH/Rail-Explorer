@@ -210,6 +210,7 @@ export default function CoachInterior({
   const windowWidth = 0.82;
   const windowHeight = 0.62;
   const windowY = 1.72;
+  const isAirConditioned = ['3A', '3E', '2A', '1A'].includes(blueprint.category);
   const windowCenters = Array.from({ length: windowCount }, (_, i) =>
     0.65 + (i + 0.5) * (coachLen - 1.3) / windowCount,
   );
@@ -294,6 +295,43 @@ export default function CoachInterior({
         <boxGeometry args={[coachLen, 0.06, coachW]} />
         <meshStandardMaterial color="#e2e8f0" roughness={0.5} />
       </mesh>
+
+      {isAirConditioned ? (
+        <group>
+          <mesh position={[coachLen / 2, coachH - 0.13, 0]}>
+            <boxGeometry args={[coachLen - 1.2, 0.14, 0.38]} />
+            <meshStandardMaterial color="#b9c3cc" roughness={0.72} />
+          </mesh>
+          {[-1, 1].map((side) => (
+            <mesh key={`ac-return-${side}`} position={[coachLen / 2, coachH - 0.22, side * 0.31]}>
+              <boxGeometry args={[coachLen - 1.6, 0.035, 0.06]} />
+              <meshStandardMaterial color="#8795a2" roughness={0.5} metalness={0.22} />
+            </mesh>
+          ))}
+        </group>
+      ) : (
+        Array.from({ length: Math.max(3, Math.floor(coachLen / 4.2)) }, (_, fanIndex) => {
+          const fanX = coachLen * (fanIndex + 1) / (Math.max(3, Math.floor(coachLen / 4.2)) + 1);
+          return (
+            <group key={`sleeper-fan-${fanIndex}`} position={[fanX, coachH - 0.18, 0]}>
+              <mesh>
+                <cylinderGeometry args={[0.07, 0.08, 0.08, 16]} />
+                <meshStandardMaterial color="#87929b" roughness={0.42} metalness={0.48} />
+              </mesh>
+              {[0, 1, 2, 3].map((blade) => (
+                <mesh key={blade} position={[Math.cos(blade * Math.PI / 2) * 0.27, -0.045, Math.sin(blade * Math.PI / 2) * 0.27]} rotation={[0, -blade * Math.PI / 2, 0]}>
+                  <boxGeometry args={[0.14, 0.025, 0.52]} />
+                  <meshStandardMaterial color="#8c969f" roughness={0.52} metalness={0.3} />
+                </mesh>
+              ))}
+              <mesh>
+                <sphereGeometry args={[0.07, 12, 12]} />
+                <meshStandardMaterial color="#73808b" roughness={0.35} metalness={0.5} />
+              </mesh>
+            </group>
+          );
+        })
+      )}
 
       {sideWall(-1)}
       {sideWall(1)}
