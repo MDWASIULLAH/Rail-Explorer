@@ -140,8 +140,10 @@ test('4. Berth Finder & Neighbor Analysis', async (t) => {
 
   await t.test('Sleeper has only side lower and side upper berths', () => {
     assert.strictEqual(sleeperBp.berths.length, 80);
-    assert.strictEqual(sleeperBp.berths.filter((berth) => berth.side === 'SIDE' && berth.berthType === 'SL').length, 10);
-    const sideUppers = sleeperBp.berths.filter((berth) => berth.side === 'SIDE' && berth.berthType === 'SU');
+    const sideBerths = sleeperBp.berths.filter((berth) => berth.side === 'SIDE');
+    assert.strictEqual(sideBerths.filter((berth) => berth.berthType === 'SL').length, 10);
+    assert.deepStrictEqual([...new Set(sideBerths.map((berth) => berth.berthType))].sort(), ['SL', 'SU']);
+    const sideUppers = sideBerths.filter((berth) => berth.berthType === 'SU');
     assert.strictEqual(sideUppers.length, 10);
     assert.ok(sideUppers.every((berth) => berth.deck === 2 && berth.y >= 1.3));
   });

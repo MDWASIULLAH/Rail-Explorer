@@ -53,18 +53,6 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick, d
 
   return (
     <group position={[berth.x, berth.y, berth.z]}>
-      {isGeneralSeat && (
-        <>
-          <mesh position={[0, -0.06, 0]}>
-            <boxGeometry args={[berthLength, 0.12, berthWidth]} />
-            <meshStandardMaterial color="#334155" roughness={0.82} />
-          </mesh>
-          <mesh position={[0, 0.22, berth.z > 0 ? 0.20 : -0.20]}>
-            <boxGeometry args={[berthLength, 0.46, 0.08]} />
-            <meshStandardMaterial color="#475569" roughness={0.78} />
-          </mesh>
-        </>
-      )}
       <mesh
         ref={meshRef}
         onClick={(e) => { e.stopPropagation(); onClick(berth.berthNumber); }}
@@ -73,7 +61,7 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick, d
         castShadow
         receiveShadow
       >
-        <boxGeometry args={[berthLength, isGeneralSeat ? 0.12 : berthHeight, berthWidth]} />
+        <boxGeometry args={[isGeneralSeat ? Math.min(berthLength, 0.28) : berthLength, isGeneralSeat ? 0.08 : berthHeight, berthWidth]} />
         <meshStandardMaterial
           color={baseColor}
           emissive={baseColor}
@@ -91,8 +79,8 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick, d
       )}
       {/* Berth number label */}
       <Text
-        position={[0, (isGeneralSeat ? 0.32 : berthHeight) + 0.15, 0]}
-        fontSize={0.12}
+        position={[0, (isGeneralSeat ? 0.12 : berthHeight) + 0.1, 0]}
+        fontSize={isGeneralSeat ? 0.08 : 0.12}
         color={isSelected ? '#fbbf24' : '#ffffff'}
         anchorX="center"
         anchorY="middle"

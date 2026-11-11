@@ -247,6 +247,37 @@ export default function CoachInterior({
       })}
 
       {/* Berths */}
+      {blueprint.category === 'GS' && Array.from({ length: blueprint.totalBays }, (_, bayIndex) => {
+        const bayNumber = bayIndex + 1;
+        return (['LEFT', 'RIGHT'] as const).map((side) => {
+          const seats = blueprint.berths.filter((berth) => berth.bayNumber === bayNumber && berth.side === side);
+          if (!seats.length) return null;
+
+          const minX = Math.min(...seats.map((seat) => seat.x));
+          const maxX = Math.max(...seats.map((seat) => seat.x));
+          const seatLength = (blueprint.berthDimensions.SEAT.length || 430) / 1000;
+          const seatWidth = (blueprint.berthDimensions.SEAT.width || 400) / 1000;
+          const benchLength = Math.max(seatLength, maxX - minX + seatLength);
+          const centerX = (minX + maxX) / 2;
+          const centerZ = seats.reduce((total, seat) => total + seat.z, 0) / seats.length;
+          const wallDirection = centerZ > 0 ? 1 : -1;
+
+          return (
+            <group key={`general-bench-${bayNumber}-${side}`} position={[centerX, 0, centerZ]}>
+              {/* One shared bench base and backrest per side of the aisle. */}
+              <mesh position={[0, 0.35, 0]} receiveShadow>
+                <boxGeometry args={[benchLength, 0.12, seatWidth]} />
+                <meshStandardMaterial color="#334155" roughness={0.82} />
+              </mesh>
+              <mesh position={[0, 0.62, wallDirection * (seatWidth / 2 - 0.03)]}>
+                <boxGeometry args={[benchLength, 0.42, 0.07]} />
+                <meshStandardMaterial color="#475569" roughness={0.78} />
+              </mesh>
+            </group>
+          );
+        });
+      })}
+
       {blueprint.berths.map((berth) => (
         <BerthMesh
           key={berth.berthNumber}
