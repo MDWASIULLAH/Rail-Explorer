@@ -258,7 +258,7 @@ function LoginCard() {
 
         <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
           <div className="flex items-center gap-2 text-blue-400 text-xs font-bold mb-1">
-            <Ticket className="w-4 h-4 text-purple-400" />
+            <Ticket className="w-4 h-4 text-sky-300" />
             <span>PNR Sync</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">

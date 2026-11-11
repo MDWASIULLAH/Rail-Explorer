@@ -19,7 +19,7 @@ import StarTrainButton from '@/components/ui/StarTrainButton';
 import HornButton from '@/components/ui/HornButton';
 import { useAuth } from '@/context/AuthContext';
 import {
-  Train, Loader2, AlertCircle, MapPin, ArrowRight, Clock, Eye,
+  Train, TrainFront, Armchair, PersonStanding, Loader2, AlertCircle, MapPin, ArrowRight, Clock, Eye,
   Navigation,
 } from 'lucide-react';
 
@@ -304,7 +304,7 @@ function TrainExplorerContent() {
                     : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
                 }`}
               >
-                <span>🚆</span>
+                <TrainFront className="h-3.5 w-3.5" />
                 <span className="sm:hidden">Train</span>
                 <span className="hidden sm:inline">Full Train</span>
               </button>
@@ -324,7 +324,7 @@ function TrainExplorerContent() {
                     : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
                 }`}
               >
-                <span>💺</span>
+                <Armchair className="h-3.5 w-3.5" />
                 <span className="sm:hidden">{selectedCoach?.coachId || 'S1'}</span>
                 <span className="hidden sm:inline">Coach ({selectedCoach?.coachId || 'S1'})</span>
               </button>
@@ -343,7 +343,7 @@ function TrainExplorerContent() {
                     : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
                 }`}
               >
-                <span>🚶</span>
+                <PersonStanding className="h-3.5 w-3.5" />
                 <span className="sm:hidden">Walk</span>
                 <span className="hidden sm:inline">Walkthrough</span>
               </button>

@@ -321,9 +321,9 @@ export default function HeroTrainBackground() {
 
   return (
     <div className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0" aria-hidden="true">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" />
+      <div className="absolute inset-0 bg-[#101923]" />
       <Canvas
-        className="absolute inset-0 !h-full !w-full"
+        className="absolute inset-0 !h-full !w-full opacity-75"
         camera={{ position: reducedMotion ? [9.5, 2.7, -2] : [0, 1.62, 4.25], fov: 62, near: 0.1, far: 60 }}
         onCreated={({ camera }) => {
           if (reducedMotion) camera.lookAt(0, -1.2, -10);
@@ -340,17 +340,9 @@ export default function HeroTrainBackground() {
         <CoachInterior paused={reducedMotion} />
         <MovingRake paused={reducedMotion} />
       </Canvas>
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/38 to-slate-950/88" />
-      <div
-        className="absolute inset-0 opacity-[0.035]"
-        style={{
-          backgroundImage: 'linear-gradient(to right, #94a3b8 1px, transparent 1px), linear-gradient(to bottom, #94a3b8 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-        }}
-      />
-      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-slate-950/75 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+      <div className="home-scene-wash" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#101923]/70 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#101923] to-transparent pointer-events-none" />
     </div>
   );
 }

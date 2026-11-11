@@ -58,7 +58,7 @@ function GoogleMiniIcon({ className = 'w-4 h-4' }: { className?: string }) {
 const primaryNavLinks = [
   { href: '/', label: 'Home', icon: Train },
   { href: '/live-status', label: 'Live Status', icon: Radio, isLive: true },
-  { href: '/seat-swap', label: 'Seat Swap', icon: ArrowLeftRight, isNew: true },
+  { href: '/seat-swap', label: 'Seat Swap', icon: ArrowLeftRight },
   { href: '/station/BBS', label: 'Station Board', icon: Building2 },
   { href: '/pnr', label: 'PNR', icon: Ticket },
 ];
@@ -109,38 +109,33 @@ export default function NavigationHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50">
+      <header className="rail-site-header sticky top-0 z-50 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 gap-2">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-shadow ring-1 ring-blue-400/40 bg-slate-900">
+              <div className="rail-brand-mark w-10 h-10 rounded-xl overflow-hidden transition-shadow ring-1 ring-slate-500/35 bg-slate-900">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo-icon.svg" alt="Rail Explorer" className="w-full h-full object-cover" />
               </div>
               <div>
-                <span className="font-bold text-white text-sm tracking-tight">Rail Explorer</span>
-                <span className="hidden sm:block text-[10px] text-slate-400 -mt-0.5">Indian Railway 3D Platform</span>
+                <span className="rail-brand-name font-bold text-white text-sm tracking-tight">Rail Explorer</span>
+                <span className="rail-brand-caption hidden sm:block text-[10px] text-slate-400 -mt-0.5">Indian Railway 3D Platform</span>
               </div>
             </Link>
 
             {/* Desktop Nav: 5 Core Links + More Dropdown */}
             <nav className="hidden lg:flex items-center gap-1">
-              {primaryNavLinks.map(({ href, label, icon: Icon, isLive, isNew }) => (
+              {primaryNavLinks.map(({ href, label, icon: Icon, isLive }) => (
                 <Link
                   key={href}
                   href={href}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs xl:text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors relative"
                 >
-                  <Icon className={`w-3.5 h-3.5 xl:w-4 xl:h-4 ${isLive ? 'text-emerald-400' : isNew ? 'text-amber-400' : ''}`} />
+                  <Icon className={`w-3.5 h-3.5 xl:w-4 xl:h-4 ${isLive ? 'text-emerald-400' : ''}`} />
                   <span>{label}</span>
                   {isLive && (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
-                  )}
-                  {isNew && (
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 ml-0.5">
-                      NEW
-                    </span>
                   )}
                 </Link>
               ))}
@@ -283,7 +278,7 @@ export default function NavigationHeader() {
                               <span className="font-semibold">My Seat Swaps</span>
                             </div>
                             {pendingSwapsCount > 0 ? (
-                              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-slate-950 font-black animate-pulse">
+                              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-slate-950 font-bold">
                                 {pendingSwapsCount} Offer!
                               </span>
                             ) : (
@@ -321,7 +316,7 @@ export default function NavigationHeader() {
                             onClick={() => setUserMenuOpen(false)}
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-lg transition text-left"
                           >
-                            <Ticket className="w-3.5 h-3.5 text-purple-400" />
+                            <Ticket className="w-3.5 h-3.5 text-sky-300" />
                             <span>PNR Predictions</span>
                           </Link>
 
@@ -478,7 +473,7 @@ export default function NavigationHeader() {
               <span className="px-6 text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                 Main Menu
               </span>
-              {primaryNavLinks.map(({ href, label, icon: Icon, isLive, isNew }) => (
+              {primaryNavLinks.map(({ href, label, icon: Icon, isLive }) => (
                 <Link
                   key={href}
                   href={href}
@@ -491,11 +486,6 @@ export default function NavigationHeader() {
                   </div>
                   {isLive && (
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  )}
-                  {isNew && (
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      NEW
-                    </span>
                   )}
                 </Link>
               ))}

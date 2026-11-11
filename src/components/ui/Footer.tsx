@@ -2,7 +2,7 @@ export default function Footer() {
   const year = 2026;
 
   return (
-    <footer className="bg-slate-950 border-t border-slate-800 mt-auto">
+    <footer className="rail-footer bg-slate-950 border-t border-slate-800 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
@@ -14,17 +14,16 @@ export default function Footer() {
               <span className="font-bold text-white">Rail Explorer</span>
             </div>
             <p className="text-sm text-slate-400">
-              An interactive Indian Railway platform to explore train composition,
-              3D coaches, and locate berths.
+              Explore train routes and coach layouts, or use your ticket to find a berth in 3D.
             </p>
           </div>
 
           <div>
             <h4 className="font-semibold text-white mb-3 text-sm">Data Sources</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Train data powered by Railway Engine API. Coach specifications based on RDSO
-              standards and verified technical references. 3D models are representative
-              approximations - not official RDSO drawings.
+              Train schedules and running updates come from connected data providers. Coach
+              layouts are reference models based on published railway information, not official
+              RDSO drawings.
             </p>
           </div>
 
@@ -39,9 +38,9 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-          <p className="text-sm text-slate-400 italic">“The best journeys are made better when every passenger feels at home.”</p>
+          <p className="rail-footer-quote text-sm">Routes, coaches, and seats — together in one place.</p>
           <p className="mt-3 text-xs text-slate-500">
-            &copy; {year} Rail Explorer. All rights reserved. Built with care for every journey.
+            &copy; {year} Rail Explorer. An independent project.
           </p>
         </div>
       </div>

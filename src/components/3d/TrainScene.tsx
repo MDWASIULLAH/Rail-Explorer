@@ -22,6 +22,15 @@ import {
   Zap,
   ArrowRight,
   Compass,
+  TrainFront,
+  Armchair,
+  PersonStanding,
+  Clapperboard,
+  Sparkles,
+  Sun,
+  Settings2,
+  MousePointer2,
+  Moon,
 } from 'lucide-react';
 
 interface TrainSceneProps {
@@ -466,7 +475,7 @@ export default function TrainScene({
                     : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700'
                 }`}
               >
-                <span>🚶</span>
+                <PersonStanding className="h-3.5 w-3.5" />
                 <span className="hidden xs:inline">{effectiveWalkthrough ? 'Exit Walk' : 'Walk'}</span>
               </button>
             </>
@@ -522,7 +531,8 @@ export default function TrainScene({
             }}
             className="px-2.5 py-1 rounded-xl bg-slate-900/90 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1 shadow-lg backdrop-blur-md active:scale-95"
           >
-            <span>⚙️ View</span>
+            <Settings2 className="h-3.5 w-3.5" />
+            <span>View</span>
           </button>
         </div>
 
@@ -547,19 +557,19 @@ export default function TrainScene({
                   onClick={() => setSkyMode('night')}
                   className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'night' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
-                  🌌 Night
+                  <><Moon className="mr-1 inline h-3.5 w-3.5" />Night</>
                 </button>
                 <button
                   onClick={() => setSkyMode('daylight')}
                   className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'daylight' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
                 >
-                  ☀️ Day
+                  <><Sun className="mr-1 inline h-3.5 w-3.5" />Day</>
                 </button>
                 <button
                   onClick={() => setSkyMode('sunset')}
                   className={`py-1 rounded-lg text-xs font-bold ${skyMode === 'sunset' ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
-                  🌅 Sunset
+                  <Sun className="h-3.5 w-3.5" /> Daylight
                 </button>
               </div>
             </div>
@@ -573,19 +583,19 @@ export default function TrainScene({
                     onClick={() => setCameraPreset('full-rake')}
                     className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'full-rake' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                   >
-                    🚆 Overview
+                    <><TrainFront className="mr-1 inline h-3.5 w-3.5" />Overview</>
                   </button>
                   <button
                     onClick={() => setCameraPreset('railfan')}
                     className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'railfan' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                   >
-                    🎥 Action
+                    <><Clapperboard className="mr-1 inline h-3.5 w-3.5" />Action</>
                   </button>
                   <button
                     onClick={() => setCameraPreset('coach')}
                     className={`py-1 rounded-lg text-xs font-bold ${cameraPreset === 'coach' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                   >
-                    💺 Side
+                    <><Armchair className="mr-1 inline h-3.5 w-3.5" />Side</>
                   </button>
                 </div>
               </div>
@@ -598,14 +608,14 @@ export default function TrainScene({
                   onClick={() => setIsExploded(!isExploded)}
                   className={`flex-1 py-1 px-2 rounded-lg font-bold ${isExploded ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
-                  💥 {isExploded ? 'Exploded' : 'Explode'}
+                  <Sparkles className="mr-1 inline h-3.5 w-3.5" /> {isExploded ? 'Exploded' : 'Explode'}
                 </button>
               )}
               <button
                 onClick={handleHonkHorn}
                 className="py-1 px-2.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold"
               >
-                🔔 Horn
+                <><Bell className="mr-1 inline h-3.5 w-3.5" />Horn</>
               </button>
               <button
                 onClick={handleToggleSound}
@@ -630,7 +640,7 @@ export default function TrainScene({
               }`}
               title="Night Express (Default)"
             >
-              <span>🌌</span>
+              <Moon className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Night</span>
             </button>
             <button
@@ -642,7 +652,7 @@ export default function TrainScene({
               }`}
               title="Bright Daylight Corridor"
             >
-              <span>☀️</span>
+              <Sun className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Day</span>
             </button>
             <button
@@ -654,7 +664,7 @@ export default function TrainScene({
               }`}
               title="Golden Sunset"
             >
-              <span>🌅</span>
+              <Sun className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Sunset</span>
             </button>
           </div>
@@ -674,7 +684,7 @@ export default function TrainScene({
                   }`}
                   title="Full Train Bird's Eye Overview (Default)"
                 >
-                  <span>🚆</span>
+                  <TrainFront className="h-3.5 w-3.5" />
                   <span className="hidden lg:inline">Full</span>
                 </button>
                 <button
@@ -686,7 +696,7 @@ export default function TrainScene({
                   }`}
                   title="Railfan Action Cam"
                 >
-                  <span>🎥</span>
+                  <Clapperboard className="h-3.5 w-3.5" />
                   <span className="hidden lg:inline">Action</span>
                 </button>
                 <button
@@ -698,7 +708,7 @@ export default function TrainScene({
                   }`}
                   title="Coach Side Cam"
                 >
-                  <span>💺</span>
+                  <Armchair className="h-3.5 w-3.5" />
                   <span className="hidden lg:inline">Coach</span>
                 </button>
 
@@ -712,7 +722,7 @@ export default function TrainScene({
                   }`}
                   title="Auto Explode Rake: Separate coaches with live HUD details"
                 >
-                  <span>💥</span>
+                  <Sparkles className="h-3.5 w-3.5" />
                   <span className="hidden lg:inline">{isExploded ? 'Exploded' : 'Explode'}</span>
                 </button>
               </div>
@@ -832,7 +842,8 @@ export default function TrainScene({
                 onClick={() => setIsDpadOpen(true)}
                 className="sm:hidden px-3 py-1.5 rounded-xl bg-slate-950/90 border border-blue-500/50 text-blue-300 font-bold text-xs flex items-center gap-1.5 shadow-2xl backdrop-blur-md active:scale-95"
               >
-                <span>🚶 Controls</span>
+                <PersonStanding className="h-3.5 w-3.5" />
+                <span>Controls</span>
               </button>
             )}
 
@@ -843,7 +854,7 @@ export default function TrainScene({
             >
               <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5">
                 <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                  <span>🚶</span>
+                  <PersonStanding className="h-3.5 w-3.5" />
                   <span>Walk Controls</span>
                 </span>
                 <div className="flex items-center gap-1">
@@ -1048,9 +1059,9 @@ export default function TrainScene({
       {/* ======================================================== */}
       <div className={`absolute bottom-2.5 right-2.5 sm:bottom-4 sm:right-4 text-[10px] sm:text-[11px] text-slate-300 bg-slate-900/90 px-2.5 sm:px-3 py-1 rounded-xl backdrop-blur-md border border-slate-800 shadow-xl z-20 pointer-events-none ${isMobileControlsOpen || isCaliperOpen ? 'hidden sm:block' : 'block'}`}>
         {effectiveWalkthrough ? (
-          <span>🚶 D-Pad to Walk · Drag to Look</span>
+          <span><PersonStanding className="mr-1 inline h-3.5 w-3.5" /> D-pad to walk · drag to look</span>
         ) : (
-          <span>🖱️ Drag to orbit · Scroll to zoom</span>
+          <span><MousePointer2 className="mr-1 inline h-3.5 w-3.5" /> Drag to orbit · scroll to zoom</span>
         )}
       </div>
     </div>

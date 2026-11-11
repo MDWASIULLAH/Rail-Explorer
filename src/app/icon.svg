@@ -1,37 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0b1329" />
-      <stop offset="50%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#020617" />
-    </linearGradient>
-    <linearGradient id="trainBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="35%" stop-color="#2563eb" />
-      <stop offset="100%" stop-color="#1d4ed8" />
-    </linearGradient>
-    <linearGradient id="windshieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1e293b" />
-    </linearGradient>
-  </defs>
-
-  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#38bdf8" stroke-width="8" />
-
-  <!-- Converging Rails -->
-  <line x1="235" y1="380" x2="140" y2="480" stroke="#38bdf8" stroke-width="12" stroke-linecap="round" />
-  <line x1="277" y1="380" x2="372" y2="480" stroke="#38bdf8" stroke-width="12" stroke-linecap="round" />
-
-  <!-- Train Head -->
-  <path d="M188 380 L188 230 C188 150, 220 120, 256 120 C292 120, 324 150, 324 230 L324 380 Z" fill="url(#trainBodyGrad)" />
-  <path d="M208 225 C208 175, 228 155, 256 155 C284 155, 304 175, 304 225 C304 235, 298 240, 285 240 L227 240 C214 240, 208 235, 208 225 Z" fill="url(#windshieldGrad)" stroke="#60a5fa" stroke-width="6" />
-
-  <!-- Headlights -->
-  <circle cx="218" cy="305" r="16" fill="#f8fafc" />
-  <circle cx="294" cy="305" r="16" fill="#f8fafc" />
-  <circle cx="256" cy="140" r="12" fill="#fbbf24" />
-
-  <!-- Pilot Grille -->
-  <path d="M200 348 L312 348 L320 380 L192 380 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="4" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" fill="none">
+  <rect x="1" y="1" width="62" height="62" rx="17" fill="#142433" stroke="#49657a" stroke-width="2"/>
+  <path d="M17 55 27 44M47 55 37 44" stroke="#a9bdca" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M23 54h18" stroke="#e1ad53" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M20 42V25c0-7 5-12 12-12s12 5 12 12v17c0 2-1.6 3.5-3.5 3.5h-17c-2 0-3.5-1.5-3.5-3.5Z" fill="#367eaa" stroke="#a9d8f1" stroke-width="2"/>
+  <path d="M25 25c0-4.1 2.9-7 7-7s7 2.9 7 7v5H25v-5Z" fill="#142433" stroke="#9dcce5" stroke-width="1.6"/>
+  <path d="M23 35h18v5H23z" fill="#225977"/>
+  <circle cx="25.5" cy="40.5" r="2" fill="#f2c36f"/>
+  <circle cx="38.5" cy="40.5" r="2" fill="#f2c36f"/>
+  <path d="M27 49h10" stroke="#9dcce5" stroke-width="2" stroke-linecap="round"/>
 </svg>
-

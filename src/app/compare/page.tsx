@@ -21,8 +21,8 @@ export default function ComparePage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
       <div className="text-center mb-10">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20">
-          <GitCompare className="w-7 h-7 text-white" />
+        <div className="page-heading-icon w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <GitCompare className="w-7 h-7" />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">Compare Coaches</h1>
         <p className="text-slate-400">Side-by-side comparison of Indian Railway coach types</p>
@@ -58,7 +58,7 @@ export default function ComparePage() {
       {comparison && (
         <div className="space-y-6">
           {/* Verdict */}
-          <div className="bg-gradient-to-r from-blue-950/50 to-purple-950/50 rounded-xl border border-blue-800/30 p-5 text-center">
+          <div className="page-insight rounded-xl border p-5 text-center">
             <p className="text-slate-300 text-sm">{comparison.verdict}</p>
           </div>
 

@@ -35,6 +35,32 @@ function SearchContent() {
         className="mb-8"
       />
 
+      {!searched && (
+        <section className="mb-8 rounded-2xl border border-slate-800 bg-slate-900/65 p-5 sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-white">Start with a familiar train</h2>
+            <p className="mt-1 text-sm text-slate-400">Open a sample rake, or search for a different train above.</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              { number: '18403', name: 'BBS DHN Express', route: 'Bhubaneswar to Dhanbad' },
+              { number: '12301', name: 'Howrah Rajdhani', route: 'Howrah to New Delhi' },
+              { number: '22436', name: 'Vande Bharat Express', route: 'New Delhi to Varanasi' },
+            ].map((train) => (
+              <Link
+                key={train.number}
+                href={`/train/${train.number}`}
+                className="group rounded-xl border border-slate-700/80 bg-slate-950/45 p-4 transition hover:border-sky-700/70 hover:bg-slate-800/70"
+              >
+                <span className="font-mono text-xs font-semibold text-sky-300">{train.number}</span>
+                <span className="mt-1 block text-sm font-semibold text-white group-hover:text-sky-100">{train.name}</span>
+                <span className="mt-1 block text-xs text-slate-400">{train.route}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {isLoading && (
         <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
           <Loader2 className="w-6 h-6 animate-spin" />

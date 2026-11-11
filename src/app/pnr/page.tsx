@@ -51,8 +51,8 @@ function PnrContent() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
       <div className="text-center mb-10">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/20">
-          <Ticket className="w-7 h-7 text-white" />
+        <div className="page-heading-icon w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Ticket className="w-7 h-7" />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">PNR Status</h1>
         <p className="text-slate-400">Check your reservation status and explore your coach in 3D</p>
@@ -67,13 +67,13 @@ function PnrContent() {
             value={pnrInput}
             onChange={(e) => { setPnrInput(e.target.value.replace(/\D/g, '').slice(0, 10)); clearError(); }}
             placeholder="Enter 10-digit PNR"
-            className="flex-1 px-4 py-3 bg-slate-800 border border-slate-600 text-white text-lg font-mono tracking-wider rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="page-input flex-1 px-4 py-3 bg-slate-800 border border-slate-600 text-white text-lg font-mono tracking-wider rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             maxLength={10}
           />
           <button
             type="submit"
             disabled={isLoading || pnrInput.length !== 10}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:opacity-50 text-white font-medium rounded-xl transition-all flex items-center gap-2"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:opacity-50 text-white font-medium rounded-xl transition-all flex items-center gap-2"
           >
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Ticket className="w-5 h-5" />}
             Check
@@ -96,7 +96,7 @@ function PnrContent() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
         </div>
       )}
 
@@ -221,7 +221,7 @@ function PnrContent() {
 
             <Link
               href={`/seat-swap?train=${pnrData.trainNumber}`}
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 font-bold text-sm rounded-xl border border-amber-500/40 transition shadow-sm"
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-amber-500/10 hover:bg-amber-500/15 text-amber-200 font-bold text-sm rounded-xl border border-amber-500/30 transition"
             >
               <ArrowLeftRight className="w-4 h-4 text-amber-400" />
               <span>Mutual Seat Swap</span>
@@ -241,7 +241,7 @@ export default function PnrPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
       </div>
     }>
       <PnrContent />

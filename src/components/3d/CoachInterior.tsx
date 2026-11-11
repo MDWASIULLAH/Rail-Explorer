@@ -355,12 +355,12 @@ export default function CoachInterior({
 
       {/* Coach label */}
       <Text
-        position={[coachLen / 2, coachH + 0.5, 0]}
-        fontSize={0.5}
-        color="#fbbf24"
+        position={[coachLen / 2, coachH + 0.3, 0]}
+        fontSize={0.18}
+        color="#c4d0d8"
         anchorX="center"
         anchorY="middle"
-        fontWeight="bold"
+        fontWeight="medium"
       >
         {blueprint.name} — {blueprint.totalBerths} Berths
       </Text>

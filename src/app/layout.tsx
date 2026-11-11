@@ -50,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased bg-slate-950 text-slate-100 min-h-screen flex flex-col`}>
+      <body className={`${inter.variable} font-sans antialiased text-slate-100 min-h-screen flex flex-col`}>
         <AuthProvider>
           <StarredTrainsProvider>
             <SeatSwapProvider>

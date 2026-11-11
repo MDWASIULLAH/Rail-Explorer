@@ -1,14 +1,131 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: #101923;
+  --foreground: #eef2f4;
+  --rail-surface: #15212d;
+  --rail-surface-raised: #1b2936;
+  --rail-border: #2a3948;
+  --rail-blue: #4f9bd4;
+  --rail-amber: #e1ad53;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font-inter), 'Segoe UI', sans-serif;
+  letter-spacing: -0.012em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  color: #0c1722;
+  background: #a8d3ec;
+}
+
+.rail-site-header {
+  background: rgb(16 25 35 / 94%);
+  border-color: rgb(91 112 131 / 24%);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 2%);
+}
+
+.rail-brand-mark {
+  box-shadow: 0 5px 16px rgb(6 16 25 / 32%);
+}
+
+.rail-brand-name {
+  letter-spacing: -0.035em;
+}
+
+.rail-brand-caption {
+  letter-spacing: 0.01em;
+}
+
+.home-hero {
+  isolation: isolate;
+  background: #101923;
+}
+
+.home-hero-content {
+  padding-top: clamp(3.5rem, 8vw, 6rem);
+}
+
+.home-hero-title {
+  max-width: 900px;
+  margin-inline: auto;
+  font-weight: 760;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.home-hero-accent {
+  color: #81c3e8;
+}
+
+.home-live-link {
+  color: #b5d8eb;
+  background: rgb(20 46 63 / 68%);
+  border-color: rgb(93 153 187 / 40%);
+  box-shadow: none;
+}
+
+.home-scene-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 43%, rgb(16 25 35 / 94%) 0%, rgb(16 25 35 / 84%) 34%, rgb(16 25 35 / 18%) 76%),
+    linear-gradient(180deg, rgb(16 25 35 / 42%) 0%, transparent 55%, rgb(16 25 35 / 76%) 100%);
+  pointer-events: none;
+}
+
+.home-feature-icon {
+  background: #20384b;
+  border: 1px solid rgb(117 169 199 / 24%);
+  box-shadow: none;
+}
+
+.home-feature-card {
+  background: rgb(21 33 45 / 78%);
+  border-color: #2a3948;
+  border-radius: 14px;
+}
+
+.home-feature-card:hover {
+  background: #1a2936;
+  border-color: #48647b;
+  transform: translateY(-2px);
+}
+
+.home-cta {
+  background: #172737;
+  border-color: #30495d;
+}
+
+.rail-footer {
+  background: #0c151e;
+  border-color: rgb(91 112 131 / 24%);
+}
+
+.page-heading-icon {
+  color: #a8d3ec;
+  background: #20384b;
+  border: 1px solid #35556d;
+  box-shadow: none;
+}
+
+.page-insight {
+  background: #172737;
+  border-color: #30495d;
+}
+
+.page-input:focus-visible {
+  outline-color: #73b6de;
+}
+
+.rail-footer-quote {
+  color: #a9bac7;
+  font-style: normal;
 }
 
 /* Native option menus use the browser's default palette unless options are
@@ -26,18 +143,19 @@ select optgroup {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #121e29;
 }
 ::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 3px;
+  background: #435767;
+  border: 2px solid #121e29;
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #647d90;
 }
 
 /* Smooth scrolling */
@@ -47,6 +165,17 @@ html {
 
 /* Focus styles */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #73b6de;
   outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .home-hero-content {
+    padding-top: 3.25rem;
+  }
+
+  .home-hero-title {
+    font-size: clamp(2.15rem, 8.4vw, 3.1rem);
+    line-height: 1.07;
+  }
 }

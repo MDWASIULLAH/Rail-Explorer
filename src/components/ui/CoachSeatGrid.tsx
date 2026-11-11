@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Armchair } from 'lucide-react';
 import type { CoachBlueprint } from '@/data/coach-database';
 
 interface CoachSeatGridProps {
@@ -38,7 +39,7 @@ export default function CoachSeatGrid({
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
         <div>
           <h3 className="font-bold text-white text-sm flex items-center gap-1.5">
-            <span>💺</span>
+            <Armchair className="h-4 w-4 text-sky-300" />
             <span>Coach {coachId} Seat Layout</span>
           </h3>
           <p className="text-xs text-slate-400">

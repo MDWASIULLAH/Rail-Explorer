@@ -627,7 +627,7 @@ export default function SeatSwapPage() {
         )}
 
         {/* ─── How It Works Bar ─── */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-slate-900/50 to-amber-950/40 border border-slate-800">
+        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800">
           <div className="flex items-center gap-2 mb-3">
             <Info className="w-4 h-4 text-blue-400" />
             <span className="text-xs font-bold text-white uppercase tracking-wider">How It Works</span>
