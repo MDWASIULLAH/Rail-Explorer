@@ -134,6 +134,15 @@ test('Past live runs are hidden after their scheduled journey window', () => {
   );
 });
 
+test('Journey date labels distinguish today, yesterday, tomorrow, and older dates', () => {
+  const { formatJourneyDisplayDate } = require('../src/lib/journey-date.ts');
+  const now = new Date('2026-11-12T05:00:00Z');
+  assert.match(formatJourneyDisplayDate('2026-11-12', now), /\(Today\)$/);
+  assert.match(formatJourneyDisplayDate('2026-11-11', now), /\(Yesterday\)$/);
+  assert.match(formatJourneyDisplayDate('2026-11-13', now), /\(Tomorrow\)$/);
+  assert.doesNotMatch(formatJourneyDisplayDate('2026-11-10', now), /\(Today\)$/);
+});
+
 test('PNR lookup keeps fresh result after selecting its train', async () => {
   const filename = path.resolve(__dirname, '../src/store/train-store.ts');
   const source = fs.readFileSync(filename, 'utf8');
@@ -339,6 +348,19 @@ test('Live Tracking Engine: Status & Timeline Calculations', async (t) => {
     assert.strictEqual(result.totalDistanceKm, 0);
     assert.strictEqual(result.position.isMoving, false);
     assert.strictEqual(result.position.speedKmph, null);
+  });
+
+  await t.test('Not-started reports are not shown as a halt or as zero-speed telemetry', () => {
+    const analysis = analyzeLiveJourney('18403', sampleTrain.trainName, sampleTrain, {
+      trainNumber: '18403', trainName: sampleTrain.trainName, journeyDate: '2026-11-12', status: 'NOT_STARTED',
+      speedKmph: null, delayMinutes: 0,
+    }, '2026-11-12');
+    assert.strictEqual(analysis.statusConfidence, 'NOT_STARTED');
+    assert.strictEqual(analysis.position.isAtStation, true);
+    assert.strictEqual(analysis.position.speedKmph, null);
+    assert.strictEqual(analysis.remainingStops, analysis.totalStops);
+    assert.strictEqual(analysis.timeline[0].actualDeparture, null);
+    assert.strictEqual(analysis.timeline[0].scheduledDeparture, sampleTrain.schedule[0].departureTime);
   });
 });
 

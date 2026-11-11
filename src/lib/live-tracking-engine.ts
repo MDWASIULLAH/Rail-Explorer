@@ -164,19 +164,11 @@ function getTimetableEstimate(
   return null;
 }
 
-/**
- * Add minutes to "HH:MM" time string
- */
 function addMinutesToTime(timeStr: string | null, minutes: number): string | null {
-  if (!timeStr) return null;
-  const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+  const match = timeStr?.match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return timeStr;
-  const [, h, m] = match;
-  let totalMins = parseInt(h, 10) * 60 + parseInt(m, 10) + minutes;
-  totalMins = (totalMins + 24 * 60) % (24 * 60);
-  const newH = Math.floor(totalMins / 60).toString().padStart(2, '0');
-  const newM = (totalMins % 60).toString().padStart(2, '0');
-  return `${newH}:${newM}`;
+  const totalMinutes = (Number(match[1]) * 60 + Number(match[2]) + minutes + 1440) % 1440;
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`;
 }
 
 /**
@@ -220,18 +212,13 @@ export function analyzeLiveJourney(
   // Find index of current / next station
   let currentIndex = 0;
   let isAtStation = false;
-  let timetableEstimate: ReturnType<typeof getTimetableEstimate> = null;
+  // A timetable can help visualize a position only when no running report exists.
+  // A provider's explicit NOT_STARTED response must never be overridden by clock math.
+  const timetableEstimate = status ? null : getTimetableEstimate(stations, journeyDate);
 
   if (status?.status === 'NOT_STARTED' || status?.status === 'CANCELLED') {
     currentIndex = 0;
     isAtStation = true;
-    if (status.status === 'NOT_STARTED') {
-      timetableEstimate = getTimetableEstimate(stations, status.journeyDate);
-      if (timetableEstimate) {
-        currentIndex = timetableEstimate.index;
-        isAtStation = timetableEstimate.isAtStation;
-      }
-    }
   } else if (status?.status === 'RUNNING' && status.previousStation?.code) {
     const idx = stations.findIndex(
       (s) => s.stationCode.toUpperCase() === status.previousStation?.code.toUpperCase()
@@ -414,10 +401,6 @@ export function analyzeLiveJourney(
     const platform = typeof stn.platform === 'string' ? stn.platform : null;
 
     // Actual times with delay
-    const stationDelay = idx <= currentIndex ? Math.max(0, currentDelay - (currentIndex - idx) * 2) : currentDelay;
-    const actualArr = scheduledArr ? addMinutesToTime(scheduledArr, stationDelay) : null;
-    const actualDep = scheduledDep ? addMinutesToTime(scheduledDep, stationDelay) : null;
-
     const coords = getStationCoordinates(stn.stationCode);
     const isMajor =
       stn.stationName.includes('Jn') ||
@@ -435,11 +418,13 @@ export function analyzeLiveJourney(
       platform,
       scheduledArrival: scheduledArr,
       scheduledDeparture: scheduledDep,
-      actualArrival: actualArr,
-      actualDeparture: actualDep,
-      delayArrivalMinutes: stationDelay,
-      delayDepartureMinutes: stationDelay,
-      haltMinutes: stn.haltMinutes || (scheduledArr && scheduledDep ? 3 : 0),
+      // This feed provides a train-level delay, not verified actual times for
+      // every stop. Keep scheduled times clearly separate from live reports.
+      actualArrival: null,
+      actualDeparture: null,
+      delayArrivalMinutes: 0,
+      delayDepartureMinutes: 0,
+      haltMinutes: stn.haltMinutes,
       state,
       coordinates: coords,
       isMajor,
@@ -457,7 +442,9 @@ export function analyzeLiveJourney(
 
   // Compute realistic dynamic live speed
   const timetableSpeed = timetableEstimate?.speedKmph ?? null;
-  const calculatedSpeed = isAtStation
+  const calculatedSpeed = status?.status === 'NOT_STARTED'
+    ? null
+    : isAtStation
     ? 0
     : typeof status?.speedKmph === 'number' && status.speedKmph > 0
     ? Math.round(status.speedKmph)
@@ -478,7 +465,9 @@ export function analyzeLiveJourney(
     ? `Near ${alignedCurrentStation.name} (${alignedCurrentStation.code})`
     : `Between ${prevStation.stationCode} & ${nextStation.stationCode}`;
 
-  const liveStatusSummary = isAtStation
+  const liveStatusSummary = status?.status === 'NOT_STARTED'
+    ? `Awaiting departure from ${prevStation.stationName} (${prevStation.stationCode})`
+    : isAtStation
     ? `Halted at ${prevStation.stationName} (${prevStation.stationCode}) · ${displayDelayText}`
     : `Cruising at ${calculatedSpeed} km/h · Passed ${distanceCoveredFromPrevKm} km past ${prevStation.stationName} · Approaching ${nextStation.stationName} (${distanceToNextKm} km away)`;
 
@@ -531,7 +520,9 @@ export function analyzeLiveJourney(
         ? 0
         : status?.routeProgress?.completedStops ?? currentIndex,
     totalStops,
-    remainingStops: Math.max(0, totalStops - (timetableEstimate ? currentIndex : currentIndex + 1)),
+    remainingStops: status?.status === 'NOT_STARTED'
+      ? totalStops
+      : Math.max(0, totalStops - (timetableEstimate ? currentIndex : currentIndex + 1)),
     position,
     timeline,
     statusConfidence: confidence,

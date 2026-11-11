@@ -20,6 +20,8 @@ interface SeatSwapContextType {
   userOffers: SwapOffer[];
   proposals: SwapProposal[];
   notifications: SwapNotification[];
+  notificationSoundEnabled: boolean;
+  toggleNotificationAlerts: () => Promise<void>;
   incomingProposals: SwapProposal[];
   sentProposals: SwapProposal[];
   createOffer: (offer: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => Promise<SwapOffer>;
@@ -45,6 +47,32 @@ const SeatSwapContext = createContext<SeatSwapContextType | null>(null);
 const SWAP_STORAGE_KEY = 'rail_seat_swaps_v3';
 const PROPOSAL_STORAGE_KEY = 'rail_seat_proposals_v3';
 const NOTIFICATION_STORAGE_KEY = 'rail_seat_swap_notifications_v1';
+const NOTIFICATION_ALERTS_STORAGE_KEY = 'rail_seat_swap_alerts_v1';
+const SHARED_REFRESH_INTERVAL_MS = 5000;
+const OFFER_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
+function playSwapNotificationTone(context: AudioContext) {
+  const now = context.currentTime;
+  [880, 1174].forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const start = now + index * 0.12;
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + 0.24);
+  });
+}
+
+function offerExpiryTime(offer: SwapOffer) {
+  const storedExpiry = offer.expiresAt ? Date.parse(offer.expiresAt) : Number.NaN;
+  return Number.isFinite(storedExpiry) ? storedExpiry : Date.parse(offer.createdAt) + OFFER_LIFETIME_MS;
+}
 
 async function seatSwapAuthHeaders(contentType?: string) {
   const headers = new Headers();
@@ -59,9 +87,13 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   const [offers, setOffers] = useState<SwapOffer[]>([]);
   const [proposals, setProposals] = useState<SwapProposal[]>([]);
   const [notifications, setNotifications] = useState<SwapNotification[]>([]);
+  const [notificationSoundEnabled, setNotificationSoundEnabled] = useState(false);
   const offersRef = useRef<SwapOffer[]>([]);
   const proposalsRef = useRef<SwapProposal[]>([]);
   const notificationsRef = useRef<SwapNotification[]>([]);
+  const knownNotificationIdsRef = useRef<Set<string> | null>(null);
+  const notificationSoundEnabledRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [sharedReady, setSharedReady] = useState(false);
@@ -81,12 +113,33 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       const nextOffers = data.offers || [];
       const nextProposals = data.proposals || [];
       const nextNotifications = data.notifications || [];
+      const knownIds = knownNotificationIdsRef.current;
+      const newNotifications = knownIds
+        ? nextNotifications.filter((notification) => !knownIds.has(notification.id))
+        : [];
+      knownNotificationIdsRef.current = new Set([
+        ...(knownIds || []),
+        ...nextNotifications.map((notification) => notification.id),
+      ]);
       offersRef.current = nextOffers;
       proposalsRef.current = nextProposals;
       notificationsRef.current = nextNotifications;
       setOffers(nextOffers);
       setProposals(nextProposals);
       setNotifications(nextNotifications);
+      if (newNotifications.length && notificationSoundEnabledRef.current && typeof window !== 'undefined') {
+        const context = audioContextRef.current;
+        if (context?.state === 'running') playSwapNotificationTone(context);
+        if (document.visibilityState !== 'visible' && 'Notification' in window && Notification.permission === 'granted') {
+          newNotifications.slice(0, 3).forEach((notification) => {
+            new Notification('Rail Explorer · Seat Swap', {
+              body: notification.message,
+              icon: '/icon.png',
+              tag: notification.id,
+            });
+          });
+        }
+      }
       setSyncError(null);
       setSharedReady(true);
       return true;
@@ -105,6 +158,14 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
     let timer: number | undefined;
     let inFlight = false;
     let failures = 0;
+    const notificationsChannel = supabase?.channel(`rail-swap-notifications:${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'rail_seat_swap_notifications',
+        filter: `recipient_id=eq.${user.id}`,
+      }, () => { void refreshShared(); })
+      .subscribe();
     const poll = async () => {
       if (cancelled || inFlight) return;
       if (document.visibilityState !== 'visible') {
@@ -115,7 +176,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       const ok = await refreshShared();
       inFlight = false;
       failures = ok ? 0 : Math.min(failures + 1, 4);
-      const delay = ok ? 20000 : Math.min(120000, 20000 * (2 ** failures));
+      const delay = ok ? SHARED_REFRESH_INTERVAL_MS : Math.min(60000, SHARED_REFRESH_INTERVAL_MS * (2 ** failures));
       if (!cancelled) timer = window.setTimeout(() => void poll(), delay);
     };
     const onVisibilityChange = () => {
@@ -141,8 +202,62 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (notificationsChannel) void supabase?.removeChannel(notificationsChannel);
     };
   }, [isLoaded, refreshShared, user?.id]);
+
+  useEffect(() => {
+    const enabled = localStorage.getItem(NOTIFICATION_ALERTS_STORAGE_KEY) === 'true';
+    notificationSoundEnabledRef.current = enabled;
+    const timer = window.setTimeout(() => setNotificationSoundEnabled(enabled), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const toggleNotificationAlerts = useCallback(async () => {
+    const nextEnabled = !notificationSoundEnabledRef.current;
+    if (!nextEnabled) {
+      notificationSoundEnabledRef.current = false;
+      setNotificationSoundEnabled(false);
+      localStorage.setItem(NOTIFICATION_ALERTS_STORAGE_KEY, 'false');
+      audioContextRef.current?.suspend();
+      return;
+    }
+
+    const AudioContextConstructor = window.AudioContext;
+    if (AudioContextConstructor) {
+      const context = audioContextRef.current || new AudioContextConstructor();
+      audioContextRef.current = context;
+      await context.resume();
+      playSwapNotificationTone(context);
+    }
+    if ('Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    notificationSoundEnabledRef.current = true;
+    setNotificationSoundEnabled(true);
+    localStorage.setItem(NOTIFICATION_ALERTS_STORAGE_KEY, 'true');
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      const expiredOfferIds = new Set(
+        offersRef.current.filter((offer) => offerExpiryTime(offer) <= now).map((offer) => offer.id),
+      );
+      if (!expiredOfferIds.size) return;
+
+      const nextOffers = offersRef.current.filter((offer) => !expiredOfferIds.has(offer.id));
+      const nextProposals = proposalsRef.current.filter((proposal) => !expiredOfferIds.has(proposal.offerId));
+      const nextNotifications = notificationsRef.current.filter((notification) => !expiredOfferIds.has(notification.offerId));
+      offersRef.current = nextOffers;
+      proposalsRef.current = nextProposals;
+      notificationsRef.current = nextNotifications;
+      setOffers(nextOffers);
+      setProposals(nextProposals);
+      setNotifications(nextNotifications);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   // Pre-fill state
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -356,6 +471,8 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
         userOffers,
         proposals,
         notifications,
+        notificationSoundEnabled,
+        toggleNotificationAlerts,
         incomingProposals,
         sentProposals,
         createOffer,

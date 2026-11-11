@@ -21,6 +21,7 @@ export default function HorizontalRouteProgress({ journey }: HorizontalRouteProg
   } = journey;
 
   const percent = position.overallProgressPercent;
+  const awaitingDeparture = journey.statusConfidence === 'NOT_STARTED';
 
   return (
     <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-3.5 sm:p-5 shadow-xl backdrop-blur-md">
@@ -44,14 +45,14 @@ export default function HorizontalRouteProgress({ journey }: HorizontalRouteProg
         {/* Current Interim Position */}
         <div className="order-last sm:order-none w-full sm:w-auto text-center bg-slate-950/70 py-1.5 sm:py-2 px-3 sm:px-5 rounded-xl border border-slate-800">
           <div className="text-[9px] sm:text-[10px] text-emerald-400 uppercase tracking-wider font-bold">
-            {position.isAtStation ? 'Halted at Station' : `Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationCode}`}
+            {awaitingDeparture ? 'Awaiting scheduled departure' : position.isAtStation ? 'Reported at station' : `Passed ${position.distanceCoveredFromPrevKm} km past ${position.previousStationCode}`}
           </div>
           <div className="text-xs sm:text-sm font-black text-amber-300 mt-0.5 flex items-center gap-1.5 justify-center">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            <span>{position.isAtStation ? position.previousStationName : position.currentLocationText}</span>
+            <span className={`w-2 h-2 rounded-full bg-amber-400 ${awaitingDeparture ? '' : 'animate-ping'}`} />
+            <span>{awaitingDeparture ? `${origin.name} · not departed` : position.isAtStation ? position.previousStationName : position.currentLocationText}</span>
           </div>
           <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
-            {position.distanceToNextKm} km to {position.nextStationName} ({position.nextStationCode})
+            {position.distanceToNextKm} km to {awaitingDeparture ? 'first scheduled stop' : `${position.nextStationName} (${position.nextStationCode})`}
           </div>
         </div>
 

@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import type { LiveJourneyAnalysis, TimelineStation } from '@/lib/live-tracking-engine';
+import type { LiveJourneyAnalysis } from '@/lib/live-tracking-engine';
+import type { TrainStatus } from '@/lib/railway-api';
+import { formatJourneyDisplayDate } from '@/lib/journey-date';
 import {
   Train,
   Navigation,
@@ -23,37 +25,12 @@ import {
   Radio,
 } from 'lucide-react';
 
-export function formatJourneyDisplayDate(dateStr?: string | null): string {
-  if (!dateStr || dateStr.toLowerCase() === 'today') {
-    const today = new Date();
-    const formatted = today.toLocaleDateString('en-IN', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-    return `${formatted} (Today)`;
-  }
-  const cleaned = dateStr.trim().replace(/\s+/g, '-');
-  const d = new Date(cleaned);
-  if (!isNaN(d.getTime())) {
-    const formatted = d.toLocaleDateString('en-IN', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-    return `${formatted} (Today)`;
-  }
-  return dateStr;
-}
-
 interface LiveStatusFeedProps {
   trainNumber: string;
   trainName: string;
-  trainStatus: any;
+  trainStatus: (TrainStatus & { meta?: { source?: string } }) | null;
   analyzedJourney: LiveJourneyAnalysis;
-  activeTrain: any;
+  activeTrain: unknown;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onSwitchTo3D?: () => void;
@@ -64,7 +41,6 @@ export default function LiveStatusFeed({
   trainName,
   trainStatus,
   analyzedJourney,
-  activeTrain,
   onRefresh,
   isRefreshing = false,
   onSwitchTo3D,
@@ -75,11 +51,11 @@ export default function LiveStatusFeed({
   useEffect(() => {
     if (!trainNumber) return;
     fetch(`/api/train/${trainNumber}/platforms`)
-      .then((r) => r.json())
+      .then((r) => r.json() as Promise<{ success?: boolean; data?: { stations?: Array<{ station?: { code?: string }; assignments?: Array<{ platform?: string }> }> } }>)
       .then((res) => {
         if (res.success && res.data?.stations) {
           const map: Record<string, string> = {};
-          res.data.stations.forEach((s: any) => {
+          res.data.stations.forEach((s) => {
             const pf = s.assignments?.[0]?.platform;
             if (s.station?.code && pf) {
               map[s.station.code.toUpperCase()] = `PF ${pf}`;
@@ -104,18 +80,18 @@ export default function LiveStatusFeed({
     timeline,
     statusConfidence,
   } = analyzedJourney;
-  const hasProviderPosition = statusConfidence === 'LIVE_REPORTED' || statusConfidence === 'GPS_REPORTED';
-
   const isAtStation = position.isAtStation;
   const isNotStarted =
     trainStatus?.status === 'NOT_STARTED' ||
     statusConfidence === 'NOT_STARTED';
+  const hasProviderPosition = !isNotStarted && (statusConfidence === 'LIVE_REPORTED' || statusConfidence === 'GPS_REPORTED');
+  const providerName = trainStatus?.source || trainStatus?.meta?.source || 'Railway data provider';
 
   let displaySpeed: number | null = null;
   let speedStatusLabel = 'Speed not reported';
   if (isNotStarted) {
-    displaySpeed = 0;
-    speedStatusLabel = 'Halted at Origin Station';
+    displaySpeed = null;
+    speedStatusLabel = 'Awaiting scheduled departure';
   } else if (isAtStation && trainStatus?.status) {
     displaySpeed = 0;
     speedStatusLabel = 'Stationed at Platform';
@@ -160,7 +136,7 @@ export default function LiveStatusFeed({
     ? position.currentStationCode || origin.code
     : `${position.previousStationCode} → ${position.nextStationCode}`;
   const stn2Sub = isAtOrigin
-    ? `Awaiting Departure · ${stn1Pf}`
+    ? `Not departed · Scheduled ${stn1Time} · ${stn1Pf}`
     : isAtStation
     ? 'Halted at Platform'
     : `Passed ${position.distanceCoveredFromPrevKm} km · ${position.distanceToNextKm} km to ${position.nextStationName}`;
@@ -236,7 +212,7 @@ export default function LiveStatusFeed({
         <div className="flex items-center gap-2">
           <span className={`w-2.5 h-2.5 rounded-full ${hasProviderPosition ? 'bg-emerald-400 animate-ping' : 'bg-blue-400'}`} />
           <span className={`text-xs uppercase font-extrabold tracking-wider ${hasProviderPosition ? 'text-emerald-400' : 'text-blue-300'}`}>
-            {hasProviderPosition ? 'Live Running Status Feed' : 'Published Timetable'}
+            {hasProviderPosition ? 'Provider Running Report' : isNotStarted ? `${providerName} · Not Departed` : 'Published Timetable'}
           </span>
           <span className="text-xs text-slate-500 font-mono hidden sm:inline">
             · Provider status and schedule
@@ -329,7 +305,7 @@ export default function LiveStatusFeed({
               {displaySpeed ?? '—'} <span className="text-xs font-normal text-slate-400">{displaySpeed === null ? '' : 'km/h'}</span>
             </div>
             <div className="text-[11px] text-slate-400 truncate mt-0.5">
-              {isMoving(displaySpeed, isNotStarted) ? 'Cruising on mainline' : 'Halted at Origin'}
+              {isMoving(displaySpeed, isNotStarted) ? 'Cruising on mainline' : isNotStarted ? 'Awaiting scheduled departure' : isAtStation ? 'Reported at station' : 'Speed not reported'}
             </div>
           </div>
 
@@ -343,7 +319,7 @@ export default function LiveStatusFeed({
               {stn3Name}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {stn3Dist > 0 ? `in ${stn3Dist} km` : 'Distance not reported'} · ETA {stn3Eta}
+              {stn3Dist > 0 ? `in ${stn3Dist} km` : 'Distance not reported'} · {isNotStarted ? 'Scheduled arrival' : 'ETA'} {stn3Eta}
             </div>
           </div>
 
@@ -357,7 +333,7 @@ export default function LiveStatusFeed({
               {position.delayMinutes <= 2 ? 'Right Time' : `${position.delayMinutes}m Late`}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {isNotStarted ? 'On Time Start' : position.delayText}
+              {isNotStarted ? 'Delay not reported yet' : position.delayText}
             </div>
           </div>
 
@@ -403,7 +379,7 @@ export default function LiveStatusFeed({
             <div className="flex items-center justify-between text-[11px] text-blue-300 uppercase tracking-wider font-bold">
               <span>{stn2Label}</span>
               <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-mono border border-blue-400/30">
-                {isAtOrigin ? 'AT ORIGIN' : isAtStation ? 'HALTED' : 'RUNNING'}
+            {isNotStarted ? 'NOT DEPARTED' : isAtOrigin ? 'AT ORIGIN' : isAtStation ? 'HALTED' : 'RUNNING'}
               </span>
             </div>
             <div className="text-base sm:text-lg font-black text-white mt-1.5 truncate">
@@ -413,7 +389,7 @@ export default function LiveStatusFeed({
               {stn2Code}
             </div>
             <div className="mt-2 text-[11px] text-blue-200 font-semibold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+              <span className={`w-1.5 h-1.5 rounded-full ${isNotStarted ? 'bg-indigo-400' : 'bg-blue-400 animate-ping'}`} />
               <span>{stn2Sub}</span>
             </div>
           </div>

@@ -28,6 +28,7 @@ export default function VerticalRailwayTimeline({
   selectedStationCode,
 }: VerticalRailwayTimelineProps) {
   const { timeline, position } = journey;
+  const awaitingDeparture = journey.statusConfidence === 'NOT_STARTED';
 
   // Count small intermediate passing stations
   const passingCount = timeline.filter((s) => s.isPassingHalt).length;
@@ -76,19 +77,27 @@ export default function VerticalRailwayTimeline({
                 position.isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
               }`}
             />
-            <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              {position.isMoving ? 'Speed:' : 'Status:'}
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-lg sm:text-2xl font-black text-amber-400 font-mono tracking-tight">
-                {position.speedKmph ?? '--'}
-              </span>
-              <span className="text-[10px] sm:text-xs uppercase font-bold text-slate-400">km/h</span>
-            </div>
+            {awaitingDeparture ? (
+              <span className="text-[10px] sm:text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Awaiting departure</span>
+            ) : (
+              <>
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  {position.isMoving ? 'Speed:' : 'Status:'}
+                </span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg sm:text-2xl font-black text-amber-400 font-mono tracking-tight">
+                    {position.speedKmph ?? '--'}
+                  </span>
+                  <span className="text-[10px] sm:text-xs uppercase font-bold text-slate-400">km/h</span>
+                </div>
+              </>
+            )}
             {position.isMoving ? (
               <span className="text-[9px] sm:text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse">
                 Running
               </span>
+            ) : awaitingDeparture ? (
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-200 border border-indigo-500/30">Not departed</span>
             ) : (
               <span className="text-[9px] sm:text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 Halted
@@ -102,8 +111,8 @@ export default function VerticalRailwayTimeline({
       <div className="grid grid-cols-12 px-2 sm:px-4 py-2 sm:py-2.5 bg-slate-950/80 border-b border-slate-800/80 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-400">
         <div className="col-span-3 text-left">Distance</div>
         <div className="col-span-5 text-left pl-2 sm:pl-3">Stations & Halts</div>
-        <div className="col-span-2 text-right">Arrival</div>
-        <div className="col-span-2 text-right">Departure</div>
+        <div className="col-span-2 text-right">Sched. arrival</div>
+        <div className="col-span-2 text-right">Sched. depart.</div>
       </div>
 
       {/* Timeline Stream */}
@@ -232,7 +241,7 @@ export default function VerticalRailwayTimeline({
                       {/* Train Halted Here Badge */}
                       {isTrainHaltedHere && (
                         <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider animate-pulse">
-                          ● Train Here Now
+                          ● {awaitingDeparture ? 'Not departed · source station' : 'Train Here Now'}
                         </span>
                       )}
 

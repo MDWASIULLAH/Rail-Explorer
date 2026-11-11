@@ -16,7 +16,7 @@ export default function LiveStatusLandingPage() {
             Live Train Running Status & Tracking
           </h1>
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-            Accurate live position updates, delay predictions, station timelines, and seamless 1-click integration with our 3D Train Simulation.
+            See the latest provider report alongside published schedules, with clear labels when a position is estimated or not yet reported.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export default function LiveStatusLandingPage() {
             </div>
             <h3 className="font-bold text-white text-base">Station-by-Station Timeline</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Continuous vertical railway line showing completed, current, and upcoming halts with exact arrival, departure, and delay minutes.
+              Browse route stops and published timetable times. Actual arrival times appear only when a provider supplies them.
             </p>
           </div>
 
@@ -41,7 +41,7 @@ export default function LiveStatusLandingPage() {
             </div>
             <h3 className="font-bold text-white text-base">Live Map Route Geometry</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              OpenStreetMap integration with verified coordinates, passed track highlighting, and animated locomotive marker.
+              View station coordinates and the train’s reported or estimated position along its route.
             </p>
           </div>
 

@@ -125,11 +125,11 @@ function SwapExpiryBadge({ expiresAt }: { expiresAt: string }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono font-semibold ${remaining === null || remaining > 0 ? 'border-amber-500/25 bg-amber-500/10 text-amber-300' : 'border-rose-500/30 bg-rose-500/10 text-rose-300'}`}
-      title={`This listing is automatically removed at ${new Date(expiresAt).toLocaleString()}`}
-      aria-label={remaining === null ? 'Checking listing expiry' : remaining > 0 ? `Listing expires in ${hours} hours, ${minutes} minutes, ${seconds} seconds` : 'Listing expired'}
+      title={`This listing is automatically deleted at ${new Date(expiresAt).toLocaleString()}`}
+      aria-label={remaining === null ? 'Checking listing expiry' : remaining > 0 ? `Listing automatically deletes in ${hours} hours, ${minutes} minutes, ${seconds} seconds` : 'Listing expired'}
     >
       <Clock className="h-3 w-3" />
-      {remaining !== null && remaining > 0 ? `Expires ${label}` : label}
+      {remaining !== null && remaining > 0 ? `Auto-deletes in ${label}` : label}
     </span>
   );
 }
@@ -164,6 +164,8 @@ export default function SeatSwapPage() {
     proposeSwap,
     findMatchesForOffer,
     notifications,
+    notificationSoundEnabled,
+    toggleNotificationAlerts,
     syncError,
     sharedReady,
     isSwapModalOpen,
@@ -562,13 +564,24 @@ export default function SeatSwapPage() {
               </p>
             </div>
 
-            <button
-              onClick={() => setIsSwapModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold text-sm shadow-lg shadow-blue-600/25 transition-all active:scale-95 flex items-center gap-2 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>List My Berth</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => void toggleNotificationAlerts()}
+                aria-pressed={notificationSoundEnabled}
+                className={`px-3 py-2.5 rounded-xl border font-bold text-xs transition-all flex items-center gap-2 ${notificationSoundEnabled ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200' : 'bg-slate-950/60 border-slate-700 text-slate-300 hover:border-slate-500'}`}
+              >
+                <Bell className="w-4 h-4" />
+                <span>{notificationSoundEnabled ? 'Alerts on' : 'Enable alerts'}</span>
+              </button>
+              <button
+                onClick={() => setIsSwapModalOpen(true)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold text-sm shadow-lg shadow-blue-600/25 transition-all active:scale-95 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>List My Berth</span>
+              </button>
+            </div>
           </div>
 
           {/* Stats Row */}
@@ -597,7 +610,7 @@ export default function SeatSwapPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 space-y-5">
 
         {userNotifications.length > 0 && (
-          <section aria-label="Seat swap notifications" className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25">
+          <section aria-label="Seat swap notifications" aria-live="polite" className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25">
             <div className="flex items-center gap-2 mb-2">
               <Bell className="w-4 h-4 text-emerald-300" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-200">Swap notifications</h2>
@@ -776,7 +789,8 @@ export default function SeatSwapPage() {
                           {offer.status === 'AVAILABLE' && <Clock className="w-2.5 h-2.5 inline mr-0.5" />}
                           {offer.status === 'SWAP_ACCEPTED' ? '✓ Matched' : offer.status === 'REQUEST_PENDING' ? '⏳ Pending' : timeAgo(offer.createdAt)}
                         </span>
-                        {offer.expiresAt && <SwapExpiryBadge expiresAt={offer.expiresAt} />}
+                        <SwapExpiryBadge expiresAt={offer.expiresAt || new Date(Date.parse(offer.createdAt) + 24 * 60 * 60 * 1000).toISOString()} />
+                        <span className="text-[10px] text-amber-200/80">Automatically deleted 24 hours after posting.</span>
                       </div>
                     </div>
 

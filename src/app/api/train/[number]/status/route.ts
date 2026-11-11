@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { getTrainStatus } from '@/lib/railway-api';
 import { KNOWN_TRAINS } from '@/data/train-directory';
+import { getNtesTrainBundle } from '@/lib/ntes-provider';
 import {
   successResponse,
   errorResponse,
@@ -37,12 +38,43 @@ export async function GET(
 
     if (requestedDate.kind === 'date') {
       // The UI date selector is exact: Today never silently switches to a prior journey.
+      const ntes = await getNtesTrainBundle(request.nextUrl.origin, number, requestedDate.date);
+      if (ntes) {
+        return successResponse({
+          ...ntes.status,
+          trainNumber: number,
+          meta: { generatedAt: ntes.checkedAt, source: 'NTES', live: ntes.status.status === 'RUNNING' },
+        });
+      }
       result = await getTrainStatus(number, requestedDate.date);
     } else {
       // Only an omitted date asks for automatic active-train detection.
       const now = new Date();
       const todayStr = getIndiaDateString(now);
       const yesterdayStr = getIndiaDateString(now, -1);
+      const ntesToday = await getNtesTrainBundle(request.nextUrl.origin, number, todayStr);
+      if (ntesToday?.status.status === 'RUNNING') {
+        return successResponse({
+          ...ntesToday.status,
+          trainNumber: number,
+          meta: { generatedAt: ntesToday.checkedAt, source: 'NTES', live: true },
+        });
+      }
+      const ntesYesterday = await getNtesTrainBundle(request.nextUrl.origin, number, yesterdayStr);
+      if (ntesYesterday?.status.status === 'RUNNING') {
+        return successResponse({
+          ...ntesYesterday.status,
+          trainNumber: number,
+          meta: { generatedAt: ntesYesterday.checkedAt, source: 'NTES', live: true },
+        });
+      }
+      if (ntesToday) {
+        return successResponse({
+          ...ntesToday.status,
+          trainNumber: number,
+          meta: { generatedAt: ntesToday.checkedAt, source: 'NTES', live: false },
+        });
+      }
       // Check today's rake first
       const todayResult = await getTrainStatus(number, todayStr);
 
