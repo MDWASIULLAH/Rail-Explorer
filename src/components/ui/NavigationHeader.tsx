@@ -14,7 +14,6 @@ import {
   Ticket,
   Radio,
   Building2,
-  LogIn,
   LogOut,
   ChevronDown,
   Star,
@@ -22,8 +21,8 @@ import {
   BellRing,
   ShieldAlert,
   ArrowLeftRight,
+  ArrowRight,
   User,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStarredTrains } from '@/context/StarredTrainsContext';
@@ -78,7 +77,7 @@ export default function NavigationHeader() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [hornBlasting, setHornBlasting] = useState(false);
 
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { starredTrains, setIsDrawerOpen, setIsAlarmModalOpen, setIsSosModalOpen } = useStarredTrains();
   const { isProfileModalOpen, setIsProfileModalOpen, incomingProposals } = useSeatSwap();
 
@@ -145,7 +144,7 @@ export default function NavigationHeader() {
             </Link>
 
             {/* Desktop Nav: 5 Core Links + More Dropdown */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden xl:flex items-center gap-1">
               {primaryNavLinks.map(({ href, label, icon: Icon, isLive }) => (
                 <Link
                   key={href}
@@ -198,8 +197,9 @@ export default function NavigationHeader() {
             </nav>
 
             {/* Right Actions: Horn, Starred Drawer, User Profile (Gated by Auth) */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              {user ? (
+            <div className="flex items-center gap-2">
+              <div className="hidden xl:flex items-center gap-1.5 sm:gap-2">
+              {!isLoading && user ? (
                 <>
                   {/* Quick Locomotive Horn Blast */}
                   <button
@@ -280,7 +280,7 @@ export default function NavigationHeader() {
                               <User className="w-3.5 h-3.5" />
                               <span>View Profile & Seat Swaps</span>
                             </span>
-                            <span className="text-[10px] opacity-80">Open →</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] opacity-80">Open <ArrowRight className="size-3" aria-hidden="true" /></span>
                           </button>
                         </div>
 
@@ -369,7 +369,7 @@ export default function NavigationHeader() {
                     )}
                   </div>
                 </>
-              ) : (
+              ) : !isLoading ? (
                 <Link
                   href="/login"
                   className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -377,15 +377,17 @@ export default function NavigationHeader() {
                   <GoogleMiniIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>Sign In</span>
                 </Link>
-              )}
+              ) : null}
+              </div>
 
               {/* Mobile Menu Toggle Button */}
               <button
                 ref={mobileToggleRef}
-                className="lg:hidden min-h-11 min-w-11 p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                className="xl:hidden min-h-11 min-w-11 p-2 text-slate-300 hover:text-white rounded-xl hover:bg-slate-800/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
                 onClick={() => setMobileOpen(!mobileOpen)}
-                aria-label="Toggle Navigation"
+                aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
                 aria-expanded={mobileOpen}
+                aria-controls="mobile-navigation"
               >
                 {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -395,8 +397,8 @@ export default function NavigationHeader() {
 
         {/* Mobile Navigation Drawer */}
         {mobileOpen && (
-          <nav ref={mobileMenuRef} className="lg:hidden bg-slate-900 border-t border-slate-700/50 pb-4 max-h-[85vh] overflow-y-auto">
-            {user ? (
+          <nav id="mobile-navigation" ref={mobileMenuRef} aria-label="Mobile navigation" className="xl:hidden bg-slate-900 border-t border-slate-700/50 pb-4 max-h-[85vh] overflow-y-auto">
+            {!isLoading && user ? (
               <div className="px-5 py-3 border-b border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -440,7 +442,7 @@ export default function NavigationHeader() {
                   <span>View Full Profile & Seat Swaps</span>
                 </button>
               </div>
-            ) : (
+            ) : !isLoading ? (
               <div className="p-4 border-b border-slate-800">
                 <Link
                   href="/login"
@@ -451,10 +453,10 @@ export default function NavigationHeader() {
                   <span>Sign In with Google</span>
                 </Link>
               </div>
-            )}
+            ) : null}
 
             {/* Quick Tools Row for Mobile (Logged-In Users) */}
-            {user && (
+            {!isLoading && user && (
               <div className="grid grid-cols-3 gap-2 px-4 py-3 border-b border-slate-800 bg-slate-950/40 text-xs">
                 <button
                   onClick={() => {

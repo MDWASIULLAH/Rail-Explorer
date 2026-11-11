@@ -29,6 +29,7 @@ export default function HornButton({
     <button
       onClick={handleHorn}
       type="button"
+      aria-label={isPlaying ? 'Train horn playing' : 'Play train horn'}
       title="Play Authentic WAP-7 Locomotive Air Horn (370 Hz / 311 Hz)"
       className={`inline-flex items-center gap-1.5 rounded-xl font-bold transition-all active:scale-95 ${
         size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-xs'

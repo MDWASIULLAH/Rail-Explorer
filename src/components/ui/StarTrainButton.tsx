@@ -51,6 +51,8 @@ export default function StarTrainButton({
     <button
       onClick={handleClick}
       type="button"
+      aria-label={starred ? `Remove train ${trainNumber} from starred trains` : `Star train ${trainNumber}`}
+      aria-pressed={starred}
       title={starred ? `Unstar Train ${trainNumber}` : `Star Train ${trainNumber} for Live Tracking`}
       className={`inline-flex items-center gap-1.5 rounded-xl font-bold transition-all duration-200 active:scale-95 ${buttonPadding[size]} ${
         starred

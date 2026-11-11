@@ -7,17 +7,13 @@ import StarTrainButton from '@/components/ui/StarTrainButton';
 import HornButton from '@/components/ui/HornButton';
 import { useAuth } from '@/context/AuthContext';
 import {
-  Train,
-  Calendar,
   Share2,
-  RefreshCw,
   Eye,
-  CheckCircle,
   Map,
   ListOrdered,
   Columns,
   Radio,
-  Navigation,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface TrainStatusHeaderProps {
@@ -34,8 +30,6 @@ export default function TrainStatusHeader({
   journey,
   viewMode,
   onChangeViewMode,
-  onRefresh,
-  isRefreshing,
   selectedDate,
   onChangeDate,
 }: TrainStatusHeaderProps) {
@@ -57,15 +51,15 @@ export default function TrainStatusHeader({
   return (
     <div className="bg-slate-900 border-b border-slate-800 p-3 sm:p-6 shadow-xl">
       <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4">
-        {/* Main Title Row matching screenshot 1 */}
-        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Link
               href="/"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
+              aria-label="Back to home"
+              className="min-h-10 min-w-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition shrink-0"
               title="Back to Home"
             >
-              ←
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             </Link>
 
             <div className="min-w-0">
@@ -83,8 +77,7 @@ export default function TrainStatusHeader({
             </div>
           </div>
 
-          {/* Quick Actions (Star & Horn when logged in, 3D Explorer, Share) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-2 shrink-0">
             {user && (
               <>
                 <StarTrainButton
@@ -93,15 +86,16 @@ export default function TrainStatusHeader({
                   origin={origin}
                   destination={destination}
                   size="sm"
-                  showLabel={true}
+                  showLabel={false}
+                  className="min-h-10 min-w-10 justify-center"
                 />
-                <HornButton size="sm" showLabel={false} />
+                <span className="hidden sm:inline-flex"><HornButton size="sm" showLabel={false} /></span>
               </>
             )}
 
             <Link
               href={`/train/${trainNumber}`}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/20 border border-blue-400/40 flex items-center gap-1.5 transition active:scale-95"
+              className="min-h-10 flex-1 sm:flex-none justify-center px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/15 border border-blue-400/30 flex items-center gap-1.5 transition active:scale-95"
             >
               <Eye className="w-3.5 h-3.5" />
               <span>3D Explorer</span>
@@ -114,7 +108,8 @@ export default function TrainStatusHeader({
                   alert('Live status URL copied to clipboard!');
                 }
               }}
-              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition active:scale-95"
+              aria-label="Share live status link"
+              className="min-h-10 min-w-10 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition active:scale-95"
               title="Share Live Status"
             >
               <Share2 className="w-4 h-4" />
@@ -123,15 +118,16 @@ export default function TrainStatusHeader({
         </div>
 
         {/* Date Selector & "I am inside train" Bar matching Where Is My Train */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-800/80">
-          <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-800/80">
+          <div className="w-full sm:w-auto">
             <span className="text-xs text-slate-400 font-medium hidden xs:inline">Journey:</span>
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-950 p-0.5 sm:p-1 rounded-xl border border-slate-800 text-xs">
+            <div className="grid w-full grid-cols-3 items-stretch gap-0.5 sm:flex sm:w-auto sm:items-center sm:gap-1 bg-slate-950 p-0.5 sm:p-1 rounded-xl border border-slate-800 text-xs" role="group" aria-label="Journey date">
               {['Yesterday', 'Today', 'Tomorrow'].map((day) => (
                 <button
                   key={day}
                   onClick={() => onChangeDate(day)}
-                  className={`px-2.5 sm:px-3 py-1 rounded-lg font-semibold text-xs transition ${
+                  aria-pressed={selectedDate === day}
+                  className={`min-h-10 px-1.5 sm:px-3 rounded-lg font-semibold text-xs transition ${
                     selectedDate === day
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-white'
@@ -144,14 +140,14 @@ export default function TrainStatusHeader({
           </div>
 
           {/* Right Sub-options */}
-          <div className="flex items-center gap-3">
+          <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-3">
             {/* "I am inside train" Checkbox matching Screenshot 1 */}
             <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={isInsideTrain}
                 onChange={(e) => setIsInsideTrain(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 focus:ring-0 focus:ring-offset-0"
+                className="size-4 rounded accent-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
               />
               <span className={`text-[11px] sm:text-xs ${isInsideTrain ? 'text-emerald-400 font-bold' : ''}`}>
                 Inside Train
@@ -170,13 +166,14 @@ export default function TrainStatusHeader({
         </div>
 
         {/* View Mode Switcher: Timeline vs Map vs Combined */}
-        <div className="flex items-center justify-between gap-2.5 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-800/80 flex-wrap">
-          <div className="flex items-center gap-1 bg-slate-950 p-0.5 sm:p-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-800/80">
+          <div className="grid w-full grid-cols-3 items-stretch gap-0.5 bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-xs sm:flex sm:w-auto sm:items-center sm:gap-1 sm:p-1" role="group" aria-label="Route display mode">
             <button
               onClick={() => onChangeViewMode('timeline')}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition text-xs ${
+              aria-pressed={viewMode === 'timeline'}
+              className={`min-h-10 flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition text-xs ${
                 viewMode === 'timeline'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  ? 'bg-blue-600 text-white shadow-sm font-black'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -186,9 +183,10 @@ export default function TrainStatusHeader({
 
             <button
               onClick={() => onChangeViewMode('map')}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition text-xs ${
+              aria-pressed={viewMode === 'map'}
+              className={`min-h-10 flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition text-xs ${
                 viewMode === 'map'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  ? 'bg-blue-600 text-white shadow-sm font-black'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -198,9 +196,10 @@ export default function TrainStatusHeader({
 
             <button
               onClick={() => onChangeViewMode('combined')}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition text-xs ${
+              aria-pressed={viewMode === 'combined'}
+              className={`min-h-10 flex items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold transition text-xs ${
                 viewMode === 'combined'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  ? 'bg-blue-600 text-white shadow-sm font-black'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -209,7 +208,7 @@ export default function TrainStatusHeader({
             </button>
           </div>
 
-          <div className="text-xs text-slate-400 flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="text-xs text-slate-400 flex w-full md:w-auto items-center justify-between md:justify-end gap-2 sm:gap-3 flex-wrap">
             {/* Live Speed Pill in Header */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800">
               <span className={`w-2 h-2 rounded-full ${position.isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
@@ -225,7 +224,7 @@ export default function TrainStatusHeader({
             )}
 
             {/* Next Station Proximity */}
-            <span>
+            <span className="min-w-0 truncate text-right">
               Next: <strong className="text-white">{position.nextStationName}</strong>{' '}
               <span className="font-mono text-amber-300 font-bold">({position.distanceToNextKm} km)</span>
             </span>
