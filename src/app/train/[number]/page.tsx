@@ -373,8 +373,8 @@ function TrainExplorerContent() {
       {activeTab === '3d' && (
         <div className="flex-1 flex flex-col">
           <div className="flex-1 flex flex-col lg:flex-row">
-            {/* 3D Viewport - Responsive Height Optimized for Mobile */}
-            <div className="flex-1 h-[64vh] sm:h-[62vh] lg:h-[650px] min-h-[440px] sm:min-h-[480px] relative">
+            {/* 3D Viewport - Responsive Height Optimized for Mobile & Desktop */}
+            <div className="flex-1 h-[50vh] sm:h-[58vh] lg:h-[650px] min-h-[350px] sm:min-h-[460px] relative">
               {isLoading && !selectedTrain ? (
                 <div className="w-full h-full flex items-center justify-center bg-slate-900">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -409,7 +409,7 @@ function TrainExplorerContent() {
             </div>
 
             {/* Side Panel */}
-            <div className="w-full lg:w-84 xl:w-96 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-y-auto max-h-[60vh] lg:max-h-[650px]">
+            <div className="w-full lg:w-84 xl:w-96 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-y-auto max-h-[40vh] sm:max-h-[60vh] lg:max-h-[650px]">
               <div className="p-4 space-y-4">
                 {/* Coach Seat Grid & Berth Selection */}
                 {selectedCoach && selectedBlueprint && (

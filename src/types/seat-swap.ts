@@ -28,12 +28,23 @@ export interface SwapOffer {
   createdAt: string;
   contactMasked?: string;
   isCurrentUser?: boolean;
+  userEmail?: string;
+  userId?: string;
+  acceptedProposal?: SwapProposal;
+  acceptedAt?: string;
 }
 
 export interface SwapProposal {
   id: string;
   offerId: string;
+  targetTrainNumber?: string;
+  targetCoach?: string;
+  targetBerth?: number;
+  targetBerthType?: string;
+  targetPassengerName?: string;
   proposerName: string;
+  proposerEmail?: string;
+  proposerUserId?: string;
   proposerCoach: string;
   proposerBerth: number;
   proposerBerthType: 'LB' | 'MB' | 'UB' | 'SL' | 'SU';
@@ -41,5 +52,5 @@ export interface SwapProposal {
   message: string;
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
   createdAt: string;
+  isCurrentUser?: boolean;
 }
-

@@ -78,6 +78,15 @@ function CameraController({
   useEffect(() => {
     if (!controlsRef.current) return;
 
+    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
+    if ('fov' in camera) {
+      const targetFov = isMobile ? 65 : 50;
+      if ((camera as any).fov !== targetFov) {
+        (camera as any).fov = targetFov;
+        camera.updateProjectionMatrix();
+      }
+    }
+
     if (viewMode === 'full-train') {
       const trainLen = coachesCount * 24.6;
       if (cameraPreset === 'railfan') {
@@ -91,22 +100,21 @@ function CameraController({
         camera.position.set(52, 2.5, 9.5);
         controlsRef.current.update();
       } else {
-        // Full train cinematic overview - perfectly centered vertically & horizontally
+        // Full train cinematic overview - centered vertically & horizontally
         const targetX = trainLen / 2;
-        // Center vertically on train: target y = 0.5
         controlsRef.current.target.set(targetX, 0.5, 0);
-        // Responsive camera distance and elevation:
-        // Position camera at y = 3.2 (just above train centerline) with gentle angle
         const aspect = typeof window !== 'undefined' ? window.innerWidth / Math.max(1, window.innerHeight) : 1.77;
-        const zDist = aspect < 1.0
+        const zDist = isMobile
+          ? Math.max(40, Math.min(68, trainLen * 0.16))
+          : aspect < 1.0
           ? Math.max(70, Math.min(135, (trainLen * 0.36) / aspect))
           : Math.max(55, Math.min(105, trainLen * 0.28));
-        camera.position.set(targetX, 3.2, zDist);
+        camera.position.set(targetX, isMobile ? 2.0 : 3.2, zDist);
         controlsRef.current.update();
       }
     } else if (viewMode === 'coach-interior') {
       controlsRef.current.target.set(12, 1.3, 0);
-      camera.position.set(12, 3.2, 5.5);
+      camera.position.set(12, isMobile ? 2.5 : 3.2, isMobile ? 4.2 : 5.5);
       controlsRef.current.update();
     } else if (viewMode === 'berth-detail' && selectedBerth && blueprint) {
       const berth = blueprint.berths?.find((b: any) => b.berthNumber === selectedBerth);
@@ -485,7 +493,13 @@ export default function TrainScene({
           )}
 
           <button
-            onClick={() => setIsMobileControlsOpen(!isMobileControlsOpen)}
+            onClick={() => {
+              setIsMobileControlsOpen((prev) => {
+                const next = !prev;
+                if (next) setIsCaliperOpen(false);
+                return next;
+              });
+            }}
             className="px-2.5 py-1 rounded-xl bg-slate-900/90 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1 shadow-lg backdrop-blur-md active:scale-95"
           >
             <span>⚙️ View</span>
@@ -494,7 +508,7 @@ export default function TrainScene({
 
         {/* Mobile Expanded View Drawer Popover */}
         {isMobileControlsOpen && (
-          <div className="sm:hidden absolute top-14 right-3 z-30 bg-slate-950/95 backdrop-blur-xl border border-slate-700 rounded-2xl p-3 shadow-2xl space-y-2.5 animate-in fade-in duration-150 w-64 pointer-events-auto">
+          <div className="sm:hidden absolute bottom-0 left-0 right-0 z-40 bg-slate-950/98 backdrop-blur-xl border-t border-slate-700 rounded-t-2xl p-3 pb-5 shadow-2xl space-y-2.5 animate-in slide-in-from-bottom duration-200 pointer-events-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
               <span className="text-xs font-bold text-white">3D View Controls</span>
               <button
@@ -803,7 +817,7 @@ export default function TrainScene({
             <div
               className={`${
                 !isDpadOpen ? 'hidden sm:block' : 'block'
-              } bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-2.5 sm:p-3 shadow-2xl space-y-2`}
+              } bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-2 sm:p-3 shadow-2xl space-y-1.5 sm:space-y-2`}
             >
               <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5">
                 <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
@@ -937,17 +951,17 @@ export default function TrainScene({
       {/* FULL TRAIN MODE: 3D Coach-to-Coach Distance Caliper     */}
       {/* ======================================================== */}
       {viewMode === 'full-train' && (
-        <div className="absolute bottom-2.5 left-2.5 sm:bottom-4 sm:left-4 z-20">
+        <div className="absolute bottom-2.5 left-2.5 sm:bottom-4 sm:left-4 z-30">
           {!isCaliperOpen ? (
             <button
-              onClick={() => setIsCaliperOpen(true)}
+              onClick={() => { setIsCaliperOpen(true); setIsMobileControlsOpen(false); }}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-bold rounded-xl backdrop-blur-md border border-slate-700/80 shadow-xl transition active:scale-95"
             >
               <Ruler className="w-3.5 h-3.5 text-amber-400" />
               <span>3D Caliper</span>
             </button>
           ) : (
-            <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 sm:p-3 shadow-2xl w-72 sm:w-84 animate-fadeIn">
+            <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 sm:p-3 shadow-2xl w-[calc(100vw-1.5rem)] sm:w-84 animate-fadeIn">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
                   <Ruler className="w-3.5 h-3.5 text-amber-400" />
@@ -1010,7 +1024,7 @@ export default function TrainScene({
       {/* ======================================================== */}
       {/* BOTTOM RIGHT: Controls Navigation Hint                  */}
       {/* ======================================================== */}
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-4 sm:right-4 text-[10px] sm:text-[11px] text-slate-300 bg-slate-900/90 px-2.5 sm:px-3 py-1 rounded-xl backdrop-blur-md border border-slate-800 shadow-xl z-20 pointer-events-none">
+      <div className={`absolute bottom-2.5 right-2.5 sm:bottom-4 sm:right-4 text-[10px] sm:text-[11px] text-slate-300 bg-slate-900/90 px-2.5 sm:px-3 py-1 rounded-xl backdrop-blur-md border border-slate-800 shadow-xl z-20 pointer-events-none ${isMobileControlsOpen || isCaliperOpen ? 'hidden sm:block' : 'block'}`}>
         {effectiveWalkthrough ? (
           <span>🚶 D-Pad to Walk · Drag to Look</span>
         ) : (

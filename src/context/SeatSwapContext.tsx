@@ -1,19 +1,24 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { SwapOffer, SwapProposal } from '@/types/seat-swap';
 
 interface SeatSwapContextType {
   offers: SwapOffer[];
   userOffers: SwapOffer[];
   proposals: SwapProposal[];
+  incomingProposals: SwapProposal[];
+  sentProposals: SwapProposal[];
   createOffer: (offer: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => SwapOffer;
   proposeSwap: (proposal: Omit<SwapProposal, 'id' | 'createdAt' | 'status'>) => SwapProposal;
   acceptSwap: (proposalId: string) => void;
+  declineSwap: (proposalId: string) => void;
   deleteOffer: (offerId: string) => void;
   findMatchesForOffer: (offer: SwapOffer) => SwapOffer[];
   isSwapModalOpen: boolean;
   setIsSwapModalOpen: (open: boolean) => void;
+  isProfileModalOpen: boolean;
+  setIsProfileModalOpen: (open: boolean) => void;
   prefilledCoach: string | null;
   prefilledBerth: number | null;
   prefilledTrain: string | null;
@@ -22,21 +27,22 @@ interface SeatSwapContextType {
 
 const SeatSwapContext = createContext<SeatSwapContextType | null>(null);
 
-const SWAP_STORAGE_KEY = 'rail_seat_swaps_v2';
-const PROPOSAL_STORAGE_KEY = 'rail_seat_proposals_v2';
+const SWAP_STORAGE_KEY = 'rail_seat_swaps_v3';
+const PROPOSAL_STORAGE_KEY = 'rail_seat_proposals_v3';
 
 export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   const [offers, setOffers] = useState<SwapOffer[]>([]);
   const [proposals, setProposals] = useState<SwapProposal[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Pre-fill state for when users click "Swap this Berth" from 3D or PNR
+  // Pre-fill state
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [prefilledCoach, setPrefilledCoach] = useState<string | null>(null);
   const [prefilledBerth, setPrefilledBerth] = useState<number | null>(null);
   const [prefilledTrain, setPrefilledTrain] = useState<string | null>(null);
 
-  // Load from storage — no mock data; only real user-created offers persist
+  // Load from storage
   useEffect(() => {
     try {
       const storedOffers = localStorage.getItem(SWAP_STORAGE_KEY);
@@ -68,7 +74,19 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
     }
   }, [offers, proposals, isLoaded]);
 
-  const userOffers = offers.filter((o) => o.isCurrentUser);
+  const userOffers = useMemo(() => offers.filter((o) => o.isCurrentUser), [offers]);
+
+  const userOfferIds = useMemo(() => new Set(userOffers.map((o) => o.id)), [userOffers]);
+
+  const incomingProposals = useMemo(
+    () => proposals.filter((p) => userOfferIds.has(p.offerId)),
+    [proposals, userOfferIds]
+  );
+
+  const sentProposals = useMemo(
+    () => proposals.filter((p) => p.isCurrentUser),
+    [proposals]
+  );
 
   const createOffer = useCallback(
     (newOfferData: Omit<SwapOffer, 'id' | 'createdAt' | 'status' | 'isCurrentUser'>) => {
@@ -91,6 +109,7 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
         ...proposalData,
         id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         status: 'PENDING',
+        isCurrentUser: true,
         createdAt: new Date().toISOString(),
       };
       setProposals((prev) => [newProposal, ...prev]);
@@ -107,15 +126,42 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   );
 
   const acceptSwap = useCallback((proposalId: string) => {
+    let acceptedProp: SwapProposal | undefined;
     setProposals((prev) =>
-      prev.map((p) => (p.id === proposalId ? { ...p, status: 'ACCEPTED' } : p))
+      prev.map((p) => {
+        if (p.id === proposalId) {
+          acceptedProp = { ...p, status: 'ACCEPTED' };
+          return acceptedProp;
+        }
+        return p;
+      })
+    );
+
+    setOffers((prev) =>
+      prev.map((o) => {
+        if (acceptedProp && o.id === acceptedProp.offerId) {
+          return {
+            ...o,
+            status: 'SWAP_ACCEPTED',
+            acceptedProposal: acceptedProp,
+            acceptedAt: new Date().toISOString(),
+          };
+        }
+        return o;
+      })
+    );
+  }, []);
+
+  const declineSwap = useCallback((proposalId: string) => {
+    setProposals((prev) =>
+      prev.map((p) => (p.id === proposalId ? { ...p, status: 'DECLINED' } : p))
     );
 
     const targetProp = proposals.find((p) => p.id === proposalId);
     if (targetProp) {
       setOffers((prev) =>
         prev.map((o) =>
-          o.id === targetProp.offerId ? { ...o, status: 'SWAP_ACCEPTED' } : o
+          o.id === targetProp.offerId ? { ...o, status: 'AVAILABLE' } : o
         )
       );
     }
@@ -123,9 +169,9 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
 
   const deleteOffer = useCallback((offerId: string) => {
     setOffers((prev) => prev.filter((o) => o.id !== offerId));
+    setProposals((prev) => prev.filter((p) => p.offerId !== offerId));
   }, []);
 
-  // Matching algorithm: finds compatible swaps on the same train
   const findMatchesForOffer = useCallback(
     (targetOffer: SwapOffer) => {
       return offers.filter((candidate) => {
@@ -133,13 +179,11 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
         if (candidate.trainNumber !== targetOffer.trainNumber) return false;
         if (candidate.status !== 'AVAILABLE') return false;
 
-        // Check if candidate coach matches target desire
         const candidateCoachOk =
           !targetOffer.desiredCoaches ||
           targetOffer.desiredCoaches.length === 0 ||
           targetOffer.desiredCoaches.includes(candidate.currentCoach);
 
-        // Check if candidate berth type matches target desire
         const candidateBerthOk =
           !targetOffer.desiredBerthTypes ||
           targetOffer.desiredBerthTypes.length === 0 ||
@@ -167,13 +211,18 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
         offers,
         userOffers,
         proposals,
+        incomingProposals,
+        sentProposals,
         createOffer,
         proposeSwap,
         acceptSwap,
+        declineSwap,
         deleteOffer,
         findMatchesForOffer,
         isSwapModalOpen,
         setIsSwapModalOpen,
+        isProfileModalOpen,
+        setIsProfileModalOpen,
         prefilledCoach,
         prefilledBerth,
         prefilledTrain,
