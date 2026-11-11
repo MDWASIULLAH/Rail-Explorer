@@ -769,6 +769,23 @@ export interface ProviderHealth {
   }>;
 }
 
+export function getRailKitHealthEntry(): ProviderHealth['providers'][number] {
+  const configured = isRailKitConfigured();
+  return {
+    name: 'railkit',
+    state: configured ? 'CONFIGURED_UNVERIFIED' : 'NOT_CONFIGURED',
+    latencyMs: null,
+    lastSuccessAt: null,
+    lastFailureAt: null,
+    errorCount: 0,
+    configured,
+    capabilities: ['pnrStatus', 'trainInfoRoute'],
+    note: configured
+      ? 'Server credential is configured; live API health has not yet been probed.'
+      : 'Set the server-only RAILKIT_API_KEY variable to enable RailKit PNR and train-info fallback.',
+  };
+}
+
 export interface CoverageInfo {
   updatedAt: string;
   overallNote: string;
@@ -783,7 +800,19 @@ export interface CoverageInfo {
  * Get detailed provider health across all upstream services (whereismytrain, railradar)
  */
 export async function getProviderHealth(): Promise<ApiResponse<ProviderHealth>> {
-  return apiRequest<ProviderHealth>(`/v1/provider/health`, { cacheTtl: 15000 });
+  const result = await apiRequest<ProviderHealth>(`/v1/provider/health`, { cacheTtl: 15000 });
+  if (result.status !== 'SUCCESS' || !result.data) return result;
+
+  return {
+    ...result,
+    data: {
+      ...result.data,
+      providers: [
+        ...result.data.providers.filter((provider) => provider.name.toLowerCase() !== 'railkit'),
+        getRailKitHealthEntry(),
+      ],
+    },
+  };
 }
 
 /**

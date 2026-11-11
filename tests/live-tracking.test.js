@@ -88,6 +88,25 @@ test('RailKit train info maps a validated route without fabricated coordinates',
   assert.strictEqual(normalizeRailKitTrainRoute({ route: [{ station_code: 'BBS', station_name: 'Bhubaneswar' }] }, '18403'), null);
 });
 
+test('RailKit health exposes configuration state without exposing its credential', () => {
+  const { getRailKitHealthEntry } = require('../src/lib/railway-api.ts');
+  const original = process.env.RAILKIT_API_KEY;
+  try {
+    delete process.env.RAILKIT_API_KEY;
+    const missing = getRailKitHealthEntry();
+    assert.strictEqual(missing.configured, false);
+    assert.strictEqual(missing.state, 'NOT_CONFIGURED');
+    process.env.RAILKIT_API_KEY = 'synthetic-test-secret';
+    const present = getRailKitHealthEntry();
+    assert.strictEqual(present.configured, true);
+    assert.strictEqual(present.state, 'CONFIGURED_UNVERIFIED');
+    assert.ok(!JSON.stringify(present).includes('synthetic-test-secret'));
+  } finally {
+    if (original === undefined) delete process.env.RAILKIT_API_KEY;
+    else process.env.RAILKIT_API_KEY = original;
+  }
+});
+
 test('Journey date resolution uses India calendar dates and distinguishes auto mode', () => {
   const { getIndiaDateString, resolveJourneyDate } = require('../src/app/api/_lib/helpers.ts');
   // This UTC instant is already the next calendar day in India.

@@ -13,6 +13,7 @@ Audit date: 11 November 2026
 ## Changes in this release
 
 - Added a server-only RailKit REST client using the documented `x-api-key` header and API paths.
+- Provider health now reports only whether RailKit is configured (never its value) and labels it unverified until a live provider call succeeds.
 - PNR requests try RailKit first when `RAILKIT_API_KEY` is configured, validate the returned PNR, train number, and source/destination, normalize passenger booking/current state and berth details, then fall back to the existing Railway Engine provider.
 - PNR data is not cached or logged. The key is read only by server code.
 - Route requests try RailKit's documented train-info endpoint when configured. Returned route stops are validated and carry `RAILKIT` source metadata; malformed or incomplete route responses fall through to the existing provider.
