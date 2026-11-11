@@ -7,12 +7,13 @@ import { Text } from '@react-three/drei';
 import type { BerthDimensions, BerthPosition, BerthType } from '@/data/coach-database';
 
 const BERTH_COLORS: Record<BerthType, string> = {
-  LB: '#22c55e',
+  LB: '#168a68',
   // Keep central middle berths visually distinct from the side berths.
-  MB: '#3b82f6',
-  UB: '#a855f7',
-  SL: '#f59e0b',
-  SU: '#f97316',
+  MB: '#3478b9',
+  UB: '#7957a8',
+  // Side lower is a real lower berth, not a third middle berth.
+  SL: '#087f8c',
+  SU: '#b56a36',
   SEAT: '#0f766e',
   CABIN_LB: '#22c55e',
   CABIN_UB: '#f97316',
@@ -89,6 +90,18 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick, d
       >
         {berth.berthNumber.toString()}
       </Text>
+      {(berth.berthType === 'SL' || berth.berthType === 'SU') && (
+        <Text
+          position={[0, (isGeneralSeat ? 0.12 : berthHeight) + 0.24, 0]}
+          fontSize={0.075}
+          color="#e2e8f0"
+          anchorX="center"
+          anchorY="middle"
+          fontWeight="bold"
+        >
+          {berth.berthType}
+        </Text>
+      )}
       {/* Selection ring */}
       {isSelected && (
         <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>

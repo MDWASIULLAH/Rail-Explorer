@@ -172,7 +172,7 @@ function FirstAcPartitions({ blueprint, coachW }: { blueprint: CoachBlueprint; c
           {[-1, 1].map((side) => (
             <mesh key={side} position={[x, 1.18, side * panelOffset]}>
               <boxGeometry args={[0.06, 2.36, panelWidth]} />
-              <meshStandardMaterial color="#d8e1ec" roughness={0.55} transparent opacity={0.42} />
+              <meshStandardMaterial color="#d8e1ec" roughness={0.72} />
             </mesh>
           ))}
           <mesh position={[x, 2.38, 0]}>
@@ -206,6 +206,80 @@ export default function CoachInterior({
   const coachW = blueprint.dimensions.interiorWidth / 1000;
   const coachH = 2.8;
   const wallThickness = 0.05;
+  const windowCount = Math.max(1, Math.min(blueprint.windows, 20));
+  const windowWidth = 0.82;
+  const windowHeight = 0.62;
+  const windowY = 1.72;
+  const windowCenters = Array.from({ length: windowCount }, (_, i) =>
+    0.65 + (i + 0.5) * (coachLen - 1.3) / windowCount,
+  );
+
+  // Build each side as solid panels around the window openings. A single
+  // transparent wall plane made the whole coach look like frosted glass.
+  const sideWall = (side: -1 | 1) => {
+    const wallZ = side * (coachW / 2 + wallThickness / 2);
+    const bottomY = windowY - windowHeight / 2;
+    const topY = windowY + windowHeight / 2;
+    return (
+      <group key={`coach-wall-${side}`}>
+        {windowCenters[0] - windowWidth / 2 > 0 && (
+          <mesh position={[(windowCenters[0] - windowWidth / 2) / 2, windowY, wallZ]}>
+            <boxGeometry args={[windowCenters[0] - windowWidth / 2, windowHeight, wallThickness]} />
+            <meshStandardMaterial color="#d1d6db" roughness={0.78} />
+          </mesh>
+        )}
+        {windowCenters.map((center, index) => {
+          return (
+            <group key={`window-${side}-${index}`}>
+              <mesh position={[center, windowY, wallZ]}>
+                <boxGeometry args={[windowWidth - 0.08, windowHeight - 0.08, wallThickness * 0.35]} />
+                <meshStandardMaterial color="#52677a" roughness={0.32} metalness={0.12} transparent opacity={0.78} />
+              </mesh>
+              {[-1, 1].map((horizontal) => (
+                <mesh key={`frame-${horizontal}`} position={[center + horizontal * (windowWidth / 2 - 0.025), windowY, wallZ + side * 0.018]}>
+                  <boxGeometry args={[0.045, windowHeight + 0.08, 0.04]} />
+                  <meshStandardMaterial color="#9aa8b5" roughness={0.42} metalness={0.5} />
+                </mesh>
+              ))}
+              {[-1, 1].map((vertical) => (
+                <mesh key={`rail-${vertical}`} position={[center, windowY + vertical * (windowHeight / 2 - 0.025), wallZ + side * 0.018]}>
+                  <boxGeometry args={[windowWidth, 0.045, 0.04]} />
+                  <meshStandardMaterial color="#9aa8b5" roughness={0.42} metalness={0.5} />
+                </mesh>
+              ))}
+              <mesh position={[center, windowY - windowHeight / 2 - 0.09, wallZ - side * 0.035]}>
+                <boxGeometry args={[windowWidth + 0.12, 0.12, 0.14]} />
+                <meshStandardMaterial color="#d1d5db" roughness={0.56} />
+              </mesh>
+              <mesh position={[center, windowY, wallZ + side * 0.028]}>
+                <boxGeometry args={[0.025, windowHeight - 0.1, 0.035]} />
+                <meshStandardMaterial color="#8b98a5" roughness={0.48} metalness={0.45} />
+              </mesh>
+            </group>
+          );
+        })}
+        <mesh position={[coachLen / 2, bottomY / 2, wallZ]}>
+          <boxGeometry args={[coachLen, bottomY, wallThickness]} />
+          <meshStandardMaterial color="#c7cdd2" roughness={0.78} />
+        </mesh>
+        <mesh position={[coachLen / 2, (topY + coachH) / 2, wallZ]}>
+          <boxGeometry args={[coachLen, coachH - topY, wallThickness]} />
+          <meshStandardMaterial color="#d8dde1" roughness={0.78} />
+        </mesh>
+        {windowCenters.map((center, index) => {
+          const pillarStart = center + windowWidth / 2;
+          const pillarEnd = index === windowCenters.length - 1 ? coachLen : windowCenters[index + 1] - windowWidth / 2;
+          if (pillarEnd <= pillarStart) return null;
+          return (
+            <mesh key={`pillar-${side}-${index}`} position={[(pillarStart + pillarEnd) / 2, windowY, wallZ]}>
+              <boxGeometry args={[pillarEnd - pillarStart, windowHeight, wallThickness]} />
+              <meshStandardMaterial color="#d1d6db" roughness={0.78} />
+            </mesh>
+          );
+        })}
+      </group>
+    );
+  };
 
   return (
     <group>
@@ -221,17 +295,8 @@ export default function CoachInterior({
         <meshStandardMaterial color="#e2e8f0" roughness={0.5} />
       </mesh>
 
-      {/* Left wall */}
-      <mesh position={[coachLen / 2, coachH / 2, coachW / 2 + wallThickness / 2]}>
-        <boxGeometry args={[coachLen, coachH, wallThickness]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.6} transparent opacity={0.6} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Right wall */}
-      <mesh position={[coachLen / 2, coachH / 2, -coachW / 2 - wallThickness / 2]}>
-        <boxGeometry args={[coachLen, coachH, wallThickness]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.6} transparent opacity={0.6} side={THREE.DoubleSide} />
-      </mesh>
+      {sideWall(-1)}
+      {sideWall(1)}
 
       {/* End walls */}
       <mesh position={[0, coachH / 2, 0]}>
@@ -240,7 +305,7 @@ export default function CoachInterior({
       </mesh>
       <mesh position={[coachLen, coachH / 2, 0]}>
         <boxGeometry args={[wallThickness, coachH, coachW]} />
-        <meshStandardMaterial color="#94a3b8" roughness={0.6} transparent opacity={0.5} />
+        <meshStandardMaterial color="#aeb7c0" roughness={0.72} />
       </mesh>
 
       {/* Aisle floor (darker strip) */}
@@ -259,29 +324,12 @@ export default function CoachInterior({
             {/* Left side partition */}
             <mesh position={[x, coachH * 0.4, coachW / 4]}>
               <boxGeometry args={[0.03, coachH * 0.8, coachW / 2 - 0.4]} />
-              <meshStandardMaterial color="#94a3b8" roughness={0.5} transparent opacity={0.3} />
+              <meshStandardMaterial color="#a8b0b8" roughness={0.7} />
             </mesh>
             {/* Right side partition */}
             <mesh position={[x, coachH * 0.4, -coachW / 4]}>
               <boxGeometry args={[0.03, coachH * 0.8, coachW / 2 - 0.4]} />
-              <meshStandardMaterial color="#94a3b8" roughness={0.5} transparent opacity={0.3} />
-            </mesh>
-          </group>
-        );
-      })}
-
-      {/* Windows (light panels on walls) */}
-      {Array.from({ length: Math.min(blueprint.windows, 20) }, (_, i) => {
-        const wx = 2.5 + i * (coachLen - 5) / Math.min(blueprint.windows, 20);
-        return (
-          <group key={`window-${i}`}>
-            <mesh position={[wx, coachH * 0.55, coachW / 2 + wallThickness / 2 + 0.006]}>
-              <planeGeometry args={[0.8, 0.6]} />
-              <meshStandardMaterial color="#87ceeb" emissive="#87ceeb" emissiveIntensity={0.3} transparent opacity={0.5} />
-            </mesh>
-            <mesh position={[wx, coachH * 0.55, -coachW / 2 - wallThickness / 2 - 0.006]} rotation={[0, Math.PI, 0]}>
-              <planeGeometry args={[0.8, 0.6]} />
-              <meshStandardMaterial color="#87ceeb" emissive="#87ceeb" emissiveIntensity={0.3} transparent opacity={0.5} />
+              <meshStandardMaterial color="#a8b0b8" roughness={0.7} />
             </mesh>
           </group>
         );
