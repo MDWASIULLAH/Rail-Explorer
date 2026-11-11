@@ -584,7 +584,7 @@ export default function LiveMapTracker({
   return (
     <div className="relative w-full h-[620px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950 flex flex-col">
       {/* Top Map Toolbar - scrollable on mobile */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pointer-events-none">
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex flex-wrap content-start items-start gap-1.5 overflow-visible pointer-events-none">
         {/* Style Selector */}
         <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-0.5 sm:p-1 shadow-lg flex items-center gap-0.5 sm:gap-1 text-xs shrink-0">
           <Layers className="w-3.5 h-3.5 text-slate-400 ml-1.5 hidden xs:inline" />

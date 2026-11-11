@@ -341,7 +341,6 @@ export default function TrainScene({
   useEffect(() => {
     if (!isDpadOpen) return;
     const closeOnOutsidePress = (event: PointerEvent) => {
-      if (window.matchMedia('(min-width: 640px)').matches) return;
       if (event.target instanceof Node && !dpadRef.current?.contains(event.target)) {
         setIsDpadOpen(false);
       }
@@ -699,7 +698,7 @@ export default function TrainScene({
         )}
 
         {/* Desktop Full Control Dock (hidden sm:flex) */}
-        <div className="hidden sm:flex pointer-events-auto items-center bg-slate-950/90 backdrop-blur-md p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-800 shadow-2xl gap-0.5 sm:gap-1 text-xs">
+        <div className="hidden sm:flex pointer-events-auto min-w-0 max-w-[calc(100%-18rem)] shrink items-center overflow-x-auto scrollbar-none bg-slate-950/90 backdrop-blur-md p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-800 shadow-2xl gap-0.5 sm:gap-1 text-xs">
           {/* Sky Switcher (Default: Night!) */}
           <div className="flex items-center bg-slate-900/90 rounded-lg sm:rounded-xl p-0.5 border border-slate-800">
             <button
@@ -907,22 +906,21 @@ export default function TrainScene({
           </div>
 
           {/* Bottom Left: Collapsible Virtual D-Pad / Touch Walk Controls */}
-          <div ref={dpadRef} className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20 pointer-events-auto">
+          <div ref={dpadRef} className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 sm:bottom-4 sm:left-4 z-20 pointer-events-auto max-h-[min(70svh,calc(100%-1.5rem))]">
             {!isDpadOpen && (
               <button
                 onClick={() => setIsDpadOpen(true)}
-                className="sm:hidden px-3 py-1.5 rounded-xl bg-slate-950/90 border border-blue-500/50 text-blue-300 font-bold text-xs flex items-center gap-1.5 shadow-2xl backdrop-blur-md active:scale-95"
+                className="px-3 py-2 rounded-xl bg-slate-950/95 border border-blue-500/50 text-blue-300 font-bold text-xs flex items-center gap-1.5 shadow-2xl backdrop-blur-md active:scale-95"
+                aria-label="Open walk controls"
               >
                 <PersonStanding className="h-3.5 w-3.5" />
                 <span>Controls</span>
+                <ChevronUp className="h-3.5 w-3.5" />
               </button>
             )}
 
-            <div
-              className={`${
-                !isDpadOpen ? 'hidden sm:block' : 'block'
-              } bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-2 sm:p-3 shadow-2xl space-y-1.5 sm:space-y-2 w-[188px] sm:w-auto max-w-[calc(100vw-1.5rem)]`}
-            >
+            {isDpadOpen && (
+              <div className="max-h-full w-[min(15rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-2 sm:p-3 shadow-2xl space-y-1.5 sm:space-y-2">
               <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5">
                 <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
                   <PersonStanding className="h-3.5 w-3.5" />
@@ -943,8 +941,16 @@ export default function TrainScene({
                   </button>
                   <button
                     onClick={() => setIsDpadOpen(false)}
-                    className="sm:hidden h-9 w-9 text-slate-400 hover:text-white rounded-lg flex items-center justify-center"
-                    title="Hide Walkpad"
+                    className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg flex items-center justify-center"
+                    title="Minimize walk controls"
+                    aria-label="Minimize walk controls"
+                  >
+                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => setIsDpadOpen(false)}
+                    className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg flex items-center justify-center"
+                    title="Close walk controls"
                     aria-label="Close walk controls"
                   >
                     <X className="h-4 w-4" aria-hidden="true" />
@@ -1058,9 +1064,10 @@ export default function TrainScene({
               >
                 <RotateCw className="w-3.5 h-3.5" />
               </button>
-            </div>
+              </div>
+              </div>
+            )}
           </div>
-        </div>
       </>
     )}
 
