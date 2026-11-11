@@ -83,8 +83,12 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
   const prov = getProviderBadge(user.provider);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800/90 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col ring-1 ring-white/10">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      onTouchStart={(event) => { if (event.target === event.currentTarget) onClose(); }}
+    >
+      <div role="dialog" aria-modal="true" aria-label="Passenger account" className="bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[min(92dvh,900px)] flex flex-col ring-1 ring-white/10">
         
         {/* Top Header Card */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800">
@@ -207,7 +211,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
         </div>
 
         {/* Scrollable Body Content */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
+        <div className="p-3 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-5">
           {activeTab === 'swaps' && (
             <div className="space-y-5">
               

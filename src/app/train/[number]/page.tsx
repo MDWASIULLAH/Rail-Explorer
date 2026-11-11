@@ -304,19 +304,20 @@ function TrainExplorerContent() {
           </div>
 
           {/* View Mode Switcher Bar */}
-          <div className="bg-slate-900 border-b border-slate-800 px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2.5 flex-wrap">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <div className="bg-slate-900 border-b border-slate-800 px-2.5 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2.5">
+            <div className="flex min-w-0 items-center gap-1 sm:gap-2 flex-nowrap overflow-x-auto scrollbar-none">
               <span className="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider hidden xs:inline">View:</span>
               <button
                 onClick={() => setViewMode('full-train')}
-                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                className={`shrink-0 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 ${
                   viewMode === 'full-train'
                     ? 'bg-blue-600 text-white shadow ring-1 ring-blue-400'
                     : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
                 }`}
               >
                 <span>🚆</span>
-                <span>Full Train</span>
+                <span className="sm:hidden">Train</span>
+                <span className="hidden sm:inline">Full Train</span>
               </button>
 
               <button
@@ -328,14 +329,15 @@ function TrainExplorerContent() {
                     selectCoach(p.coachId, true);
                   }
                 }}
-                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                className={`shrink-0 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 ${
                   viewMode === 'coach-interior' || viewMode === 'berth-detail'
                     ? 'bg-amber-500 text-slate-950 font-black shadow ring-1 ring-amber-400'
                     : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
                 }`}
               >
                 <span>💺</span>
-                <span>Coach ({selectedCoach?.coachId || 'S1'})</span>
+                <span className="sm:hidden">{selectedCoach?.coachId || 'S1'}</span>
+                <span className="hidden sm:inline">Coach ({selectedCoach?.coachId || 'S1'})</span>
               </button>
 
               <button
@@ -346,18 +348,19 @@ function TrainExplorerContent() {
                   }
                   setViewMode('walkthrough');
                 }}
-                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                className={`shrink-0 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 ${
                   viewMode === 'walkthrough'
                     ? 'bg-emerald-500 text-slate-950 font-black shadow ring-1 ring-emerald-400'
                     : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
                 }`}
               >
                 <span>🚶</span>
-                <span>Walkthrough</span>
+                <span className="sm:hidden">Walk</span>
+                <span className="hidden sm:inline">Walkthrough</span>
               </button>
             </div>
 
-            <div className="text-xs text-slate-400 flex items-center gap-2">
+            <div className="hidden sm:flex text-xs text-slate-400 items-center gap-2">
               <span className="hidden sm:inline">Active: <strong className="text-white">{selectedCoach ? `Coach ${selectedCoach.coachId}` : 'Full Train'}</strong></span>
               {selectedBerth && (
                 <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold">
@@ -374,7 +377,7 @@ function TrainExplorerContent() {
         <div className="flex-1 flex flex-col">
           <div className="flex-1 flex flex-col lg:flex-row">
             {/* 3D Viewport - Responsive Height Optimized for Mobile & Desktop */}
-            <div className="flex-1 h-[50vh] sm:h-[58vh] lg:h-[650px] min-h-[350px] sm:min-h-[460px] relative">
+            <div className="flex-1 shrink-0 h-[62svh] min-h-[420px] max-h-[560px] sm:h-[58vh] sm:min-h-[460px] sm:max-h-none lg:h-[650px] lg:min-h-[650px] lg:max-h-[650px] relative">
               {isLoading && !selectedTrain ? (
                 <div className="w-full h-full flex items-center justify-center bg-slate-900">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />

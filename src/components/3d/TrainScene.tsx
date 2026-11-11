@@ -80,7 +80,7 @@ function CameraController({
 
     const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
     if ('fov' in camera) {
-      const targetFov = isMobile ? 65 : 50;
+      const targetFov = isMobile ? (viewMode === 'full-train' ? 62 : 56) : 50;
       if ((camera as any).fov !== targetFov) {
         (camera as any).fov = targetFov;
         camera.updateProjectionMatrix();
@@ -168,6 +168,7 @@ export default function TrainScene({
   const [isExploded, setIsExploded] = useState(false);
   const [isMobileControlsOpen, setIsMobileControlsOpen] = useState(false);
   const [isDpadOpen, setIsDpadOpen] = useState(false);
+  const dpadRef = useRef<HTMLDivElement>(null);
 
   // Walkthrough Interactive States
   const [autoTour, setAutoTour] = useState(false);
@@ -273,6 +274,18 @@ export default function TrainScene({
 
   const effectiveWalkthrough = isWalkthrough || viewMode === 'walkthrough';
 
+  useEffect(() => {
+    if (!isDpadOpen) return;
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (window.matchMedia('(min-width: 640px)').matches) return;
+      if (event.target instanceof Node && !dpadRef.current?.contains(event.target)) {
+        setIsDpadOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', closeOnOutsidePress);
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePress);
+  }, [isDpadOpen]);
+
   // Compute Bay positions for Quick-Jump in Walkthrough
   const coachLen = (selectedBlueprint?.dimensions.lengthOverBody || 23540) / 1000;
   const totalBays = selectedBlueprint?.totalBays || 9;
@@ -280,6 +293,11 @@ export default function TrainScene({
     bayNumber: i + 1,
     x: 2.0 + (i + 0.5) * ((coachLen - 4) / totalBays),
   }));
+  const activeBayNumber = targetBayX === null
+    ? 1
+    : bayPositions.reduce((closest, bay) =>
+        Math.abs(bay.x - targetBayX) < Math.abs(closest.x - targetBayX) ? bay : closest,
+      ).bayNumber;
 
   // Compute canvas background gradient according to sky mode
   const canvasBgClass =
@@ -784,27 +802,29 @@ export default function TrainScene({
       {effectiveWalkthrough && viewMode !== 'full-train' && (
         <>
           {/* Top Center: Bay Jumper Selector */}
-          <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-2xl flex items-center gap-1 sm:gap-1.5 max-w-[94vw] overflow-x-auto scrollbar-none">
+          <div className="absolute top-12 sm:top-14 left-3 sm:left-1/2 sm:-translate-x-1/2 z-20 bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-xl px-2 py-1 sm:px-3 sm:py-1.5 shadow-2xl flex items-center gap-1.5 max-w-[calc(100%-6rem)] sm:max-w-[82vw]">
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 whitespace-nowrap mr-1 flex items-center gap-1">
               <Compass className="w-3 h-3" />
               <span>Bay:</span>
             </span>
-            {bayPositions.map((b) => (
-              <button
-                key={`bay-btn-${b.bayNumber}`}
-                onClick={() => {
+            <select
+              aria-label="Choose a bay to walk to"
+              value={activeBayNumber}
+              onChange={(event) => {
+                const bay = bayPositions.find((position) => position.bayNumber === Number(event.target.value));
+                if (bay) {
                   setAutoTour(false);
-                  setTargetBayX(b.x);
-                }}
-                className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700 hover:border-blue-400 transition shadow-sm whitespace-nowrap active:scale-95"
-              >
-                Bay {b.bayNumber}
-              </button>
-            ))}
+                  setTargetBayX(bay.x);
+                }
+              }}
+              className="min-w-24 appearance-none rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-100 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+            >
+              {bayPositions.map((bay) => <option key={bay.bayNumber} value={bay.bayNumber}>Bay {bay.bayNumber}</option>)}
+            </select>
           </div>
 
           {/* Bottom Left: Collapsible Virtual D-Pad / Touch Walk Controls */}
-          <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20 pointer-events-auto">
+          <div ref={dpadRef} className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20 pointer-events-auto">
             {!isDpadOpen && (
               <button
                 onClick={() => setIsDpadOpen(true)}
@@ -817,7 +837,7 @@ export default function TrainScene({
             <div
               className={`${
                 !isDpadOpen ? 'hidden sm:block' : 'block'
-              } bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-2 sm:p-3 shadow-2xl space-y-1.5 sm:space-y-2`}
+              } bg-slate-950/95 backdrop-blur-md border border-slate-700/90 rounded-2xl p-2 sm:p-3 shadow-2xl space-y-1.5 sm:space-y-2 w-[188px] sm:w-auto max-w-[calc(100vw-1.5rem)]`}
             >
               <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1.5">
                 <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
@@ -848,7 +868,7 @@ export default function TrainScene({
               </div>
 
               {/* D-Pad Buttons */}
-              <div className="grid grid-cols-3 gap-1.5 w-32 sm:w-36 mx-auto">
+              <div className="grid grid-cols-3 gap-1 w-28 sm:w-36 mx-auto">
               <div />
               {/* Forward Button */}
               <button
@@ -859,7 +879,7 @@ export default function TrainScene({
                 onClick={() => {
                   setTargetBayX((prev) => (prev === null ? 3.5 : Math.min(prev + 2.0, 21.0)));
                 }}
-                className="h-10 bg-blue-600 hover:bg-blue-500 active:bg-blue-400 text-white rounded-xl flex items-center justify-center font-bold shadow-lg border border-blue-400/40 active:scale-95"
+                className="h-8 sm:h-10 bg-blue-600 hover:bg-blue-500 active:bg-blue-400 text-white rounded-xl flex items-center justify-center font-bold shadow-lg border border-blue-400/40 active:scale-95"
                 title="Walk Forward (Hold or Click / W / Up Arrow / Scroll Up)"
               >
                 <ChevronUp className="w-5 h-5" />
@@ -872,7 +892,7 @@ export default function TrainScene({
                 onMouseUp={() => setVirtualMove((v) => ({ ...v, left: false }))}
                 onTouchStart={() => setVirtualMove((v) => ({ ...v, left: true }))}
                 onTouchEnd={() => setVirtualMove((v) => ({ ...v, left: false }))}
-                className="h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95"
+                className="h-8 sm:h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95"
                 title="Step Left"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -887,7 +907,7 @@ export default function TrainScene({
                 onClick={() => {
                   setTargetBayX((prev) => (prev === null ? 2.5 : Math.max(prev - 2.0, 2.0)));
                 }}
-                className="h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95"
+                className="h-8 sm:h-9 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center font-bold border border-slate-700 active:scale-95"
                 title="Walk Backward (Hold or Click / S / Down Arrow / Scroll Down)"
               >
                 <ChevronDown className="w-4 h-4" />
