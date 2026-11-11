@@ -126,8 +126,13 @@ function CameraController({
         controlsRef.current.update();
       }
     } else if (viewMode === 'coach-interior') {
-      controlsRef.current.target.set(12, 1.3, 0);
-      camera.position.set(12, isMobile ? 2.5 : 3.2, isMobile ? 4.2 : 5.5);
+      const coachLength = blueprint?.dimensions?.lengthOverBody
+        ? blueprint.dimensions.lengthOverBody / 1000
+        : 23.5;
+      // Start in the aisle and look down the coach. Placing the camera more
+      // than half a coach-width away puts it outside the wall and hides the berths.
+      controlsRef.current.target.set(coachLength * 0.72, 1.35, 0);
+      camera.position.set(2.2, isMobile ? 1.55 : 1.7, 0);
       controlsRef.current.update();
     } else if (viewMode === 'berth-detail' && selectedBerth && blueprint) {
       const berth = blueprint.berths?.find((b: any) => b.berthNumber === selectedBerth);

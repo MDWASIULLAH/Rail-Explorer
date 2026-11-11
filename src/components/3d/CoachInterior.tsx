@@ -354,25 +354,6 @@ export default function CoachInterior({
 
       {blueprint.category === '1A' && <FirstAcPartitions blueprint={blueprint} coachW={coachW} />}
 
-      {/* Bay dividers */}
-      {blueprint.category !== '1A' && Array.from({ length: blueprint.totalBays + 1 }, (_, i) => {
-        const x = 2.0 + i * (coachLen - 4) / blueprint.totalBays;
-        return (
-          <group key={`divider-${i}`}>
-            {/* Left side partition */}
-            <mesh position={[x, coachH * 0.4, coachW / 4]}>
-              <boxGeometry args={[0.03, coachH * 0.8, coachW / 2 - 0.4]} />
-              <meshStandardMaterial color="#a8b0b8" roughness={0.7} />
-            </mesh>
-            {/* Right side partition */}
-            <mesh position={[x, coachH * 0.4, -coachW / 4]}>
-              <boxGeometry args={[0.03, coachH * 0.8, coachW / 2 - 0.4]} />
-              <meshStandardMaterial color="#a8b0b8" roughness={0.7} />
-            </mesh>
-          </group>
-        );
-      })}
-
       {/* Berths */}
       {blueprint.category === 'GS' && Array.from({ length: blueprint.totalBays }, (_, bayIndex) => {
         const bayNumber = bayIndex + 1;
