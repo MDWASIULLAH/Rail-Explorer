@@ -4,9 +4,8 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTrainStore } from '@/store/train-store';
 import Link from 'next/link';
-import SearchBar from '@/components/ui/SearchBar';
 import {
-  Ticket, Loader2, AlertCircle, Train, MapPin, ArrowRight,
+  Ticket, Loader2, AlertCircle, Train,
   User, Eye, CheckCircle, Clock, XCircle, ArrowLeftRight,
 } from 'lucide-react';
 
@@ -23,9 +22,12 @@ function PnrContent() {
     }
   }, [pnrParam, lookupPnr]);
 
-  const handleSearch = () => {
-    if (/^\d{10}$/.test(pnrInput.trim())) {
-      router.push(`/pnr?pnr=${pnrInput.trim()}`);
+  const handleSearch = (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    const pnr = pnrInput.trim();
+    if (/^\d{10}$/.test(pnr)) {
+      if (pnr === pnrParam) void lookupPnr(pnr);
+      else router.push(`/pnr?pnr=${pnr}`);
     }
   };
 
@@ -57,7 +59,7 @@ function PnrContent() {
       </div>
 
       {/* PNR Input */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-8">
+      <form onSubmit={handleSearch} className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-8">
         <label className="block text-sm font-medium text-slate-300 mb-2">Enter PNR Number</label>
         <div className="flex gap-3">
           <input
@@ -69,7 +71,7 @@ function PnrContent() {
             maxLength={10}
           />
           <button
-            onClick={handleSearch}
+            type="submit"
             disabled={isLoading || pnrInput.length !== 10}
             className="px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:opacity-50 text-white font-medium rounded-xl transition-all flex items-center gap-2"
           >
@@ -80,7 +82,7 @@ function PnrContent() {
         <p className="text-xs text-slate-500 mt-2">
           {pnrInput.length}/10 digits · PNR is printed on your ticket
         </p>
-      </div>
+      </form>
 
       {error && (
         <div className="flex items-center gap-3 p-4 bg-red-900/30 border border-red-800 rounded-xl text-red-300 mb-6">
@@ -100,6 +102,11 @@ function PnrContent() {
 
       {pnrData && !isLoading && (
         <div className="space-y-5">
+          {pnrData.providerStatus === 'STALE_DATA' && (
+            <div className="rounded-xl border border-amber-700/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
+              Showing the provider’s last available reservation update{pnrData.observedAt ? ` from ${new Date(pnrData.observedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}` : ''}. Confirm your latest status with IRCTC before travel.
+            </div>
+          )}
           {/* Train Info */}
           <div className="bg-slate-900 rounded-xl border border-slate-800 p-5">
             <div className="flex items-center gap-3 mb-4">

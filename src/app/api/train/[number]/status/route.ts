@@ -44,12 +44,12 @@ export async function GET(
       // Check today's rake first
       const todayResult = await getTrainStatus(number, todayStr);
 
-      if (todayResult.status === 'SUCCESS' && todayResult.data?.status === 'RUNNING') {
+      if ((todayResult.status === 'SUCCESS' || todayResult.status === 'STALE_DATA') && todayResult.data?.status === 'RUNNING') {
         result = todayResult;
       } else {
         // Today has not started or is pending. Check if yesterday's rake is actively RUNNING
         const yestResult = await getTrainStatus(number, yesterdayStr);
-        if (yestResult.status === 'SUCCESS' && yestResult.data?.status === 'RUNNING') {
+        if ((yestResult.status === 'SUCCESS' || yestResult.status === 'STALE_DATA') && yestResult.data?.status === 'RUNNING') {
           result = yestResult;
         } else {
           result = todayResult;
@@ -57,7 +57,7 @@ export async function GET(
       }
     }
 
-    if (result.status === 'SUCCESS' && result.data) {
+    if ((result.status === 'SUCCESS' || result.status === 'STALE_DATA') && result.data) {
       return successResponse({
         ...result.data,
         trainNumber: number,

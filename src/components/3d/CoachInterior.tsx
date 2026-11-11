@@ -154,6 +154,45 @@ function PantryCarInterior({ blueprint }: { blueprint: CoachBlueprint }) {
   );
 }
 
+function FirstAcPartitions({ blueprint, coachW }: { blueprint: CoachBlueprint; coachW: number }) {
+  const bays = Array.from(new Set(blueprint.berths.map((berth) => berth.bayNumber)))
+    .sort((a, b) => a - b)
+    .map((bayNumber) => {
+      const bayBerths = blueprint.berths.filter((berth) => berth.bayNumber === bayNumber);
+      return Math.min(...bayBerths.map((berth) => berth.x));
+    });
+  const boundaries = bays.slice(0, -1).map((x, index) => (x + bays[index + 1]) / 2);
+  const doorGap = 0.78;
+  const panelWidth = (coachW - doorGap) / 2;
+  const panelOffset = doorGap / 2 + panelWidth / 2;
+  return (
+    <group>
+      {boundaries.map((x, index) => (
+        <group key={`first-ac-partition-${index}`}>
+          {[-1, 1].map((side) => (
+            <mesh key={side} position={[x, 1.18, side * panelOffset]}>
+              <boxGeometry args={[0.06, 2.36, panelWidth]} />
+              <meshStandardMaterial color="#d8e1ec" roughness={0.55} transparent opacity={0.42} />
+            </mesh>
+          ))}
+          <mesh position={[x, 2.38, 0]}>
+            <boxGeometry args={[0.06, 0.08, doorGap]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.45} roughness={0.5} />
+          </mesh>
+          <mesh position={[x, 1.18, -doorGap / 2]}>
+            <boxGeometry args={[0.08, 2.36, 0.06]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.45} roughness={0.5} />
+          </mesh>
+          <mesh position={[x, 1.18, doorGap / 2]}>
+            <boxGeometry args={[0.08, 2.36, 0.06]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.45} roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 export default function CoachInterior({
   blueprint,
   selectedBerth,
@@ -210,8 +249,10 @@ export default function CoachInterior({
         <meshStandardMaterial color="#475569" roughness={0.9} />
       </mesh>
 
+      {blueprint.category === '1A' && <FirstAcPartitions blueprint={blueprint} coachW={coachW} />}
+
       {/* Bay dividers */}
-      {Array.from({ length: blueprint.totalBays + 1 }, (_, i) => {
+      {blueprint.category !== '1A' && Array.from({ length: blueprint.totalBays + 1 }, (_, i) => {
         const x = 2.0 + i * (coachLen - 4) / blueprint.totalBays;
         return (
           <group key={`divider-${i}`}>
@@ -234,11 +275,11 @@ export default function CoachInterior({
         const wx = 2.5 + i * (coachLen - 5) / Math.min(blueprint.windows, 20);
         return (
           <group key={`window-${i}`}>
-            <mesh position={[wx, coachH * 0.55, coachW / 2 + 0.01]}>
+            <mesh position={[wx, coachH * 0.55, coachW / 2 + wallThickness / 2 + 0.006]}>
               <planeGeometry args={[0.8, 0.6]} />
               <meshStandardMaterial color="#87ceeb" emissive="#87ceeb" emissiveIntensity={0.3} transparent opacity={0.5} />
             </mesh>
-            <mesh position={[wx, coachH * 0.55, -coachW / 2 - 0.01]} rotation={[0, Math.PI, 0]}>
+            <mesh position={[wx, coachH * 0.55, -coachW / 2 - wallThickness / 2 - 0.006]} rotation={[0, Math.PI, 0]}>
               <planeGeometry args={[0.8, 0.6]} />
               <meshStandardMaterial color="#87ceeb" emissive="#87ceeb" emissiveIntensity={0.3} transparent opacity={0.5} />
             </mesh>

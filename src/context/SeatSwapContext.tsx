@@ -102,7 +102,28 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded || !user?.id) return;
     let cancelled = false;
-    const syncAndRefresh = async () => {
+    let timer: number | undefined;
+    let inFlight = false;
+    let failures = 0;
+    const poll = async () => {
+      if (cancelled || inFlight) return;
+      if (document.visibilityState !== 'visible') {
+        timer = window.setTimeout(() => void poll(), 30000);
+        return;
+      }
+      inFlight = true;
+      const ok = await refreshShared();
+      inFlight = false;
+      failures = ok ? 0 : Math.min(failures + 1, 4);
+      const delay = ok ? 20000 : Math.min(120000, 20000 * (2 ** failures));
+      if (!cancelled) timer = window.setTimeout(() => void poll(), delay);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || cancelled) return;
+      if (timer !== undefined) window.clearTimeout(timer);
+      void poll();
+    };
+    const syncAndPoll = async () => {
       const legacyOffers = offersRef.current.filter((offer) => offer.isCurrentUser && (!offer.userId || offer.userId === user.id));
       if (legacyOffers.length) {
         try {
@@ -110,13 +131,17 @@ export function SeatSwapProvider({ children }: { children: React.ReactNode }) {
             method: 'POST', headers: await seatSwapAuthHeaders('application/json'),
             body: JSON.stringify({ offers: legacyOffers }),
           });
-        } catch { /* refresh below reports backend availability */ }
+        } catch { /* The shared refresh below reports backend availability. */ }
       }
-      if (!cancelled) await refreshShared();
+      if (!cancelled) await poll();
     };
-    void syncAndRefresh();
-    const timer = window.setInterval(() => { if (!cancelled) void refreshShared(); }, 12000);
-    return () => { cancelled = true; window.clearInterval(timer); };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    void syncAndPoll();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [isLoaded, refreshShared, user?.id]);
   // Pre-fill state
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);

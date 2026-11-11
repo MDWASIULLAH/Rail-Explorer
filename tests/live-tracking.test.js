@@ -9,6 +9,33 @@ const path = require('node:path');
 const Module = require('node:module');
 const ts = require('typescript');
 
+test('PNR provider response maps current Railway Engine fields into the app model', () => {
+  const { normalizePnrStatus } = require('../src/lib/railway-api.ts');
+  const normalized = normalizePnrStatus({
+    pnrNumber: '1234567890',
+    trainNumber: 18403,
+    trainName: 'BBS DHN EXPRESS',
+    journeyDate: '2026-11-12',
+    origin: { stationCode: 'BBS', stationName: 'Bhubaneswar' },
+    destination: { code: 'DHN', name: 'Dhanbad Jn' },
+    boardingPoint: { code: 'BBS', name: 'Bhubaneswar' },
+    reservationUpto: { code: 'DHN', name: 'Dhanbad Jn' },
+    classCode: '3A',
+    chart: { status: 'Chart Not Prepared' },
+    passengers: [{ passengerNumber: '1', bookingStatus: 'CNF', currentStatus: 'CNF', coach: 'B4', berthNumber: 32, berthCode: 'UB' }],
+  }, '1234567890');
+
+  assert.strictEqual(normalized.pnr, '1234567890');
+  assert.strictEqual(normalized.trainNumber, '18403');
+  assert.strictEqual(normalized.journeyClass, '3A');
+  assert.strictEqual(normalized.chartStatus, 'Chart Not Prepared');
+  assert.strictEqual(normalized.from.code, 'BBS');
+  assert.strictEqual(normalized.to.code, 'DHN');
+  assert.deepStrictEqual(normalized.passengers[0], {
+    number: 1, bookingStatus: 'CNF', currentStatus: 'CNF', coachId: 'B4', berthNumber: 32, berthType: 'UB',
+  });
+});
+
 test('Journey date resolution uses India calendar dates and distinguishes auto mode', () => {
   const { getIndiaDateString, resolveJourneyDate } = require('../src/app/api/_lib/helpers.ts');
   // This UTC instant is already the next calendar day in India.

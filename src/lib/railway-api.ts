@@ -26,7 +26,7 @@
 // ============================================================
 
 export interface ApiResponse<T> {
-  status: 'SUCCESS' | 'ERROR';
+  status: 'SUCCESS' | 'STALE_DATA' | 'ERROR';
   data: T | null;
   error: string | null;
   meta: {
@@ -194,6 +194,10 @@ export interface PnrStatus {
   journeyClass: string;
   quota: string;
   chartStatus: string;
+  bookingFare?: number | null;
+  observedAt?: string;
+  providerStatus?: 'SUCCESS' | 'STALE_DATA';
+  meta?: ApiResponse<unknown>['meta'];
   passengers: PnrPassenger[];
 }
 
@@ -204,6 +208,70 @@ export interface PnrPassenger {
   coachId: string | null;
   berthNumber: number | null;
   berthType: string | null;
+}
+
+function providerErrorMessage(error: unknown): string {
+  if (typeof error === 'string' && error.trim()) return error;
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    const message = typeof record.message === 'string' ? record.message : '';
+    const code = typeof record.code === 'string' ? record.code : '';
+    if (message && code) return `${message} (${code})`;
+    if (message) return message;
+    if (code) return code;
+  }
+  return 'The railway data provider could not complete this request.';
+}
+
+function providerStation(value: unknown): { code: string; name: string } {
+  if (!value || typeof value !== 'object') return { code: '', name: '' };
+  const station = value as Record<string, unknown>;
+  return {
+    code: typeof station.code === 'string' ? station.code : typeof station.stationCode === 'string' ? station.stationCode : '',
+    name: typeof station.name === 'string' ? station.name : typeof station.stationName === 'string' ? station.stationName : '',
+  };
+}
+
+export function normalizePnrStatus(value: unknown, requestedPnr: string): PnrStatus {
+  const raw = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const chart = raw.chart && typeof raw.chart === 'object' ? raw.chart as Record<string, unknown> : {};
+  const rawPassengers = Array.isArray(raw.passengers) ? raw.passengers : [];
+  const passengers = rawPassengers.map((value, index): PnrPassenger => {
+    const passenger = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+    const rawBerth = passenger.berthNumber;
+    const berthNumber = typeof rawBerth === 'number' ? rawBerth : typeof rawBerth === 'string' && rawBerth.trim() ? Number(rawBerth) : null;
+    return {
+      number: Number.isFinite(Number(passenger.passengerNumber ?? passenger.number))
+        ? Number(passenger.passengerNumber ?? passenger.number)
+        : index + 1,
+      bookingStatus: typeof passenger.bookingStatus === 'string' ? passenger.bookingStatus : '',
+      currentStatus: typeof passenger.currentStatus === 'string' ? passenger.currentStatus : '',
+      coachId: typeof passenger.coach === 'string' ? passenger.coach : typeof passenger.coachId === 'string' ? passenger.coachId : null,
+      berthNumber: Number.isFinite(berthNumber) && berthNumber! > 0 ? berthNumber : null,
+      berthType: typeof passenger.berthCode === 'string' ? passenger.berthCode : typeof passenger.berthType === 'string' ? passenger.berthType : null,
+    };
+  });
+  const boardingPoint = providerStation(raw.boardingPoint);
+  const from = providerStation(raw.origin ?? raw.from ?? raw.boardingPoint);
+  const to = providerStation(raw.destination ?? raw.to ?? raw.reservationUpto ?? raw.reservationUpTo);
+  const reservationUpTo = providerStation(raw.reservationUpto ?? raw.reservationUpTo ?? raw.destination ?? raw.to);
+
+  return {
+    pnr: typeof raw.pnrNumber === 'string' ? raw.pnrNumber : typeof raw.pnr === 'string' ? raw.pnr : requestedPnr,
+    trainNumber: typeof raw.trainNumber === 'string' || typeof raw.trainNumber === 'number' ? String(raw.trainNumber) : '',
+    trainName: typeof raw.trainName === 'string' ? raw.trainName : '',
+    journeyDate: typeof raw.journeyDate === 'string' ? raw.journeyDate : '',
+    from,
+    to,
+    boardingPoint,
+    reservationUpTo,
+    journeyClass: typeof raw.classCode === 'string' ? raw.classCode : typeof raw.journeyClass === 'string' ? raw.journeyClass : '',
+    quota: typeof raw.quota === 'string' ? raw.quota : '',
+    chartStatus: typeof chart.status === 'string' ? chart.status : typeof raw.chartStatus === 'string' ? raw.chartStatus : '',
+    bookingFare: typeof raw.bookingFare === 'number' ? raw.bookingFare : null,
+    observedAt: typeof raw.observedAt === 'string' ? raw.observedAt : undefined,
+    passengers,
+  };
 }
 
 export interface StationBoard {
@@ -345,12 +413,11 @@ async function apiRequest<T>(
     return { ...cached, meta: { ...cached.meta, cached: true } };
   }
   
-  // Rate limit
-  await rateLimiter.waitForSlot();
-  
   const url = `${getBaseUrl()}${endpoint}`;
   
   try {
+    // Keep provider throttling failures inside the normal API error envelope.
+    await rateLimiter.waitForSlot();
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -361,8 +428,18 @@ async function apiRequest<T>(
     });
     
     if (response.status === 429) {
-      // Rate limited - wait and retry once
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Respect the provider's Retry-After hint, but don't hold a serverless
+      // request open for a long quota window.
+      const retryAfter = response.headers.get('retry-after');
+      const retryAfterSeconds = retryAfter && /^\d+(?:\.\d+)?$/.test(retryAfter) ? Number(retryAfter) : 5;
+      if (retryAfterSeconds > 15) {
+        return {
+          status: 'ERROR', data: null,
+          error: `Railway data provider rate limit reached. Retry after ${Math.ceil(retryAfterSeconds)} seconds.`,
+          meta: { requestId: '', generatedAt: new Date().toISOString() },
+        };
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.max(1, retryAfterSeconds) * 1000));
       const retryResponse = await fetch(url, {
         method: 'GET',
         headers: {
@@ -373,16 +450,30 @@ async function apiRequest<T>(
       });
       
       if (!retryResponse.ok) {
+        const retryText = await retryResponse.text();
+        let retryJson: Record<string, unknown> | null = null;
+        try { retryJson = JSON.parse(retryText) as Record<string, unknown>; } catch { /* provider may return plain text */ }
+        const retryMessage = providerErrorMessage(retryJson?.error ?? retryJson?.message ?? retryText);
         return {
           status: 'ERROR',
           data: null,
-          error: `Rate limited (${retryResponse.status}). Please try again later.`,
-          meta: { requestId: '', generatedAt: new Date().toISOString() },
+          error: retryResponse.status === 429 ? retryMessage : `Provider retry failed (${retryResponse.status}): ${retryMessage}`,
+          meta: retryJson?.meta && typeof retryJson.meta === 'object'
+            ? retryJson.meta as ApiResponse<T>['meta']
+            : { requestId: '', generatedAt: new Date().toISOString() },
         };
       }
       
-      const data = await retryResponse.json();
-      cache.set(key, data, cacheTtl);
+      const data = await retryResponse.json() as ApiResponse<T>;
+      if (data?.status === 'ERROR') {
+        return {
+          ...data,
+          data: null,
+          error: providerErrorMessage(data.error),
+          meta: data.meta || { requestId: '', generatedAt: new Date().toISOString() },
+        };
+      }
+      if (cacheTtl > 0) cache.set(key, data, cacheTtl);
       return data;
     }
     
@@ -394,13 +485,21 @@ async function apiRequest<T>(
       return {
         status: 'ERROR',
         data: null,
-        error: errorJson?.error || `API returned ${response.status}: ${errorText.slice(0, 200)}`,
+        error: providerErrorMessage(errorJson?.error ?? errorJson?.message ?? `API returned ${response.status}: ${errorText.slice(0, 200)}`),
         meta: { requestId: errorJson?.meta?.requestId || '', generatedAt: new Date().toISOString() },
       };
     }
     
-    const data = await response.json();
-    cache.set(key, data, cacheTtl);
+    const data = await response.json() as ApiResponse<T>;
+    if (data?.status === 'ERROR') {
+      return {
+        ...data,
+        data: null,
+        error: providerErrorMessage(data.error),
+        meta: data.meta || { requestId: '', generatedAt: new Date().toISOString() },
+      };
+    }
+    if (cacheTtl > 0) cache.set(key, data, cacheTtl);
     return data;
   } catch (error) {
     return {
@@ -485,9 +584,20 @@ export async function searchStations(query: string): Promise<ApiResponse<Station
  */
 export async function getPnrStatus(pnr: string): Promise<ApiResponse<PnrStatus>> {
   // PNR data is personal reservation data; do not retain it in the process cache.
-  return apiRequest<PnrStatus>(`/v1/pnr/${pnr}`, {
+  const result = await apiRequest<Record<string, unknown>>(`/v1/pnr/${pnr}`, {
     cacheTtl: 0,
   });
+  if (result.status === 'ERROR' || !result.data) {
+    return { ...result, data: null, error: providerErrorMessage(result.error) };
+  }
+  return {
+    ...result,
+    data: {
+      ...normalizePnrStatus(result.data, pnr),
+      providerStatus: result.status === 'STALE_DATA' ? 'STALE_DATA' : 'SUCCESS',
+      meta: result.meta,
+    },
+  };
 }
 
 /**

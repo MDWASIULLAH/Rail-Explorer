@@ -567,7 +567,7 @@ export default function SeatSwapPage() {
           <section aria-label="Seat swap notifications" className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/25">
             <div className="flex items-center gap-2 mb-2">
               <Bell className="w-4 h-4 text-emerald-300" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-200">Accepted swap updates · saved on this browser</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-200">Swap notifications</h2>
             </div>
             <ul className="space-y-2">
               {userNotifications.map((notification) => (

@@ -57,6 +57,18 @@ test('1. Coach Database: Blueprint Integrity', async (t) => {
   });
 });
 
+test('First AC cabin berths face across the compartment with stacked uppers', () => {
+  const { COACH_BLUEPRINTS } = require('../src/data/coach-database.ts');
+  const firstAc = COACH_BLUEPRINTS.LHB_1A;
+  const firstCabin = firstAc.berths.filter((berth) => berth.bayNumber === 1);
+  const lowers = firstCabin.filter((berth) => berth.berthType === 'CABIN_LB');
+  const uppers = firstCabin.filter((berth) => berth.berthType === 'CABIN_UB');
+  assert.strictEqual(firstCabin.length, 4);
+  assert.deepStrictEqual(lowers.map((berth) => berth.z).sort(), [-0.7, 0.7]);
+  assert.deepStrictEqual(uppers.map((berth) => berth.z).sort(), [-0.7, 0.7]);
+  assert.ok(lowers.every((lower) => uppers.some((upper) => upper.x === lower.x && upper.z === lower.z)));
+});
+
 // 2. Berth Numbering & Bay Mapping Tests
 test('2. Berth Numbering & Bay Calculations', async (t) => {
   function getBerthType(berthNumber) {
@@ -146,6 +158,18 @@ test('4. Berth Finder & Neighbor Analysis', async (t) => {
     const sideUppers = sideBerths.filter((berth) => berth.berthType === 'SU');
     assert.strictEqual(sideUppers.length, 10);
     assert.ok(sideUppers.every((berth) => berth.deck === 2 && berth.y >= 1.3));
+  });
+
+  await t.test('Sleeper and AC side berths stay inside the coach shell', () => {
+    for (const id of ['LHB_SL', 'LHB_3A', 'LHB_3E', 'LHB_2A']) {
+      const blueprint = COACH_BLUEPRINTS[id];
+      const halfWidth = blueprint.dimensions.interiorWidth / 2000;
+      for (const berth of blueprint.berths.filter((item) => item.side === 'SIDE')) {
+        const halfBerthWidth = blueprint.berthDimensions[berth.berthType].width / 2000;
+        assert.ok(Math.abs(berth.z) + halfBerthWidth <= halfWidth + 0.001,
+          `${id} berth ${berth.berthNumber} crosses the interior wall`);
+      }
+    }
   });
 
   await t.test('General coach seats stay on side benches with a clear centre aisle', () => {

@@ -28,7 +28,7 @@ export async function GET(
 
     const result = await getPnrStatus(pnr);
 
-    if (result.status === 'ERROR') {
+    if ((result.status !== 'SUCCESS' && result.status !== 'STALE_DATA') || !result.data) {
       return privateErrorResponse(
         result.error ?? 'Failed to fetch PNR status',
         502,
@@ -36,9 +36,9 @@ export async function GET(
     }
 
     return privateSuccessResponse({
-      pnr,
       ...result.data,
-      meta: result.meta,
+      providerStatus: result.status,
+      meta: result.data.meta || result.meta,
     });
   } catch (err) {
     return privateErrorResponse(
