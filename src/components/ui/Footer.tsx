@@ -42,6 +42,9 @@ export default function Footer() {
           <p className="mt-3 text-xs text-slate-500">
             &copy; {year} Rail Explorer. An independent project.
           </p>
+          <p className="mt-2 text-xs text-slate-500">
+            3D passenger: <a href="https://bake3d.ai/free-3d-models" className="underline hover:text-slate-300">Old Man by Bake3D</a>, modified under <a href="https://creativecommons.org/licenses/by/4.0/" className="underline hover:text-slate-300">CC BY 4.0</a>.
+          </p>
         </div>
       </div>
     </footer>

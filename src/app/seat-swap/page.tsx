@@ -554,13 +554,12 @@ export default function SeatSwapPage() {
                 <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                   Berth Swap Exchange
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
-                  Live
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${sharedReady ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/15 text-amber-200 border-amber-500/30'}`}>
+                  {sharedReady ? 'Shared' : 'Sync pending'}
                 </span>
               </div>
               <p className="text-slate-400 text-xs sm:text-sm max-w-lg">
-                Connect with fellow passengers to exchange berths mutually.
-                Verified accounts only — safe, transparent, TTE-compliant.
+                Sign-in is required. Passenger and ticket details are user-submitted and are not verified here. Any berth change needs railway staff approval.
               </p>
             </div>
 

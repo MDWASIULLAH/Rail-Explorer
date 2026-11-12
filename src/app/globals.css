@@ -74,13 +74,13 @@ body {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgb(16 25 35 / 78%) 0%, rgb(16 25 35 / 66%) 43%, rgb(16 25 35 / 88%) 100%),
-    radial-gradient(ellipse at 50% 42%, rgb(16 25 35 / 56%) 0%, rgb(16 25 35 / 34%) 52%, transparent 82%);
+    linear-gradient(180deg, rgb(16 25 35 / 12%) 0%, rgb(16 25 35 / 9%) 43%, rgb(16 25 35 / 25%) 100%),
+    radial-gradient(ellipse at 50% 42%, rgb(16 25 35 / 5%) 0%, rgb(16 25 35 / 2%) 52%, transparent 82%);
   pointer-events: none;
 }
 
 .home-hero-canvas {
-  opacity: 0.48;
+  opacity: 0.96;
 }
 
 .home-feature-icon {
@@ -184,12 +184,12 @@ html {
   }
 
   .home-hero-canvas {
-    opacity: 0.28;
+    opacity: 0.9;
   }
 
   .home-scene-wash {
     background:
-      linear-gradient(180deg, rgb(16 25 35 / 84%) 0%, rgb(16 25 35 / 78%) 50%, rgb(16 25 35 / 93%) 100%),
-      radial-gradient(ellipse at 50% 42%, rgb(16 25 35 / 52%) 0%, transparent 76%);
+      linear-gradient(180deg, rgb(16 25 35 / 14%) 0%, rgb(16 25 35 / 12%) 50%, rgb(16 25 35 / 30%) 100%),
+      radial-gradient(ellipse at 50% 42%, rgb(16 25 35 / 5%) 0%, transparent 76%);
   }
 }

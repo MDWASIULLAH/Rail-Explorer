@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
+import { Billboard, Text } from '@react-three/drei';
 import type { BerthDimensions, BerthPosition, BerthType } from '@/data/coach-database';
 
 const BERTH_COLORS: Record<BerthType, string> = {
@@ -80,27 +80,29 @@ export default function BerthMesh({ berth, isSelected, isHighlighted, onClick, d
         </mesh>
       )}
       {/* Berth number label */}
-      <Text
-        position={[0, (isGeneralSeat ? 0.12 : berthHeight) + 0.1, 0]}
-        fontSize={isGeneralSeat ? 0.08 : 0.12}
-        color={isSelected ? '#fbbf24' : '#ffffff'}
-        anchorX="center"
-        anchorY="middle"
-        fontWeight={isSelected ? 'bold' : 'normal'}
-      >
-        {berth.berthNumber.toString()}
-      </Text>
-      {(berth.berthType === 'SL' || berth.berthType === 'SU') && (
+      <Billboard position={[0, (isGeneralSeat ? 0.12 : berthHeight) + 0.1, 0]}>
         <Text
-          position={[0, (isGeneralSeat ? 0.12 : berthHeight) + 0.24, 0]}
-          fontSize={0.075}
-          color="#e2e8f0"
+          fontSize={isGeneralSeat ? 0.08 : 0.12}
+          color={isSelected ? '#fbbf24' : '#ffffff'}
           anchorX="center"
           anchorY="middle"
-          fontWeight="bold"
+          fontWeight={isSelected ? 'bold' : 'normal'}
         >
-          {berth.berthType}
+          {berth.berthNumber.toString()}
         </Text>
+      </Billboard>
+      {(berth.berthType === 'SL' || berth.berthType === 'SU') && (
+        <Billboard position={[0, (isGeneralSeat ? 0.12 : berthHeight) + 0.24, 0]}>
+          <Text
+            fontSize={0.075}
+            color="#e2e8f0"
+            anchorX="center"
+            anchorY="middle"
+            fontWeight="bold"
+          >
+            {berth.berthType}
+          </Text>
+        </Billboard>
       )}
       {/* Selection ring */}
       {isSelected && (

@@ -7,6 +7,7 @@ import type { CoachComposition } from '@/lib/railway-api';
 
 interface DistancePanelProps {
   coaches: TrainCoach[];
+  composition: CoachComposition;
   fromCoachId: string | null;
   toCoachId: string | null;
   onFromChange: (coachId: string) => void;
@@ -15,34 +16,18 @@ interface DistancePanelProps {
 
 export default function DistancePanel({
   coaches,
+  composition,
   fromCoachId,
   toCoachId,
   onFromChange,
   onToChange,
 }: DistancePanelProps) {
-  // Map coaches to composition format for calculation
-  const mockComposition: CoachComposition = {
-    trainNumber: '12301',
-    trainName: 'Train',
-    rakeType: 'LHB',
-    totalCoaches: coaches.length,
-    coaches: coaches.map((c) => ({
-      position: c.position,
-      coachId: c.coachId,
-      coachType: c.coachType,
-      coachClass: c.coachType,
-      classCode: c.coachType,
-      category: 'PASSENGER',
-      berthCount: 72,
-    })),
-  };
-
   const fromIndex = coaches.findIndex((c) => c.coachId === fromCoachId);
   const toIndex = coaches.findIndex((c) => c.coachId === toCoachId);
 
   const hasBoth = fromIndex >= 0 && toIndex >= 0;
   const result = hasBoth
-    ? calculateCoachToCoachDistance(mockComposition, fromIndex, toIndex)
+    ? calculateCoachToCoachDistance(composition, fromIndex, toIndex)
     : null;
 
   // Walking calculations
@@ -122,11 +107,9 @@ export default function DistancePanel({
           <div className="text-xs text-slate-400 flex items-start gap-2 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">
             <span className="text-amber-400 shrink-0">💡</span>
             <span>
-              {result.distanceMeters > 200
-                ? 'These coaches are far apart. We recommend boarding from the platform zone closest to your coach rather than walking through the train gangways.'
-                : result.distanceMeters === 0
+              {result.distanceMeters === 0
                 ? 'Same coach selected. You are already at this coach.'
-                : 'Directly adjacent or nearby coaches. Easily accessible via vestibule gangway or quick platform walk.'}
+                : 'Approximate centre-to-centre distance from this train’s listed coach order and coach blueprints. Walking time and steps are estimates; platform routes and access restrictions are not included.'}
             </span>
           </div>
         </div>

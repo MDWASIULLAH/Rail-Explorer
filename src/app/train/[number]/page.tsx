@@ -111,6 +111,25 @@ function TrainExplorerContent() {
     position: i + 1,
   }))).sort((first, second) => first.position - second.position);
 
+  const distanceComposition = activeTrain.coaches?.coaches.length
+    ? activeTrain.coaches
+    : {
+        trainNumber: verifiedFallback.trainNumber,
+        trainName: verifiedFallback.trainName,
+        rakeType: verifiedFallback.rakeType,
+        totalCoaches: coaches.length,
+        coaches: coaches.map((coach, index) => {
+          const referenceCoach = verifiedFallback.coaches.find((item) => item.coachId === coach.coachId);
+          return {
+            position: coach.position || index + 1,
+            coachId: coach.coachId,
+            coachType: coach.coachType,
+            coachClass: coach.coachType,
+            berthCount: referenceCoach?.berthCount ?? 0,
+          };
+        }),
+      };
+
   // Trigger store fetch for this train, and reset view to full-train so previous train coach is never stuck
   useEffect(() => {
     if (trainNumber) {
@@ -458,6 +477,7 @@ function TrainExplorerContent() {
                 {/* Distance Calculator */}
                 <DistancePanel
                   coaches={coaches}
+                  composition={distanceComposition}
                   fromCoachId={distanceFrom}
                   toCoachId={distanceTo}
                   onFromChange={setDistanceFrom}

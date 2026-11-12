@@ -1,8 +1,13 @@
 import SearchBar from '@/components/ui/SearchBar';
 import HeroTrainBackground from '@/components/home/HeroTrainBackground';
 import AutoExplodeShowcase from '@/components/home/AutoExplodeShowcase';
-import { Train, Eye, GitCompare, MapPin, BarChart3, Zap, Radio, Ticket, ArrowRight } from 'lucide-react';
+import { Train, Eye, GitCompare, MapPin, BarChart3, Radio, Ticket, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { KNOWN_TRAINS } from '@/data/train-directory';
+
+const popularTrains = ['18403', '12301', '12951', '22436']
+  .map((trainNumber) => KNOWN_TRAINS[trainNumber])
+  .filter(Boolean);
 
 const features = [
   {
@@ -82,18 +87,11 @@ export default function HomePage() {
             {/* Quick Live Tracking Links */}
             <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300">
               <span className="text-slate-300 font-medium mr-1">Try a train</span>
-              <Link href="/live-status/18403" className="px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-600/70 transition">
-                18403 Barbil Exp
-              </Link>
-              <Link href="/live-status/12301" className="px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-600/70 transition">
-                12301 Howrah Rajdhani
-              </Link>
-              <Link href="/live-status/12951" className="px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-600/70 transition">
-                12951 Mumbai Rajdhani
-              </Link>
-              <Link href="/live-status/22436" className="px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-600/70 transition">
-                22436 Vande Bharat
-              </Link>
+              {popularTrains.map((train) => (
+                <Link key={train.trainNumber} href={`/live-status/${train.trainNumber}`} className="min-h-11 px-3 py-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-600/70 transition">
+                  {train.trainNumber} {train.trainName}
+                </Link>
+              ))}
             </div>
           </div>
 
