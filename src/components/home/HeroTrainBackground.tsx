@@ -107,13 +107,11 @@ function CoachInterior({ paused }: { paused: boolean }) {
   const seatBases = useMemo(() => rowZ.flatMap((z) => [-0.92, 0.92].map((x) => [x, 0.65, z] as [number, number, number])), []);
   const seatBacks = useMemo(() => rowZ.flatMap((z) => [-0.92, 0.92].map((x) => [x, 1.12, z + 0.25] as [number, number, number])), []);
   const headrests = useMemo(() => rowZ.flatMap((z) => [-0.92, 0.92].map((x) => [x, 1.58, z + 0.28] as [number, number, number])), []);
-  const occupiedSeats = useMemo(() => rowZ.filter((_, index) => index % 3 === 1).flatMap((z) => [-0.92, 0.92].map((x) => [x, 1.08, z + 0.18] as [number, number, number])), []);
-  const seatedHeads = useMemo(() => occupiedSeats.map(([x, , z]) => [x, 1.55, z] as [number, number, number]), [occupiedSeats]);
 
   useFrame(({ clock }) => {
     if (cameraRig.current) {
       const t = clock.getElapsedTime() % 90;
-      cameraRig.current.visible = !paused && t < 10;
+      cameraRig.current.visible = !paused && t >= 54 && t < 64;
       if (paused) return;
       cameraRig.current.position.x = Math.sin(t * 0.35) * 0.025;
       cameraRig.current.position.y = Math.sin(t * 0.7) * 0.018;
@@ -184,8 +182,10 @@ function CoachInterior({ paused }: { paused: boolean }) {
       <InstancedSeatParts positions={seatBases} size={[0.74, 0.2, 0.78]} color="#176c82" />
       <InstancedSeatParts positions={seatBacks} size={[0.74, 0.82, 0.2]} color="#0e536b" />
       <InstancedSeatParts positions={headrests} size={[0.42, 0.18, 0.12]} color="#3c9bb0" />
-      <InstancedSeatParts positions={occupiedSeats} size={[0.36, 0.62, 0.24]} color="#85483e" />
-      <InstancedSeatParts positions={seatedHeads} size={[0.2, 0.22, 0.18]} color="#bc8e70" />
+      <Suspense fallback={null}>
+        <StaticHumanGroup modelPath="/models/station-family.glb" position={[-1.15, 0, -12]} rotation={Math.PI / 2} scale={0.58} />
+        <StaticHumanGroup modelPath="/models/station-family.glb" position={[1.15, 0, -19]} rotation={-Math.PI / 2} scale={0.58} />
+      </Suspense>
 
       {rowZ.map((z, index) => (
         <mesh key={z} position={[0, 2.93, z - 0.35]}>
@@ -199,103 +199,36 @@ function CoachInterior({ paused }: { paused: boolean }) {
   );
 }
 
-function PassengerFigure({
-  position,
-  outfit,
-  phase,
-  walking = false,
-  facing = 0,
-}: {
+function StaticHumanGroup({ modelPath, position, rotation = 0, scale = 1 }: {
+  modelPath: string;
   position: [number, number, number];
-  outfit: string;
-  phase: number;
-  walking?: boolean;
-  facing?: number;
+  rotation?: number;
+  scale?: number;
 }) {
-  const figure = useRef<THREE.Group>(null);
-  const leftArm = useRef<THREE.Group>(null);
-  const rightArm = useRef<THREE.Group>(null);
-  const leftLeg = useRef<THREE.Group>(null);
-  const rightLeg = useRef<THREE.Group>(null);
-  const torso = useRef<THREE.Group>(null);
-  const head = useRef<THREE.Mesh>(null);
-
-  useFrame(({ clock }) => {
-    const time = clock.elapsedTime * (walking ? 3.2 : 1.4) + phase;
-    const stride = walking ? Math.sin(time) * 0.48 : Math.sin(time) * 0.025;
-    if (leftLeg.current) leftLeg.current.rotation.x = stride;
-    if (rightLeg.current) rightLeg.current.rotation.x = -stride;
-    if (leftArm.current) leftArm.current.rotation.x = -stride * 0.62 + Math.sin(time * 0.5) * 0.05;
-    if (rightArm.current) rightArm.current.rotation.x = stride * 0.62 + Math.sin(time * 1.8) * (walking ? 0.04 : 0.12);
-    if (head.current) head.current.rotation.y = Math.sin(time * 0.32) * 0.16;
-    if (torso.current) torso.current.rotation.x = walking ? Math.sin(time * 2) * 0.025 : Math.sin(time * 0.8) * 0.012;
-    if (figure.current && walking) {
-      figure.current.position.z = position[2] + Math.sin(clock.elapsedTime * 0.16 + phase) * 2.8;
-      figure.current.position.y = Math.abs(Math.sin(time * 2)) * 0.035;
-    }
-  });
-
-  return (
-    <group ref={figure} position={position} rotation={[0, facing, 0]}>
-      <group ref={torso}>
-        <mesh position={[0, 0.98, 0]} castShadow><capsuleGeometry args={[0.145, 0.48, 5, 10]} /><meshStandardMaterial color={outfit} roughness={0.78} /></mesh>
-        <mesh position={[0, 1.34, 0]} castShadow><cylinderGeometry args={[0.092, 0.13, 0.12, 10]} /><meshStandardMaterial color="#bc8e70" roughness={0.84} /></mesh>
-        <mesh ref={head} position={[0, 1.56, 0.015]} castShadow><sphereGeometry args={[0.145, 14, 12]} /><meshStandardMaterial color="#bc8e70" roughness={0.86} /></mesh>
-        <mesh position={[0, 1.65, 0.005]}><sphereGeometry args={[0.147, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5]} /><meshStandardMaterial color={phase % 2 > 1 ? '#211c1a' : '#30221f'} roughness={1} /></mesh>
-        {[-0.052, 0.052].map((eye) => <mesh key={eye} position={[eye, 1.565, 0.151]}><sphereGeometry args={[0.011, 6, 6]} /><meshBasicMaterial color="#17191b" /></mesh>)}
-      </group>
-      <group ref={leftArm} position={[-0.2, 1.31, 0]}>
-        <mesh position={[0, -0.18, 0]} castShadow><capsuleGeometry args={[0.055, 0.25, 4, 7]} /><meshStandardMaterial color={outfit} roughness={0.85} /></mesh>
-        <mesh position={[0, -0.43, 0]} castShadow><capsuleGeometry args={[0.04, 0.2, 4, 7]} /><meshStandardMaterial color={outfit} roughness={0.85} /></mesh>
-      </group>
-      <group ref={rightArm} position={[0.2, 1.31, 0]}>
-        <mesh position={[0, -0.18, 0]} castShadow><capsuleGeometry args={[0.055, 0.25, 4, 7]} /><meshStandardMaterial color={outfit} roughness={0.85} /></mesh>
-        <mesh position={[0, -0.43, 0]} castShadow><capsuleGeometry args={[0.04, 0.2, 4, 7]} /><meshStandardMaterial color={outfit} roughness={0.85} /></mesh>
-      </group>
-      <group ref={leftLeg} position={[-0.095, 0.48, 0]}>
-        <mesh position={[0, -0.12, 0]} castShadow><capsuleGeometry args={[0.066, 0.3, 4, 7]} /><meshStandardMaterial color="#263647" roughness={0.9} /></mesh>
-        <mesh position={[0, -0.38, 0.055]} castShadow><boxGeometry args={[0.13, 0.08, 0.25]} /><meshStandardMaterial color="#202833" roughness={0.85} /></mesh>
-      </group>
-      <group ref={rightLeg} position={[0.095, 0.48, 0]}>
-        <mesh position={[0, -0.12, 0]} castShadow><capsuleGeometry args={[0.066, 0.3, 4, 7]} /><meshStandardMaterial color="#263647" roughness={0.9} /></mesh>
-        <mesh position={[0, -0.38, 0.055]} castShadow><boxGeometry args={[0.13, 0.08, 0.25]} /><meshStandardMaterial color="#202833" roughness={0.85} /></mesh>
-      </group>
-      {phase % 2 < 1 && (
-        <mesh position={[0.31, 0.57, -0.08]} castShadow>
-          <boxGeometry args={[0.24, 0.32, 0.2]} />
-          <meshStandardMaterial color="#7c5138" roughness={0.88} />
-        </mesh>
-      )}
-    </group>
-  );
+  const { scene } = useGLTF(modelPath);
+  const model = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  return <primitive object={model} position={position} rotation={[0, rotation, 0]} scale={scale} />;
 }
 
 function StationCrowd() {
-  const passengers = useMemo(() => [
-    { position: [-4.72, 0, -6] as [number, number, number], outfit: '#a5433e', phase: 0.2, walking: true },
-    { position: [-4.5, 0, -13] as [number, number, number], outfit: '#d5a84d', phase: 1.2, facing: Math.PI / 2 },
-    { position: [-3.85, 0, -12.5] as [number, number, number], outfit: '#355d78', phase: 2.1, facing: -Math.PI / 2 },
-    { position: [-3.2, 0, -4] as [number, number, number], outfit: '#59856c', phase: 3.5, walking: true },
-    { position: [-4.72, 0, 2] as [number, number, number], outfit: '#70528c', phase: 4.4 },
-    { position: [-4.68, 0, 4.1] as [number, number, number], outfit: '#c77b42', phase: 5.2 },
-    { position: [-3.22, 0, 12] as [number, number, number], outfit: '#397a82', phase: 6.2, walking: true },
-    { position: [-4.72, 0, 21] as [number, number, number], outfit: '#b74e66', phase: 7.1 },
-  ], []);
-
   return (
-    <group>
-      <Suspense fallback={null}>
-        <AnimatedStationPassenger position={passengers[0].position} phase={passengers[0].phase} />
-      </Suspense>
-      {passengers.slice(1).map((passenger) => <PassengerFigure key={passenger.phase} {...passenger} />)}
-    </group>
+    <Suspense fallback={null}>
+      {/* Textured, full-body models give both platforms a varied age range and natural social poses. */}
+      <StaticHumanGroup modelPath="/models/station-family.glb" position={[-4.12, 0, -28]} rotation={Math.PI / 2} scale={0.92} />
+      <StaticHumanGroup modelPath="/models/station-talking-group.glb" position={[-4.1, 0, -14]} rotation={Math.PI / 2} scale={0.9} />
+      <StaticHumanGroup modelPath="/models/station-family.glb" position={[8.05, 0, -29]} rotation={-Math.PI / 2} scale={0.92} />
+      <StaticHumanGroup modelPath="/models/station-talking-group.glb" position={[8.05, 0, -12]} rotation={-Math.PI / 2} scale={0.9} />
+      <AnimatedStationPassenger modelPath="/models/station-passenger.glb" position={[-4.55, 0, -4]} phase={0.4} />
+      <AnimatedStationPassenger modelPath="/models/station-woman-walk.glb" position={[-3.25, 0, 2]} phase={1.8} />
+      <AnimatedStationPassenger modelPath="/models/station-woman-walk.glb" position={[7.2, 0, 5]} phase={3.2} />
+    </Suspense>
   );
 }
 
-function AnimatedStationPassenger({ position, phase, boarding = false, tint = '#ffffff' }: { position: [number, number, number]; phase: number; boarding?: boolean; tint?: string }) {
+function AnimatedStationPassenger({ modelPath, position, phase, boarding = false, tint = '#ffffff' }: { modelPath: string; position: [number, number, number]; phase: number; boarding?: boolean; tint?: string }) {
   const root = useRef<THREE.Group>(null);
   const walkAction = useRef<THREE.AnimationAction | null>(null);
-  const { scene, animations } = useGLTF('/models/station-passenger.glb');
+  const { scene, animations } = useGLTF(modelPath);
   const model = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
     clone.traverse((object) => {
@@ -314,7 +247,7 @@ function AnimatedStationPassenger({ position, phase, boarding = false, tint = '#
   const { actions } = useAnimations(animations, root);
 
   useEffect(() => {
-    const walk = actions.Walk;
+    const walk = actions.Walk ?? actions.Walk_Relaxed;
     if (!walk) return;
     walkAction.current = walk;
     walk.reset().fadeIn(0.35).setLoop(THREE.LoopRepeat, Infinity).play();
@@ -324,11 +257,11 @@ function AnimatedStationPassenger({ position, phase, boarding = false, tint = '#
   useFrame(({ clock }) => {
     if (!root.current) return;
     if (boarding) {
-      const cycle = (clock.elapsedTime + phase) % 24;
-      const walking = cycle >= 4 && cycle < 12;
-      const progress = THREE.MathUtils.clamp((cycle - 4) / 8, 0, 1);
-      root.current.visible = cycle < 12 || cycle > 21;
-      root.current.position.x = cycle > 21 ? 8.35 : THREE.MathUtils.lerp(8.35, 6.18, progress);
+      const cycle = (clock.elapsedTime + phase) % 90;
+      const walking = cycle >= 29 && cycle < 44;
+      const progress = THREE.MathUtils.clamp((cycle - 29) / 15, 0, 1);
+      root.current.visible = cycle < 50;
+      root.current.position.x = cycle > 44 ? 6.18 : THREE.MathUtils.lerp(8.35, 6.18, progress);
       root.current.position.z = position[2];
       root.current.rotation.y = -Math.PI / 2;
       if (walkAction.current) walkAction.current.paused = !walking;
@@ -342,14 +275,17 @@ function AnimatedStationPassenger({ position, phase, boarding = false, tint = '#
 
 function BoardingCrowd() {
   const boarders = [
-    { position: [8.35, 0, -5] as [number, number, number], phase: 0, tint: '#fff7ed' },
-    { position: [8.35, 0, 1] as [number, number, number], phase: 7, tint: '#e2edff' },
-    { position: [8.35, 0, 7] as [number, number, number], phase: 14, tint: '#f4eadb' },
+    { modelPath: '/models/station-passenger.glb', position: [8.35, 0, -5] as [number, number, number], phase: 0, tint: '#fff7ed' },
+    { modelPath: '/models/station-woman-walk.glb', position: [8.35, 0, 1] as [number, number, number], phase: 5, tint: '#e2edff' },
+    { modelPath: '/models/station-woman-walk.glb', position: [8.35, 0, 7] as [number, number, number], phase: 10, tint: '#f4eadb' },
   ];
   return <Suspense fallback={null}>{boarders.map((person) => <AnimatedStationPassenger key={person.phase} {...person} boarding />)}</Suspense>;
 }
 
 useGLTF.preload('/models/station-passenger.glb');
+useGLTF.preload('/models/station-woman-walk.glb');
+useGLTF.preload('/models/station-family.glb');
+useGLTF.preload('/models/station-talking-group.glb');
 
 function MovingRake({ paused }: { paused: boolean }) {
   const rake = useRef<THREE.Group>(null);
@@ -405,12 +341,6 @@ function MovingRake({ paused }: { paused: boolean }) {
                     <boxGeometry args={[0.035, 0.75, isEngine ? 0.46 : 0.5]} />
                     <meshStandardMaterial color="#ffd38b" emissive="#d88736" emissiveIntensity={1.15} roughness={0.22} />
                   </mesh>
-                  {!isEngine && windowIndex % 2 === 1 && (
-                    <mesh position={[side * 1.075, 1.64, zOffset + 0.02]}>
-                      <capsuleGeometry args={[0.11, 0.28, 3, 5]} />
-                      <meshBasicMaterial color="#172536" />
-                    </mesh>
-                  )}
                 </group>
               );
             }))}
@@ -537,12 +467,15 @@ function SecondPlatform() {
 }
 
 function ParkedTrain() {
+  const rake = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!rake.current) return;
+    const time = clock.getElapsedTime() % 90;
+    // It arrives against the flow of the first train, waits for boarding, then departs.
+    rake.current.position.z = time < 25 ? 34 - time * 1.36 : time < 48 ? 0 : (time - 48) * 2.2;
+  });
   const cars = useMemo(() => Array.from({ length: 8 }, (_, index) => 15 - index * 4.25), []);
   const coaches = useMemo(() => cars.slice(1), [cars]);
-  const passengers = useMemo(() => coaches.flatMap((z) => [
-    [1.135, 1.53, z - 0.65], [1.135, 1.53, z + 0.72],
-  ] as Array<[number, number, number]>), [coaches]);
-  const passengerHeads = useMemo(() => passengers.map(([x, , z]) => [x, 1.82, z] as [number, number, number]), [passengers]);
   const windows = useMemo(() => coaches.flatMap((z) => [-1, 1].flatMap((side) => Array.from({ length: 4 }, (_, i) => [side * 1.115, 1.72, z - 1.25 + i * 0.82] as [number, number, number]))), [coaches]);
   const doors = useMemo(() => coaches.flatMap((z) => [-1, 1].flatMap((side) => [-1.72, 1.72].map((offset) => [side * 1.115, 1.44, z + offset] as [number, number, number]))), [coaches]);
   const stripes = useMemo(() => coaches.flatMap((z) => [-1, 1].map((side) => [side * 1.115, 0.72, z] as [number, number, number])), [coaches]);
@@ -551,7 +484,7 @@ function ParkedTrain() {
   const wheels = useMemo(() => cars.flatMap((z) => [-1.25, 1.25].flatMap((offset) => [-0.78, 0.78].flatMap((x) => [-0.24, 0.24].map((axle) => [x, 0.34, z + offset + axle] as [number, number, number])))), [cars]);
 
   return (
-    <group position={[5, 0, 0]}>
+    <group ref={rake} position={[5, 0, 34]}>
       <InstancedSeatParts positions={coaches.map((z) => [0, 1.45, z] as [number, number, number])} size={[2.2, 2.3, 4]} color="#c8d7df" />
       <InstancedSeatParts positions={coaches.map((z) => [0, 2.77, z] as [number, number, number])} size={[2.06, 0.13, 3.8]} color="#8299a8" />
       <InstancedSeatParts positions={stripes} size={[0.035, 0.16, 3.8]} color="#1687b5" />
@@ -569,8 +502,6 @@ function ParkedTrain() {
       </group>
       <InstancedSeatParts positions={windows} size={[0.035, 0.75, 0.56]} color="#ffd38b" emissive="#9d6127" />
       <InstancedSeatParts positions={doors} size={[0.035, 1.65, 0.28]} color="#e7b351" />
-      <InstancedSeatParts positions={passengers} size={[0.18, 0.42, 0.05]} color="#263749" />
-      <InstancedSeatParts positions={passengerHeads} size={[0.14, 0.16, 0.05]} color="#bd8e70" />
       <InstancedWheelParts positions={wheels} />
     </group>
   );
@@ -609,50 +540,71 @@ function OverheadEquipment() {
 
 function CameraJourney({ reducedMotion }: { reducedMotion: boolean }) {
   useFrame(({ camera, clock, size }) => {
+    const droneHome = () => {
+      camera.position.set(2.5, 22, 1);
+      camera.lookAt(2.5, 0.5, -10);
+    };
     if (reducedMotion) {
-      camera.position.set(-16, 7.2, 5);
-      camera.lookAt(2.5, 1.2, -10);
+      droneHome();
       return;
     }
     const elapsed = clock.getElapsedTime() % 90;
-    if (elapsed < 10) {
-      camera.position.set(0, 1.58, 2.35);
-      camera.lookAt(0, 1.58, -12);
-      return;
-    }
     const ease = (value: number) => {
       const t = THREE.MathUtils.clamp(value, 0, 1);
       return t * t * (3 - 2 * t);
     };
     const lerp = THREE.MathUtils.lerp;
     const portraitDistance = size.width / Math.max(size.height, 1) < 0.8 ? 1.12 : 1;
+    if (elapsed < 8) {
+      // Start with a clear, moving aerial establishing shot of both tracks.
+      const p = elapsed / 8;
+      const angle = -0.35 + p * 0.7;
+      camera.position.set(2.5 + Math.sin(angle) * 8, 22 + Math.sin(p * Math.PI) * 1.5, -10 + Math.cos(angle) * 12);
+      camera.lookAt(2.5 + Math.sin(angle) * 1.2, 0.5, -10 + Math.cos(angle) * 1.2);
+      return;
+    }
     if (elapsed < 14) {
-      const p = ease((elapsed - 10) / 4);
-      camera.position.set(0, lerp(1.58, 4.8, p), lerp(2.35, 6.2, p));
-      camera.lookAt(lerp(0, 2.5, p), lerp(1.58, 1.4, p), lerp(-12, -10, p));
+      const p = ease((elapsed - 8) / 6);
+      camera.position.set(lerp(2.5, 15, p), lerp(22, 16, p), lerp(2, 8, p));
+      camera.lookAt(2.5, 0.6, -10);
       return;
     }
-    if (elapsed < 42) {
-      const angle = ((elapsed - 14) / 28) * Math.PI * 2;
-      camera.position.set(2.5 + Math.sin(angle) * 17 * portraitDistance, 4.7 + Math.sin(angle * 2) * 0.65, -10 + Math.cos(angle) * 15 * portraitDistance);
-      camera.lookAt(2.5, 1.25, -10);
+    if (elapsed < 36) {
+      const angle = ((elapsed - 14) / 22) * Math.PI * 2;
+      camera.position.set(2.5 + Math.sin(angle) * 18 * portraitDistance, 15 + Math.sin(angle * 2) * 1.6, -10 + Math.cos(angle) * 19 * portraitDistance);
+      camera.lookAt(2.5, 0.3, -10);
       return;
     }
-    if (elapsed < 62) {
-      const angle = ((elapsed - 42) / 20) * Math.PI * 2;
+    if (elapsed < 40) {
+      const p = ease((elapsed - 36) / 4);
+      const lower = ease((p - 0.58) / 0.42);
+      camera.position.set(lerp(2.5, -8.6, p), lerp(15, 3.4, lower), lerp(9, 18, p));
+      camera.lookAt(lerp(2.5, -3.8, p), lerp(0.3, 1.15, p), lerp(-10, 16.8, p));
+      return;
+    }
+    if (elapsed < 54) {
+      const p = (elapsed - 40) / 14;
+      const z = 18 - p * 56;
+      // Ground-level human-detail pass stays outside the OHE gantry line.
+      camera.position.set(-8.6, 3.4 + Math.sin(p * Math.PI * 2) * 0.18, z);
+      camera.lookAt(-3.8, 1.15, z - 1.2);
+      return;
+    }
+    if (elapsed < 64) {
+      const p = (elapsed - 54) / 10;
+      camera.position.set(0, 1.58 + Math.sin(p * Math.PI) * 0.015, 2.35);
+      camera.lookAt(0, 1.58, -12);
+      return;
+    }
+    if (elapsed < 82) {
+      const angle = ((elapsed - 64) / 18) * Math.PI * 2;
       camera.position.set(2.5 + Math.sin(angle) * 21 * portraitDistance, 13.5 + Math.sin(angle * 2) * 1.2, -10 + Math.cos(angle) * 22 * portraitDistance);
       camera.lookAt(2.5, 0.3, -10);
       return;
     }
-    if (elapsed < 80) {
-      const angle = ((elapsed - 62) / 18) * Math.PI * 2;
-      camera.position.set(2.5 + Math.sin(angle) * 12.5 * portraitDistance, 4.7 + Math.sin(angle * 2) * 0.35, -10 + Math.cos(angle) * 9.5 * portraitDistance);
-      camera.lookAt(3.1, 1.35, -10);
-      return;
-    }
-    const p = ease((elapsed - 80) / 10);
-    camera.position.set(lerp(2.5, 0, p), lerp(4.7, 1.58, p), lerp(-0.5, 2.35, p));
-    camera.lookAt(lerp(2.5, 0, p), 1.58, lerp(-10, -12, p));
+    const p = ease((elapsed - 82) / 8);
+    camera.position.set(lerp(2.5, 2.5, p), lerp(13.5, 22, p), lerp(12, 1, p));
+    camera.lookAt(2.5, 0.5, -10);
   });
   return null;
 }
@@ -683,9 +635,9 @@ export default function HeroTrainBackground() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_54%,#263947_0%,#101923_78%)]" />
       <Canvas
         className="home-hero-canvas absolute inset-0 !h-full !w-full"
-        camera={{ position: reducedMotion ? [-11, 5.2, 2.5] : [0, 4.2, 0.5], fov: 58, near: 0.1, far: 150 }}
+        camera={{ position: [2.5, 22, 1], fov: 50, near: 0.1, far: 180 }}
         onCreated={({ camera }) => {
-          camera.lookAt(0, 0.8, -10);
+          camera.lookAt(2.5, 0.5, -10);
         }}
         dpr={[1, 1.1]}
         gl={{ alpha: true, antialias: false, powerPreference: 'low-power' }}
